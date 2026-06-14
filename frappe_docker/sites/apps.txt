@@ -1,0 +1,5 @@
+frappe
+erpnext
+library_management
+education
+edu_theme

@@ -1,0 +1,33 @@
+# Custom Nginx Image with edu_theme assets
+# This ensures Nginx can serve custom app assets without symlink issues
+
+ARG ERPNEXT_VERSION=v15.0.0
+
+# Stage 1: Build assets (reuse backend builder stage)
+FROM frappe/erpnext:${ERPNEXT_VERSION} as asset-builder
+
+# Copy custom app
+COPY ./apps/edu_theme /home/frappe/frappe-bench/apps/edu_theme
+
+# Build assets for custom app
+RUN cd /home/frappe/frappe-bench && \
+    . env/bin/activate && \
+    bench get-app edu_theme file:///home/frappe/frappe-bench/apps/edu_theme --skip-assets && \
+    bench build --app edu_theme
+
+# Stage 2: Nginx image with custom app assets
+FROM frappe/erpnext-nginx:${ERPNEXT_VERSION}
+
+# Copy custom app assets from builder
+# This physically copies the assets into the Nginx image, eliminating symlink issues
+COPY --from=asset-builder /home/frappe/frappe-bench/sites/assets/edu_theme \
+    /usr/share/nginx/html/assets/edu_theme
+
+# Copy custom app's public directory for any additional static files
+COPY --from=asset-builder /home/frappe/frappe-bench/apps/edu_theme/edu_theme/public \
+    /usr/share/nginx/html/assets/edu_theme
+
+# Ensure proper permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html/assets/edu_theme
+
+# The default nginx.conf from base image already serves /assets correctly

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Nigeria's #1 Tutoring Platform — Connect with top-rated tutors for JAMB prep, primary and secondary school." />
+  <title>TutorHub — Your Child's Success Starts Here</title>
+
+  {# Frappe injects csrf_token into www/ template context automatically #}
+  <script>window.csrf_token = "{{ csrf_token }}";</script>
+
+  {#
+    IMPORTANT: The placeholder tokens below are replaced by deploy-compose.sh
+    using `sed` after each Vite build. The actual hashes come from:
+      apps/tutor_hub/tutor_hub/public/frontend/.vite/manifest.json
+
+    Placeholder format:
+      main-ASSET_HASH_CSS.css  →  main-<actual_hash>.css
+      main-ASSET_HASH_JS.js   →  main-<actual_hash>.js
+
+    Do NOT manually edit these hash values — deploy script owns them.
+    Do NOT commit the server-modified version back to git.
+  #}
+  <link rel="stylesheet" href="/assets/tutor_hub/frontend/assets/main-ASSET_HASH_CSS.css" />
+  <script type="module" src="/assets/tutor_hub/frontend/assets/main-ASSET_HASH_JS.js"></script>
+</head>
+<body class="m-0 p-0 overflow-x-hidden">
+  {# React mounts here. Must be id="root" — NOT id="app" (that is Vue) #}
+  <div id="root"></div>
+</body>
+</html>

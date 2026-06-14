@@ -1,0 +1,33 @@
+# Persist apps, sites, and nginx config
+
+services:
+  backend:
+    volumes:
+      - ./apps:/home/frappe/frappe-bench/apps
+      - ./sites:/home/frappe/frappe-bench/sites
+      
+  frontend:
+    volumes:
+      - ./apps:/home/frappe/frappe-bench/apps:ro
+      - ./sites:/home/frappe/frappe-bench/sites
+      - ./configs/nginx/frappe.conf:/etc/nginx/conf.d/frappe.conf:ro
+
+  queue-long:
+    volumes:
+      - ./apps:/home/frappe/frappe-bench/apps:ro
+      - ./sites:/home/frappe/frappe-bench/sites
+
+  queue-short:
+    volumes:
+      - ./apps:/home/frappe/frappe-bench/apps:ro
+      - ./sites:/home/frappe/frappe-bench/sites
+
+  scheduler:
+    volumes:
+      - ./apps:/home/frappe/frappe-bench/apps:ro
+      - ./sites:/home/frappe/frappe-bench/sites
+
+  websocket:
+    volumes:
+      - ./apps:/home/frappe/frappe-bench/apps:ro
+      - ./sites:/home/frappe/frappe-bench/sites

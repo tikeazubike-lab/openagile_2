@@ -1,0 +1,59 @@
+# configs/prometheus/prometheus.yml
+# Prometheus monitoring configuration for OpenAgile
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: 'openagile'
+    environment: 'production'
+
+# Alertmanager configuration (optional - add if needed)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# Load alert rules
+rule_files:
+  - '/etc/prometheus/alerts.yml'
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Traefik metrics
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8082']
+        labels:
+          service: 'traefik'
+
+  # Docker containers via cAdvisor (if you add it)
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+
+  # Node exporter for system metrics (optional - add if needed)
+  # - job_name: 'node-exporter'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+
+  # PostgreSQL exporter (optional)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+
+  # Custom application metrics from n8n webhooks
+  - job_name: 'n8n-workflows'
+    metrics_path: '/webhook/metrics'
+    scheme: https
+    static_configs:
+      - targets: ['n8n.zubbystudio.shop']
+        labels:
+          service: 'n8n'

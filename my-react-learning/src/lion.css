@@ -1,0 +1,26 @@
+article {
+    padding-bottom: 70px;
+    background-color: aquamarine;
+    width: 100vw;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 600px;
+}
+
+article > img {
+    width: 50%;
+}
+
+li {
+    list-style: none;
+}
+
+li::before {
+    content: "✔️ ";
+}
+
+li::after {
+    content: "";
+}

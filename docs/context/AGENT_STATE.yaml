@@ -1,0 +1,11 @@
+type: CONTEXT_STATE
+id: OPENAGILE_ROOT_AGENT_STATE_POINTER
+title: OpenAgile Root Agent State Pointer
+status: active
+version: 1.0
+updated: "2026-05-23"
+canonical_file: ../../AGENT_STATE.yaml
+notes:
+  - "The canonical root state file remains at repository root."
+  - "Project-specific state should live in each subproject docs/context/AGENT_STATE.yaml."
+

@@ -1,0 +1,18 @@
+{
+  "src/assets/education-illustration.jpg": {
+    "file": "assets/education-illustration-HPAmMaY-.jpg",
+    "src": "src/assets/education-illustration.jpg"
+  },
+  "src/main.ts": {
+    "file": "assets/main-DnJwAeX4.js",
+    "name": "main",
+    "src": "src/main.ts",
+    "isEntry": true,
+    "css": [
+      "assets/main-DnYHgps9.css"
+    ],
+    "assets": [
+      "assets/education-illustration-HPAmMaY-.jpg"
+    ]
+  }
+}

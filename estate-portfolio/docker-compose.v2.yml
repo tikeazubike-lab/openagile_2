@@ -1,0 +1,47 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# EPM Phase 2 — Docker Compose (demo subdomain)
+#
+# Runs ALONGSIDE the existing docker-compose.yml (Streamlit, port 8501).
+# OLD app: estate.zubbystudio.shop  → streamlit (unchanged)
+# NEW app: demo.estate.zubbystudio.shop → this stack
+#
+# Network: openagile_openagile_network (external — shared with Traefik + postgres)
+# DB: openagile_postgres (existing shared container)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+  epm:
+    build:
+      context: .
+      dockerfile: Dockerfile.v2
+    container_name: estate_portfolio_v2
+    env_file:
+      - ./.env.v2
+    volumes:
+      - ./NigerianStocks:/app/vault:ro
+      - ./uploads:/app/uploads
+    networks:
+      - openagile_openagile_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=openagile_openagile_network"
+
+      # ── HTTPS Router ──────────────────────────────────────────────────────────
+      - "traefik.http.routers.epm-v2.rule=Host(`demo.estate.zubbystudio.shop`)"
+      - "traefik.http.routers.epm-v2.entrypoints=websecure"
+      - "traefik.http.routers.epm-v2.tls=true"
+      - "traefik.http.routers.epm-v2.tls.certresolver=cloudflare"
+
+      # ── HTTP → HTTPS Redirect ─────────────────────────────────────────────────
+      - "traefik.http.routers.epm-v2-http.rule=Host(`demo.estate.zubbystudio.shop`)"
+      - "traefik.http.routers.epm-v2-http.entrypoints=web"
+      - "traefik.http.routers.epm-v2-http.middlewares=epm-v2-redirect"
+      - "traefik.http.middlewares.epm-v2-redirect.redirectscheme.scheme=https"
+
+      # ── Service Port ──────────────────────────────────────────────────────────
+      - "traefik.http.services.epm-v2.loadbalancer.server.port=8000"
+
+networks:
+  openagile_openagile_network:
+    external: true

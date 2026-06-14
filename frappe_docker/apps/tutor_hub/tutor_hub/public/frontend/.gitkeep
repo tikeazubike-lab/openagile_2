@@ -1,0 +1,2 @@
+# Vite build output goes here — do not manually edit files in this directory.
+# deploy-compose.sh rebuilds and updates landing.html hashes on every deploy.

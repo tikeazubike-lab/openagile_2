@@ -1,0 +1,49 @@
+type: CONTEXT_STATE
+id: EPM_AGENT_STATE
+title: Estate Portfolio Manager Agent State
+status: active
+version: 1.0
+updated: "2026-05-23"
+
+project:
+  name: Estate Portfolio Manager
+  path: egbuna_estate_account_streamlight/estate-portfolio
+  branch: test
+  deployment_law: GitHub Actions only
+
+current_work:
+  phase: documentation_consolidation_and_handover_correction
+  active_handover: docs/handover/HO-018-1-claude-to-deepseek-antigravity-grok.md
+  migration_map: docs/context/DOCUMENT_MIGRATION_MAP.md
+  archive_policy: archive_first_no_delete_without_approval
+
+agents:
+  codex:
+    role: context_orchestrator
+    status: active
+    current_task: create_project_context_engine_and_corrected_handover
+  deepseek_v4:
+    role: backend_builder_and_final_integrator
+    status: pending
+    owns:
+      - backend/
+      - backend/tests/
+      - backend/alembic/
+      - backend/app/
+  antigravity_gemini:
+    role: frontend_builder
+    status: pending
+    owns:
+      - estate-portfolio-manager/src/
+  grok:
+    role: spotter
+    status: pending
+    owns: []
+    mode: read_only_review
+
+guardrails:
+  local_docker: forbidden
+  local_deployment: forbidden
+  root_handover_moves: forbidden_until_approved
+  destructive_deletes: forbidden_until_approved
+

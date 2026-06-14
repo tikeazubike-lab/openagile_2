@@ -1,0 +1,95 @@
+# configs/traefik/traefik.yml
+# Static Configuration for Traefik
+
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+api:
+  dashboard: true
+  insecure: false
+
+log:
+  level: INFO
+  format: common
+
+accessLog:
+  format: common
+  bufferingSize: 100
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: zubbystudio.shop
+            sans:
+              - "*.zubbystudio.shop"
+    http2:
+      maxConcurrentStreams: 250
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: traefik_public
+    watch: true
+
+  file:
+    filename: /dynamic.yml
+    watch: true
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: zubbyik@gmail.com
+      storage: /letsencrypt/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        delayBeforeCheck: 30
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"
+
+# Metrics for Prometheus
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true
+    entryPoint: metrics
+    manualRouting: false
+
+# Additional entry point for metrics
+entryPoints:
+  metrics:
+    address: ":8082"
+
+# Security headers middleware (global)
+http:
+  middlewares:
+    security-headers:
+      headers:
+        frameDeny: true
+        sslRedirect: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""

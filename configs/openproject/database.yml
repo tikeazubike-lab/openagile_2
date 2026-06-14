@@ -1,0 +1,9 @@
+production:
+  adapter: postgresql
+  encoding: unicode
+  database: openproject
+  pool: 20
+  username: openagile
+  password: 
+  host: openagile_postgres
+  port: 5432

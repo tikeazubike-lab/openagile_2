@@ -1,0 +1,106 @@
+.fun-facts-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 2.5rem;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+    color: white;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.fun-facts-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 70px rgba(102, 126, 234, 0.4);
+}
+
+.fun-facts-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.fun-facts-logo {
+    height: 80px;
+    width: 80px;
+    filter: brightness(0) invert(1);
+    transition: transform 0.3s ease;
+}
+
+.fun-facts-logo:hover {
+    transform: scale(1.1) rotate(10deg);
+}
+
+.fun-facts-title {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 2rem 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    letter-spacing: -0.5px;
+}
+
+.fun-facts-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.fun-facts-item {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.fun-facts-item::before {
+    content: "✦";
+    position: absolute;
+    left: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+}
+
+.fun-facts-item {
+    padding-left: 2.5rem;
+}
+
+.fun-facts-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.fun-facts-item:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 600px) {
+    .fun-facts-card {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+    }
+
+    .fun-facts-title {
+        font-size: 1.5rem;
+    }
+
+    .fun-facts-logo {
+        height: 60px;
+        width: 60px;
+    }
+
+    .fun-facts-item {
+        font-size: 0.9rem;
+        padding: 0.875rem 1.25rem;
+        padding-left: 2.25rem;
+    }
+}

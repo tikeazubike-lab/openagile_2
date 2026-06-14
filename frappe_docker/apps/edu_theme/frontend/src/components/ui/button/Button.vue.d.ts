@@ -1,0 +1,25 @@
+import { type PrimitiveProps } from 'radix-vue';
+import { type VariantProps } from 'class-variance-authority';
+declare const buttonVariants: (props?: {
+    variant?: "default" | "link" | "nav" | "outline" | "accent" | "destructive" | "secondary" | "ghost" | "hero" | "heroOutline";
+    size?: "default" | "icon" | "sm" | "lg" | "xl";
+} & import("class-variance-authority/dist/types").ClassProp) => string;
+interface Props extends PrimitiveProps {
+    variant?: VariantProps<typeof buttonVariants>['variant'];
+    size?: VariantProps<typeof buttonVariants>['size'];
+    class?: string;
+}
+declare var __VLS_6: {};
+type __VLS_Slots = {} & {
+    default?: (props: typeof __VLS_6) => any;
+};
+declare const __VLS_component: import("vue").DefineComponent<Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<Props> & Readonly<{}>, {
+    as: string;
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
+declare const _default: __VLS_WithSlots<typeof __VLS_component, __VLS_Slots>;
+export default _default;
+type __VLS_WithSlots<T, S> = T & {
+    new (): {
+        $slots: S;
+    };
+};

@@ -1,0 +1,46 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# EPM Phase 2 — Multi-Stage Dockerfile
+# Stage 1: Build React SPA (Node 20)
+# Stage 2: FastAPI backend + static files (Python 3.12 slim)
+#
+# Build context: estate-portfolio/ directory
+# Output: A single container serving both the API and the SPA from port 8000
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Stage 1: React Build ───────────────────────────────────────────────────────
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Install deps first (better Docker layer cache — only reinstalls when package.json changes)
+COPY estate-portfolio-manager/package.json estate-portfolio-manager/package-lock.json ./
+RUN npm install
+
+# Copy source and build
+COPY estate-portfolio-manager/ .
+RUN npm run build
+# Output: /app/frontend/dist/
+
+# ── Stage 2: Python Production Image ──────────────────────────────────────────
+FROM python:3.12-slim AS production
+
+WORKDIR /app
+
+# Install Python deps
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend application code
+COPY backend/ .
+
+# Copy React build output into the location FastAPI StaticFiles will serve
+COPY --from=frontend-builder /app/frontend/dist ./app/static
+
+# Alembic needs to find the migrations relative to backend/
+# (already in WORKDIR /app which maps to backend/)
+
+EXPOSE 8000
+
+# Run with uvicorn. Gunicorn alternative for multi-worker:
+# CMD ["gunicorn", "app.main:app", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

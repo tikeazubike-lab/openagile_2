@@ -1,0 +1,47 @@
+
+# ============================================================
+# Estate Portfolio — uses SHARED OpenAgile postgres
+#
+# Network: openagile_openagile_network ONLY
+#   - openagile_postgres lives on this network (root stack's
+#     openagile_network is created by Docker as openagile_openagile_network)
+#   - Traefik also routes on this network
+#   - ONE network is sufficient for both DB and routing
+# ============================================================
+
+services:
+  streamlit:
+    build: .
+    container_name: estate_portfolio_app
+    env_file:
+      - ./.env
+    volumes:
+      - ./app.py:/app/app.py
+      - ./scripts:/app/scripts
+      - ./backups:/app/backups
+      - ./NigerianStocks:/app/NigerianStocks
+    networks:
+      - openagile_openagile_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=openagile_openagile_network"
+
+      # HTTPS Router
+      - "traefik.http.routers.estate-portfolio.rule=Host(`estate.zubbystudio.shop`)"
+      - "traefik.http.routers.estate-portfolio.entrypoints=websecure"
+      - "traefik.http.routers.estate-portfolio.tls=true"
+      - "traefik.http.routers.estate-portfolio.tls.certresolver=cloudflare"
+
+      # HTTP Router (Redirect to HTTPS)
+      - "traefik.http.routers.estate-portfolio-http.rule=Host(`estate.zubbystudio.shop`)"
+      - "traefik.http.routers.estate-portfolio-http.entrypoints=web"
+      - "traefik.http.routers.estate-portfolio-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+      # Service
+      - "traefik.http.services.estate-portfolio.loadbalancer.server.port=8501"
+    restart: unless-stopped
+
+networks:
+  openagile_openagile_network:
+    external: true

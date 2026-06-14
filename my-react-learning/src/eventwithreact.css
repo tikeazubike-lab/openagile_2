@@ -1,0 +1,9 @@
+.form-on-submit {
+    display: flex;
+    gap: 8px;
+}
+
+#ingredient {
+    border: 1px solid grey;
+    color: brown;
+}

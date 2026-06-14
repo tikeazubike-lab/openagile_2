@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  adminer:
+    image: adminer:4.8.1
+    container_name: adminer
+    restart: unless-stopped
+    networks:
+      - frappe_docker_default
+      - openagile_openagile_network
+    environment:
+      ADMINER_DEFAULT_SERVER: db  # or 'db' depending on your choice
+      ADMINER_DESIGN: pepa-linha-dark  # Optional: dark theme
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=openagile_openagile_network"
+      
+      # Main route
+      - "traefik.http.routers.adminer.rule=Host(`db.zubbystudio.shop`)"
+      - "traefik.http.routers.adminer.entrypoints=websecure"
+      - "traefik.http.routers.adminer.tls=true"
+      - "traefik.http.routers.adminer.tls.certresolver=cloudflare"
+      - "traefik.http.services.adminer.loadbalancer.server.port=8080"
+      
+      # Security: Optional basic auth
+      # Generate password: echo $(htpasswd -nb admin yourpassword) | sed -e s/\\$/\\$\\$/g
+      - "traefik.http.middlewares.adminer-auth.basicauth.users=adminer_user:$$apr1$$S..W9U52$$jMLSGMhZEdXCjElAXFz050"
+      - "traefik.http.routers.adminer.middlewares=adminer-auth"
+      
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.adminer-http.rule=Host(`db.zubbystudio.shop`)"
+      - "traefik.http.routers.adminer-http.entrypoints=web"
+      - "traefik.http.routers.adminer-http.middlewares=redirect-to-https"
+
+networks:
+  frappe_docker_default:
+    external: true
+  openagile_openagile_network:
+    external: true
+
+# Save as: ~/openagile/adminer/docker-compose.yml

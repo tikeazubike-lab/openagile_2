@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  streamlit:
+    build: .
+    container_name: deliverability_sentinel_app
+    env_file:
+      - ./.env
+    volumes:
+      - ./app.py:/app/app.py
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+    networks:
+      - openagile_openagile_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=openagile_openagile_network"
+
+      # HTTPS Router
+      - "traefik.http.routers.deliverability-sentinel.rule=Host(`deliverability.zubbystudio.shop`)"
+      - "traefik.http.routers.deliverability-sentinel.entrypoints=websecure"
+      - "traefik.http.routers.deliverability-sentinel.tls=true"
+      - "traefik.http.routers.deliverability-sentinel.tls.certresolver=cloudflare"
+
+      # HTTP Router (Redirect to HTTPS)
+      - "traefik.http.routers.deliverability-sentinel-http.rule=Host(`deliverability.zubbystudio.shop`)"
+      - "traefik.http.routers.deliverability-sentinel-http.entrypoints=web"
+      - "traefik.http.routers.deliverability-sentinel-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+      # Service
+      - "traefik.http.services.deliverability-sentinel.loadbalancer.server.port=8501"
+    restart: unless-stopped
+
+networks:
+  openagile_openagile_network:
+    external: true
+    name: openagile_openagile_network

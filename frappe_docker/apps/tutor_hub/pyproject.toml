@@ -1,0 +1,17 @@
+[project]
+name = "tutor_hub"
+authors = [{ name = "zubbyik" }]
+description = "Nigeria's #1 Tutoring Platform — Connect with top tutors"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+
+[tool.flit.module]
+name = "tutor_hub"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.format]
+indent-style = "tab"

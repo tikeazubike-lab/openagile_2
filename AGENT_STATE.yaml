@@ -1,0 +1,87 @@
+# Agent Workflow State
+# This file is the single source of truth for multi-agent coordination.
+# All agents must read and update this file during workflow execution.
+
+platform:
+  agent: "Antigravity"
+  license: "unrestricted"
+  migrated_at: "2026-02-16T09:15:00Z"
+  previous_agents:
+    - "Claude free version"
+    - "Gemini CLI (without pro license)"
+  capabilities:
+    - "file_system_access"
+    - "terminal_execution"
+    - "browser_interaction"
+    - "code_search"
+    - "web_search"
+    - "image_generation"
+    - "persistent_knowledge_items"
+    - "conversation_history"
+  note: "No license limitations. All agent roles (Investigator, Builder, Orchestrator) run under Antigravity with full autonomous capability."
+
+workflow:
+  name: "thrive-tech-hub Recovery"
+  current_phase: "recovery"  # pending | investigation | analysis | recovery | validation | complete
+  started_at: "2026-01-25T15:57:00Z"
+  last_updated: "2026-02-16T09:15:00Z"
+
+agents:
+  investigator:
+    status: "complete"  # pending | active | complete | error
+    prompt_file: "./agents/INVESTIGATOR_AGENT.md"
+    output_file: "./INFRASTRUCTURE_CONTRACT.md"
+    last_run: "2026-01-25T16:00:00Z"
+    
+  builder:
+    status: "pending"  # pending | blocked | active | complete | error
+    blocked_by: null
+    prompt_file: "./agents/BUILDER_AGENT.md"
+    current_task: "Awaiting invocation"
+    completed_tasks: []
+    last_run: null
+    
+  orchestrator:
+    status: "active"
+    prompt_file: "./agents/ORCHESTRATOR_AGENT.md"
+    last_decision: "Produced RECOVERY_PLAN.md, Builder is unblocked"
+
+artifacts:
+  infrastructure_contract:
+    file: "./INFRASTRUCTURE_CONTRACT.md"
+    status: "complete"  # missing | in_progress | complete
+    
+  recovery_plan:
+    file: "./RECOVERY_PLAN.md"
+    status: "complete"
+    
+  validation_report:
+    file: null
+    status: "missing"
+
+target_project:
+  path: "./thrive-tech-hub/"
+  known_issues:
+    - id: "NET-001"
+      description: "Traefik network label may reference wrong network name"
+      severity: "critical"
+      evidence: "docker-compose.ghost.yml line 50: traefik.docker.network=openagile_network"
+      
+    - id: "SSL-001"
+      description: "Multiple SSL/cert debug logs suggest certificate acquisition failures"
+      severity: "high"
+      evidence: "20+ log files (acme_logs.log, reset_ssl_logs.log, etc.)"
+
+reference_projects:
+  - path: "./frappe_docker/"
+    purpose: "Working multi-site Frappe deployment"
+  - path: "./AGENTS.md"
+    purpose: "Global infrastructure patterns"
+  - path: "./docker-compose.yml"
+    purpose: "Root infrastructure (Traefik, Postgres)"
+
+# Instructions for agents:
+# 1. Read this file at the start of every session
+# 2. Check your agent's status before taking action
+# 3. Update your status and outputs after completing tasks
+# 4. If blocked, do not proceed — wait for Orchestrator

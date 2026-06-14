@@ -1,0 +1,2 @@
+# patches.txt — list migration patches here when DocTypes are added
+# Format: tutor_hub.patches.v1_0.patch_name

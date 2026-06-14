@@ -1,0 +1,77 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'openagile-production'
+    environment: 'production'
+
+# Alert rules
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    
+  # Docker containers via cAdvisor
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['172.18.0.2:8080']
+    metric_relabel_configs:
+      # Keep only useful metrics (reduce cardinality)
+      - source_labels: [__name__]
+        regex: 'container_(cpu|memory|network|fs).*'
+        action: keep
+  
+  # Server hardware via Node Exporter
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['172.18.0.3:9100']
+  
+  # Traefik metrics
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8082']
+  
+  # OpenProject (if metrics enabled)
+  - job_name: 'openproject'
+    static_configs:
+      - targets: ['openproject:8080']
+    metrics_path: '/metrics'
+  
+  # Gitea
+  - job_name: 'gitea'
+    static_configs:
+      - targets: ['gitea:3000']
+    metrics_path: '/metrics'
+  
+  # Woodpecker Server
+  - job_name: 'woodpecker'
+    static_configs:
+      - targets: ['woodpecker-server:9001']
+  
+  # n8n (if metrics enabled)
+  - job_name: 'n8n'
+    static_configs:
+      - targets: ['n8n:5678']
+    metrics_path: '/metrics'
+  
+  # PostgreSQL (via postgres_exporter - optional)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres_exporter:9187']
+  
+  # Future: Frappe Education staging
+  - job_name: 'frappe-staging'
+    static_configs:
+      - targets: ['frappe-staging:8000']
+    metrics_path: '/api/method/frappe.utils.response.report'
+  
+  # Future: Frappe Education production
+  - job_name: 'frappe-production'
+    static_configs:
+      - targets: ['frappe-production:8000']
+    metrics_path: '/api/method/frappe.utils.response.report'

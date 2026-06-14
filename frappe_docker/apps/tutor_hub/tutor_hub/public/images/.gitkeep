@@ -1,0 +1,2 @@
+# Tutor profile images served via Frappe /assets/ static file serving.
+# Paths returned by api.py: /assets/tutor_hub/images/tutor-N.jpg

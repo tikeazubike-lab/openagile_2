@@ -1,0 +1,50 @@
+# configs/traefik/dynamic/dynamic.yml
+# Dynamic Configuration for Traefik
+
+http:
+  middlewares:
+    # Security headers
+    security-headers:
+      headers:
+        frameDeny: true
+        sslRedirect: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+
+    # Traefik dashboard authentication
+    traefik-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$8Aq61osD$B1K1TiyZUMgWZTUfLAF2y/"  # admin:admin
+
+    # Rate limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    # Compression
+    compression:
+      compress: true
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        - TLS_AES_128_GCM_SHA256
+        - TLS_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+      sniStrict: true

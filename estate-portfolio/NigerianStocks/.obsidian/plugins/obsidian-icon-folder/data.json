@@ -1,0 +1,46 @@
+{
+  "settings": {
+    "migrated": 6,
+    "iconPacksPath": ".obsidian/icons",
+    "fontSize": 16,
+    "emojiStyle": "native",
+    "iconColor": null,
+    "recentlyUsedIcons": [
+      "❕",
+      "✅",
+      "💰"
+    ],
+    "recentlyUsedIconsSize": 5,
+    "rules": [],
+    "extraMargin": {
+      "top": 0,
+      "right": 4,
+      "bottom": 0,
+      "left": 0
+    },
+    "iconInTabsEnabled": true,
+    "iconInTitleEnabled": true,
+    "iconInTitlePosition": "above",
+    "iconInFrontmatterEnabled": true,
+    "iconInFrontmatterFieldName": "icon",
+    "iconColorInFrontmatterFieldName": "iconColor",
+    "iconsBackgroundCheckEnabled": true,
+    "iconsInNotesEnabled": true,
+    "iconsInLinksEnabled": true,
+    "iconIdentifier": ":",
+    "lucideIconPackType": "native",
+    "debugMode": false,
+    "useInternalPlugins": false
+  },
+  "Registrars/African-Prudential-Registrars.md": "💰",
+  "Registrars/Atlas-Registrars-Limited.md": "💰",
+  "Registrars/Coronation-Registrars-Limited.md": "💰",
+  "Registrars/First-Registrars-and-Investor-Services.md": "💰",
+  "Registrars/Greenwich-Registrars-and-Data-Solutions.md": "💰",
+  "Registrars/GTL-Registrars-Limited.md": "💰",
+  "Registrars/Meristem-Registrars-and-Probate-Services.md": "✅",
+  "Registrars/Other-Commercial-Registrars.md": "✅",
+  "Registrars/United-Securities-Limited.md": "✅",
+  "Registrars/Veritas-Registrars-Limited.md": "💰",
+  "Registrars/Unity-Registrars-Limited.md": "❕"
+}
