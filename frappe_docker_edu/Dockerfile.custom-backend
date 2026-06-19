@@ -1,0 +1,38 @@
+# Custom Backend Image with edu_theme app
+# Build from frappe_docker project root directory
+
+ARG FRAPPE_VERSION=v15.0.0
+ARG ERPNEXT_VERSION=v15.0.0
+
+# Stage 1: Build assets for custom app
+FROM frappe/erpnext:${ERPNEXT_VERSION} as builder
+
+# Copy custom app into apps directory
+COPY ./apps/edu_theme /home/frappe/frappe-bench/apps/edu_theme
+
+# Install the custom app
+RUN cd /home/frappe/frappe-bench && \
+    . env/bin/activate && \
+    bench get-app edu_theme file:///home/frappe/frappe-bench/apps/edu_theme --skip-assets && \
+    bench build --app edu_theme
+
+# Stage 2: Final backend image
+FROM frappe/erpnext:${ERPNEXT_VERSION}
+
+# Copy custom app code
+COPY --from=builder /home/frappe/frappe-bench/apps/edu_theme /home/frappe/frappe-bench/apps/edu_theme
+
+# Copy built assets from builder
+COPY --from=builder /home/frappe/frappe-bench/sites/assets/edu_theme /home/frappe/frappe-bench/sites/assets/edu_theme
+
+# Install app dependencies (if any in pyproject.toml or requirements.txt)
+RUN cd /home/frappe/frappe-bench/apps/edu_theme && \
+    if [ -f "pyproject.toml" ] || [ -f "requirements.txt" ]; then \
+        . ../../env/bin/activate && \
+        pip install --no-cache-dir -e .; \
+    fi
+
+USER frappe
+WORKDIR /home/frappe/frappe-bench
+
+# The app will be installed to sites during container startup via apps.json

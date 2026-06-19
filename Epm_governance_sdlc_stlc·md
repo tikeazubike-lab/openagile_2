@@ -1,0 +1,678 @@
+# EPM — Professional SDLC/STLC Governance Document
+**From**: Claude (The Brain)
+**To**: Antigravity / Cursor (Builder)
+**Date**: 2026-05-05
+**Protocol**: MASTER_CONTEXT.md v4.0
+**Input**: Grok governance brainstorm + user preferences (GitHub Wiki for living docs)
+**Status**: Final spec — implement exactly as written
+
+---
+
+## Part A: Document Identity System
+
+Every document in this project — whether a business requirement, test plan,
+architecture decision, or handover — opens with a standardised header block.
+**The header is the visual identity of the document.**
+
+You can tell what type of document you are reading within the first five lines,
+regardless of where the file is stored.
+
+### Document Type Codes
+
+| Code | Type | Colour (Wiki label) | Used for |
+|------|------|---------------------|----------|
+| `BR` | Business Requirement | 🔵 Blue | What the system must do |
+| `FR` | Functional Requirement | 🟣 Purple | How the system does it |
+| `ADR` | Architecture Decision Record | 🟠 Orange | Why a technical choice was made |
+| `TC` | Test Case / Test Plan | 🟡 Yellow | How a feature is verified |
+| `AT` | Acceptance Test | 🟢 Green | UAT results — pass/fail |
+| `HO` | Handover Brief | ⚪ Grey | Agent-to-agent context transfer |
+| `OB` | Onboarding | 🔷 Teal | How to get started |
+
+### Standard Header Template
+
+Every document — in the Wiki or in the repo — starts with this block:
+
+```markdown
+---
+type: BR          # one of: BR | FR | ADR | TC | AT | HO | OB
+id: BR-005        # type code + sequential number
+title: Registrar Document Management
+status: ACTIVE    # DRAFT | ACTIVE | SUPERSEDED | ARCHIVED
+version: 1.2
+created: 2026-04-30
+updated: 2026-05-05
+owner: Claude (The Brain)
+related:
+  - ADR-003 (single-container storage decision)
+  - TC-012 (registrar document upload test cases)
+---
+
+# [BR] BR-005 — Registrar Document Management
+> **Type**: Business Requirement · **Status**: 🟢 ACTIVE · **Version**: 1.2
+```
+
+The rendered Wiki header looks like this (using GitHub Wiki formatting):
+
+```
+┌──────────────────────────────────────────────────────┐
+│  🔵 BUSINESS REQUIREMENT                              │
+│  BR-005 · Registrar Document Management               │
+│  Status: ACTIVE · v1.2 · Updated: 2026-05-05         │
+│  Owner: Claude (The Brain)                            │
+└──────────────────────────────────────────────────────┘
+```
+
+This makes the document type immediately visible when reading in the Wiki,
+in VS Code, or in any markdown viewer.
+
+---
+
+## Part B: Repository Folder Structure
+
+```
+egbuna_estate_account_streamlight/estate-portfolio/
+│
+├── docs/                              # Source of truth for all spec documents
+│   │                                  # Wiki mirrors these — repo is the audit trail
+│   │
+│   ├── requirements/                  # 🔵 Business + Functional Requirements
+│   │   ├── BR-001-portfolio-tracking.md
+│   │   ├── BR-002-price-entry.md
+│   │   ├── BR-003-obsidian-migration.md
+│   │   ├── BR-004-claims-tracking.md
+│   │   ├── BR-005-registrar-documents.md
+│   │   └── archived/                  # Superseded versions (never deleted)
+│   │       └── BR-002-price-entry-v1.0-2026-04-15.md
+│   │
+│   ├── architecture/                  # 🟠 Architecture Decision Records
+│   │   ├── ADR-001-single-container.md
+│   │   ├── ADR-002-shared-postgres.md
+│   │   ├── ADR-003-jwt-httponly-cookie.md
+│   │   ├── ADR-004-ngx-pdf-parser.md
+│   │   └── ADR-005-local-volume-storage.md
+│   │
+│   ├── testing/                       # 🟡 Test Plans + Test Cases
+│   │   ├── STLC-v1.0.md               # Full testing lifecycle document
+│   │   ├── test-plans/
+│   │   │   ├── TC-001-auth-flows.md
+│   │   │   ├── TC-002-price-entry.md
+│   │   │   ├── TC-003-registrars.md
+│   │   │   └── TC-004-holdings.md
+│   │   └── acceptance-tests/          # 🟢 UAT results (historical record)
+│   │       ├── AT-001-price-entry-2026-05-05.md
+│   │       └── AT-002-registrars-2026-05-05.md
+│   │
+│   ├── handover/                      # ⚪ Agent handover briefs (chronological)
+│   │   ├── HO-001-antigravity-phase2-2026-04-20.md
+│   │   ├── HO-002-claude-review-auth-2026-04-29.md
+│   │   ├── HO-003-antigravity-price-entry-2026-05-05.md
+│   │   └── HO-004-antigravity-registrars-2026-05-05.md
+│   │
+│   └── onboarding/                    # 🔷 Getting started
+│       ├── OB-001-onboarding.md
+│       └── OB-002-agent-delegation.md
+│
+├── backend/
+│   └── tests/
+│       ├── unit/
+│       ├── integration/
+│       ├── contract/
+│       ├── db/
+│       └── performance/
+│
+├── estate-portfolio-manager/
+│   └── tests/
+│       ├── unit/
+│       └── e2e/
+│
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml                     # Full STLC pipeline
+│   │   └── vault-sync.yml             # Obsidian vault sync
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   ├── feature_request.md
+│   │   └── test_failure.md
+│   └── PULL_REQUEST_TEMPLATE.md
+│
+├── CHANGELOG.md                       # Conventional changelog (auto-generated)
+├── CONTRIBUTING.md                    # How to contribute + commit conventions
+├── AGENTS.md                          # EPM agent operating instructions
+└── README.md                          # Quickstart + links to Wiki
+```
+
+---
+
+## Part C: GitHub Wiki Structure
+
+The Wiki is the **reading interface** — formatted, navigable, visually polished.
+The repo `docs/` folder is the **audit trail** — versioned with git history.
+
+**Rule**: Documents are written in the repo first, then mirrored to the Wiki.
+The Wiki is never the sole copy of a critical document.
+
+### Wiki Sidebar Navigation
+
+```
+🏠 Home
+
+📋 REQUIREMENTS
+  ├── BR-001 Portfolio Tracking
+  ├── BR-002 Price Entry
+  ├── BR-003 Obsidian Migration
+  ├── BR-004 Claims Tracking
+  └── BR-005 Registrar Documents
+
+🏗 ARCHITECTURE
+  ├── ADR-001 Single Container
+  ├── ADR-002 Shared Postgres
+  ├── ADR-003 JWT Cookie Auth
+  ├── ADR-004 NGX PDF Parser
+  └── ADR-005 Local Volume Storage
+
+🧪 TESTING
+  ├── STLC Overview
+  ├── TC-001 Auth Flows
+  ├── TC-002 Price Entry
+  ├── TC-003 Registrars
+  └── TC-004 Holdings
+
+✅ ACCEPTANCE TESTS
+  ├── AT-001 Price Entry (2026-05-05)
+  └── AT-002 Registrars (2026-05-05)
+
+🚀 ONBOARDING
+  ├── OB-001 Getting Started
+  └── OB-002 Agent Delegation
+
+📊 PROJECT STATUS
+  └── Current Sprint
+```
+
+### Wiki Home Page Template
+
+```markdown
+# Estate Portfolio Manager — Project Wiki
+
+> Personal NGX portfolio tracker · FastAPI + React · Self-hosted on Netcup VPS
+
+## Quick Links
+| I want to... | Go to |
+|-------------|-------|
+| Understand what the system does | [BR-001 Portfolio Tracking] |
+| See why a technical decision was made | [Architecture Decision Records] |
+| Find test cases for a feature | [Testing] |
+| Onboard as a new agent/developer | [OB-001 Getting Started] |
+| See latest acceptance test results | [Acceptance Tests] |
+
+## Current Status
+| Area | Status |
+|------|--------|
+| Authentication | ✅ Complete |
+| Price Entry + NGX PDF | ✅ Complete |
+| Registrars + Documents | ⚠️ Bugs being fixed |
+| Holdings (dual table) | 🔄 In progress |
+| Claims tracking | 📋 Planned |
+| Obsidian import | 📋 Planned |
+```
+
+---
+
+## Part D: Document Templates (Copy-Paste Ready)
+
+### Business Requirement (BR)
+
+```markdown
+---
+type: BR
+id: BR-XXX
+title: [Feature Name]
+status: DRAFT
+version: 1.0
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+owner: Claude (The Brain)
+related: []
+---
+
+# [BR] BR-XXX — [Feature Name]
+> **Type**: Business Requirement · **Status**: 🟡 DRAFT · **Version**: 1.0
+
+## Purpose
+[One paragraph: why does this feature exist? What user problem does it solve?]
+
+## Scope
+[What is included. What is explicitly excluded.]
+
+## Requirements
+### Functional Requirements
+- [ ] FR-1: [The system shall...]
+- [ ] FR-2: [The system shall...]
+
+### Non-Functional Requirements
+- [ ] NFR-1: [Performance, security, accessibility constraints]
+
+## Acceptance Criteria
+[Measurable conditions that confirm this BR is satisfied]
+
+## Open Questions
+[Unresolved decisions — owner + due date for each]
+
+## Revision History
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.0 | YYYY-MM-DD | Claude | Initial draft |
+```
+
+### Architecture Decision Record (ADR)
+
+```markdown
+---
+type: ADR
+id: ADR-XXX
+title: [Decision Title]
+status: ACCEPTED
+version: 1.0
+created: YYYY-MM-DD
+deciders: [Claude, Grok]
+supersedes: null
+---
+
+# [ADR] ADR-XXX — [Decision Title]
+> **Type**: Architecture Decision · **Status**: 🟢 ACCEPTED
+
+## Context
+[What situation or problem prompted this decision?]
+
+## Decision
+[What was decided, stated clearly in one sentence.]
+
+## Rationale
+[Why this option was chosen over alternatives.]
+
+## Alternatives Considered
+| Option | Rejected Because |
+|--------|-----------------|
+| Option A | [reason] |
+| Option B | [reason] |
+
+## Consequences
+**Positive**: [what gets better]
+**Negative / Trade-offs**: [what gets worse or more complex]
+**Risks**: [what could go wrong]
+
+## Status History
+| Date | Status | Note |
+|------|--------|------|
+| YYYY-MM-DD | PROPOSED | Initial draft |
+| YYYY-MM-DD | ACCEPTED | Approved by Claude + Grok |
+```
+
+### Test Case / Test Plan (TC)
+
+```markdown
+---
+type: TC
+id: TC-XXX
+title: [Feature] Test Plan
+status: ACTIVE
+version: 1.0
+created: YYYY-MM-DD
+feature: [BR-XXX]
+tested_by: Codex / Antigravity
+---
+
+# [TC] TC-XXX — [Feature] Test Plan
+> **Type**: Test Plan · **Status**: 🟢 ACTIVE · **Covers**: BR-XXX
+
+## Scope
+[What is tested. What is out of scope.]
+
+## Test Environment
+- Branch: test
+- URL: demo.estate.zubbystudio.shop
+- Auth: admin + readonly accounts
+
+## Test Cases
+
+### TC-XXX-01: [Test Name]
+**Precondition**: [what must be true before running]
+**Steps**:
+1. [step]
+2. [step]
+**Expected**: [what should happen]
+**Actual**: [filled in during test run]
+**Result**: PASS / FAIL / SKIP
+
+## Automated Tests
+[Links to relevant pytest / Playwright test files]
+```
+
+### Acceptance Test (AT)
+
+```markdown
+---
+type: AT
+id: AT-XXX
+title: [Feature] Acceptance Test
+status: COMPLETE
+date: YYYY-MM-DD
+tester: [name]
+environment: demo.estate.zubbystudio.shop
+branch: test
+feature: [BR-XXX, TC-XXX]
+---
+
+# [AT] AT-XXX — [Feature] Acceptance Test Results
+> **Type**: Acceptance Test · **Date**: YYYY-MM-DD · **Branch**: test
+
+## Summary
+| Total | Pass | Fail | Skip | Pending |
+|-------|------|------|------|---------|
+| N | N | N | N | N |
+
+## Results
+### [Section Name]
+- [x] Test item → PASS
+- [fail] Test item → FAIL: [description of failure]
+- [skip] Test item → SKIP: [reason]
+
+## Issues Found
+| ID | Description | Severity | Resolution |
+|----|-------------|----------|------------|
+| 1 | [issue] | High/Med/Low | [fix or defer] |
+
+## Sign-Off
+- [ ] All P0 issues resolved
+- [ ] Deferred items logged
+- [ ] Approved for next phase
+```
+
+### Handover Brief (HO)
+
+```markdown
+---
+type: HO
+id: HO-XXX
+title: [From Agent] → [To Agent]: [Topic]
+date: YYYY-MM-DD
+from: [Agent name + role]
+to: [Agent name + role]
+protocol: MASTER_CONTEXT.md v4.0
+---
+
+# [HO] HO-XXX — [From] → [To]: [Topic]
+> **Type**: Handover · **Date**: YYYY-MM-DD
+
+## 1. What Was Done
+[Specific files changed, endpoints added, tests run]
+
+## 2. What Is Verified Working
+[Exact verification results with numbers]
+
+## 3. What Is Broken / Uncertain
+[Root cause if known]
+
+## 4. Next Agent's Action List
+1. [step]
+2. [step]
+
+## 5. Blockers
+[What cannot proceed until resolved]
+```
+
+---
+
+## Part E: Git Workflow
+
+### Branch Strategy
+
+```
+main          — production only. Protected. No direct pushes.
+test          — all active development. PRs merge here first.
+feature/xyz   — short-lived feature branches off test
+fix/xyz       — bug fix branches off test
+docs/xyz      — documentation-only changes
+```
+
+### Conventional Commit Messages
+
+```
+Format: <type>(<scope>): <description>
+
+Types:
+  feat      — new feature
+  fix       — bug fix
+  docs      — documentation only
+  test      — adding or updating tests
+  chore     — dependency updates, config changes
+  refactor  — code restructure, no behaviour change
+  perf      — performance improvement
+
+Examples:
+  feat(registrars): add document upload endpoint
+  fix(auth): restore 30-day cookie max_age
+  docs(wiki): add BR-005 registrar document management
+  test(registrars): add acceptance test AT-002
+  chore(deps): pin bcrypt==4.0.1
+```
+
+### GitHub Branch Protection Rules for `main`
+
+```yaml
+# Set in GitHub → Repository Settings → Branches → Add rule
+
+Branch name pattern: main
+Rules:
+  ✅ Require a pull request before merging
+  ✅ Require approvals: 1
+  ✅ Require status checks to pass before merging
+      Required checks:
+        - static-analysis
+        - unit-backend
+        - unit-frontend
+        - integration
+        - build
+  ✅ Require branches to be up to date before merging
+  ✅ Do not allow bypassing the above settings
+  ✅ Restrict who can push to matching branches → only: zubbyik (owner)
+```
+
+### GitHub Branch Protection Rules for `test`
+
+```yaml
+Branch name pattern: test
+Rules:
+  ✅ Require status checks to pass before merging
+      Required checks:
+        - static-analysis
+        - unit-backend
+        - unit-frontend
+  # No PR required for test — agents push directly
+  # But CI must pass
+```
+
+### Pull Request Template (`.github/PULL_REQUEST_TEMPLATE.md`)
+
+```markdown
+## Summary
+[What does this PR do? One paragraph.]
+
+## Type
+- [ ] feat — new feature
+- [ ] fix — bug fix
+- [ ] docs — documentation
+- [ ] test — tests only
+- [ ] chore — dependency / config
+
+## Related Documents
+- BR: [e.g. BR-005]
+- TC: [e.g. TC-003]
+- AT: [e.g. AT-002]
+
+## Changes Made
+- `backend/app/routers/registrars.py` — [what changed]
+- `estate-portfolio-manager/src/routes/_app.registrars.tsx` — [what changed]
+
+## Testing
+- [ ] Unit tests pass locally (or on VPS)
+- [ ] Manual verification on demo.estate.zubbystudio.shop
+- [ ] Acceptance test completed and filed in docs/testing/acceptance-tests/
+
+## Acceptance Test Result
+[Link to AT-XXX or paste summary table]
+
+## Deferred Items
+[Anything intentionally skipped — must have a GitHub Issue reference]
+```
+
+---
+
+## Part F: GitHub Issue Templates
+
+### Bug Report (`.github/ISSUE_TEMPLATE/bug_report.md`)
+
+```markdown
+---
+name: Bug Report
+about: Report a broken feature
+labels: bug
+---
+
+**Feature affected**: [e.g. Registrars / Document Upload]
+**Related BR/TC**: [e.g. BR-005, TC-003]
+**Branch**: test / main
+**Environment**: demo.estate.zubbystudio.shop
+
+**Expected behaviour**:
+[What should happen]
+
+**Actual behaviour**:
+[What actually happens]
+
+**Steps to reproduce**:
+1.
+2.
+3.
+
+**Severity**: High / Medium / Low
+**Blocking**: Yes / No
+```
+
+### Feature Request (`.github/ISSUE_TEMPLATE/feature_request.md`)
+
+```markdown
+---
+name: Feature Request
+about: New capability or enhancement
+labels: enhancement
+---
+
+**Business need**:
+[Why is this needed? Which user problem does it solve?]
+
+**Proposed solution**:
+[Brief description]
+
+**Related documents**:
+[BR, ADR, or prior HO]
+
+**Priority**: P0 / P1 / P2 / P3
+```
+
+---
+
+## Part G: Onboarding Document (OB-001)
+
+```markdown
+---
+type: OB
+id: OB-001
+title: Getting Started — EPM Development
+status: ACTIVE
+version: 1.0
+---
+
+# [OB] OB-001 — Getting Started
+
+## What is EPM?
+Estate Portfolio Manager — a personal NGX stock portfolio tracker.
+FastAPI backend + React 18 frontend + PostgreSQL, self-hosted on Netcup VPS.
+
+## Project Structure
+[Link to folder structure in Part B above]
+
+## Reading Documentation
+Every document has a type badge in the header:
+- 🔵 BR = Business Requirement (what the system does)
+- 🟠 ADR = Architecture Decision (why a choice was made)
+- 🟡 TC = Test Plan (how a feature is verified)
+- 🟢 AT = Acceptance Test (UAT results)
+- ⚪ HO = Handover Brief (agent context transfer)
+
+## Agent Roles
+See [OB-002 Agent Delegation] for who does what.
+
+## How to Make a Code Change
+1. Switch to test branch: `git checkout test`
+2. Create feature branch: `git checkout -b feature/your-feature`
+3. Edit files in Neovim / Cursor (NO local execution)
+4. Commit: `git commit -m "feat(scope): description"`
+5. Push: `git push origin feature/your-feature`
+6. GitHub Actions runs CI automatically
+7. Check results at github.com/zubbyik/repo/actions
+8. Merge to test when CI passes
+
+## How to Verify Changes
+- Staging: https://demo.estate.zubbystudio.shop
+- Production: https://estate.zubbystudio.shop
+- Server logs: SSH to VPS → `docker compose logs epm_v2 --tail=100`
+- Tests on VPS: `docker compose exec backend pytest tests/unit/ -v`
+
+## How to File an Acceptance Test
+1. Copy the AT template from Part D
+2. Fill in results
+3. Save as `docs/testing/acceptance-tests/AT-XXX-feature-YYYY-MM-DD.md`
+4. Commit in the same PR as the feature being tested
+
+## Key Constraints (Never Violate)
+- No local execution (pip, npm, docker, pytest) — kernel OOM
+- No force-push to main
+- bcrypt==4.0.1 pinned — do not upgrade
+- SSH to VPS = read/diagnose only — never deploy via SSH
+- All deployments via GitHub Actions only
+```
+
+---
+
+## Part H: Implementation Order for Antigravity
+
+```
+[ ] 1. Create docs/ folder structure in estate-portfolio/ directory
+[ ] 2. Move existing docs into correct folders with correct naming
+[ ] 3. Rename existing acceptance test → AT-001-price-entry-2026-05-05.md
+[ ] 4. Rename registrar acceptance test → AT-002-registrars-2026-05-05.md
+[ ] 5. Create .github/PULL_REQUEST_TEMPLATE.md
+[ ] 6. Create .github/ISSUE_TEMPLATE/ with bug_report.md + feature_request.md
+[ ] 7. Create CONTRIBUTING.md with commit convention rules
+[ ] 8. Create CHANGELOG.md (initial entry for Phase 2 completion)
+[ ] 9. Set GitHub branch protection rules on main (manual — GitHub UI)
+[ ] 10. Enable GitHub Wiki on the repository (GitHub UI → Settings → Wiki)
+[ ] 11. Create Wiki Home page with navigation sidebar
+[ ] 12. Add BR-001 through BR-005 to Wiki (copy from docs/)
+[ ] 13. Add ADR-001 through ADR-005 to Wiki
+[ ] 14. Add OB-001 and OB-002 to Wiki
+[ ] 15. Commit all repo changes → push to test
+[ ] 16. Write handover HO-005 to Claude confirming structure is in place
+```
+
+---
+
+**END OF GOVERNANCE DOCUMENT**
+
+**Receiving agent**: Antigravity / Cursor
+**After implementation**: Registrar bug fixes proceed using the new
+document structure — AT-002 gets updated with the fixed test results
+**Wiki**: Antigravity creates the Wiki pages manually in GitHub UI
+(Wiki is not part of the repo git tree — it has its own separate git)

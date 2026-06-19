@@ -1,0 +1,497 @@
+networks:
+  openagile_network:
+    driver: bridge
+  traefik_public:
+    external: false
+
+volumes:
+  traefik_letsencrypt:
+  postgres_data:
+  n8n_data:
+  wikijs_data:
+  openproject_pgdata:
+  openproject_assets:
+  prometheus_data:
+  grafana_data:
+  portainer_data:
+  gitea_data:
+  woodpecker_server_data:
+
+services:
+  # ============================================
+  # TRAEFIK - Reverse Proxy & SSL Management
+  # ============================================
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - openagile_network
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Dashboard
+      - "8082:8082"  # Metrics
+    environment:
+      - CF_API_EMAIL=${CLOUDFLARE_EMAIL}
+      - CF_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - TZ=Africa/Lagos
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+      - ./configs/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./configs/traefik/dynamic:/etc/traefik/dynamic:ro
+    labels:
+      - "traefik.enable=true"
+      # Dashboard
+      - "traefik.http.routers.traefik.rule=Host(`traefik.zubbystudio.shop`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth@file"
+
+  # ============================================
+  # PORTAINER - Container Management
+  # ============================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.zubbystudio.shop`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=cloudflare"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      - "traefik.http.routers.portainer.middlewares=security-headers@file"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ============================================
+  # POSTGRESQL - Shared Database
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: openagile_postgres
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-openagile}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_MULTIPLE_DATABASES: n8n,wikijs,openproject,gitea,estate_portfolio
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-openagile}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+
+    # ============================================
+  # GITEA - Git Version Control
+  # ============================================
+  gitea:
+    image: gitea/gitea:1.21
+    container_name: gitea
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=postgres:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=${POSTGRES_USER:-openagile}
+      - GITEA__database__PASSWD=${POSTGRES_PASSWORD}
+      - GITEA__server__DOMAIN=git.zubbystudio.shop
+      - GITEA__server__SSH_DOMAIN=git.zubbystudio.shop
+      - GITEA__server__ROOT_URL=https://git.zubbystudio.shop/
+      - GITEA__server__HTTP_PORT=3000
+      - GITEA__server__SSH_PORT=2222
+      - GITEA__service__DISABLE_REGISTRATION=false
+      - GITEA__service__REQUIRE_SIGNIN_VIEW=false
+      - GITEA__webhook__ALLOWED_HOST_LIST=*
+    volumes:
+      - gitea_data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "2222:22"  # SSH for Git operations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea.rule=Host(`git.zubbystudio.shop`)"
+      - "traefik.http.routers.gitea.entrypoints=websecure"
+      - "traefik.http.routers.gitea.tls=true"
+      - "traefik.http.routers.gitea.tls.certresolver=cloudflare"
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
+      - "traefik.http.routers.gitea.middlewares=security-headers@file"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ============================================
+  # WOODPECKER SERVER - CI/CD Server
+  # ============================================
+  woodpecker_server:
+    image: woodpeckerci/woodpecker-server:latest
+    container_name: woodpecker_server
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    environment:
+      - WOODPECKER_OPEN=true
+      - WOODPECKER_HOST=https://ci.zubbystudio.shop
+      - WOODPECKER_GITEA=true
+      - WOODPECKER_GITEA_URL=https://git.zubbystudio.shop
+      - WOODPECKER_GITEA_CLIENT=${WOODPECKER_GITEA_CLIENT}
+      - WOODPECKER_GITEA_SECRET=${WOODPECKER_GITEA_SECRET}
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_ADMIN=${WOODPECKER_ADMIN:-admin}
+    volumes:
+      - woodpecker_server_data:/var/lib/woodpecker
+    depends_on:
+      - gitea
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.woodpecker.rule=Host(`ci.zubbystudio.shop`)"
+      - "traefik.http.routers.woodpecker.entrypoints=websecure"
+      - "traefik.http.routers.woodpecker.tls=true"
+      - "traefik.http.routers.woodpecker.tls.certresolver=cloudflare"
+      - "traefik.http.services.woodpecker.loadbalancer.server.port=8000"
+      - "traefik.http.routers.woodpecker.middlewares=security-headers@file"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ============================================
+  # WOODPECKER AGENT - CI/CD Runner
+  # ============================================
+  woodpecker_agent:
+    image: woodpeckerci/woodpecker-agent:latest
+    container_name: woodpecker_agent
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    environment:
+      - WOODPECKER_SERVER=woodpecker_server:9000
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_MAX_WORKFLOWS=4
+      - WOODPECKER_BACKEND=docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - woodpecker_server
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G        
+          
+  # ============================================
+  # CADVISOR - 
+  # ============================================
+          
+
+  cadvisor:
+    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    restart: unless-stopped
+    
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    
+    networks:
+      - traefik_public
+    
+    privileged: true
+    
+    devices:
+      - /dev/kmsg
+    
+    labels:
+      # No external access - only Prometheus scrapes it
+      - "traefik.enable=false"
+
+  # ============================================
+  # NODE EXPORTER -
+  # ============================================
+
+  node-exporter:
+    container_name: node_exporter
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+    volumes:
+      - /:/host:ro,rslave
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+
+    networks:
+      - traefik_public
+
+    pid: host
+
+    labels:
+      - "traefik.enable=false"
+
+  # ============================================
+  # N8N - Automation Platform
+  # ============================================
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    environment:
+      - N8N_HOST=${N8N_HOST:-n8n.zubbystudio.shop}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${N8N_HOST:-n8n.zubbystudio.shop}/
+      - GENERIC_TIMEZONE=${TIMEZONE:-Africa/Lagos}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-openagile}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./configs/n8n:/etc/n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.zubbystudio.shop`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.routers.n8n.tls.certresolver=cloudflare"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      - "traefik.http.routers.n8n.middlewares=security-headers@file"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ============================================
+  # OPENPROJECT - Project Management
+  # ============================================
+  openproject:
+    image: openproject/openproject:14
+    container_name: openproject
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    environment:
+      - OPENPROJECT_HOST__NAME=project.zubbystudio.shop
+      - OPENPROJECT_HTTPS=true
+      - OPENPROJECT_DEFAULT__LANGUAGE=en
+      - RAILS_CACHE_STORE=memcache
+      - OPENPROJECT_CACHE__MEMCACHE__SERVER=cache:11211
+      - IMAP_ENABLED=false
+    volumes:
+      - openproject_pgdata:/var/openproject/pgdata
+      - openproject_assets:/var/openproject/assets
+      - ./configs/openproject/database.yml:/app/config/database.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openproject.rule=Host(`project.zubbystudio.shop`)"
+      - "traefik.http.routers.openproject.entrypoints=websecure"
+      - "traefik.http.routers.openproject.tls=true"
+      - "traefik.http.routers.openproject.tls.certresolver=cloudflare"
+      - "traefik.http.services.openproject.loadbalancer.server.port=80"
+      - "traefik.http.routers.openproject.middlewares=security-headers@file"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.5'
+          memory: 3G
+        reservations:
+          cpus: '1.5'
+          memory: 2G
+
+  # ============================================
+  # WIKI.JS - Documentation Hub
+  # ============================================
+  wikijs:
+    image: ghcr.io/requarks/wiki:2
+    container_name: wikijs
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-openagile}
+      DB_PASS: ${POSTGRES_PASSWORD}
+      DB_NAME: wikijs
+    volumes:
+      - wikijs_data:/wiki/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wikijs.rule=Host(`docs.zubbystudio.shop`)"
+      - "traefik.http.routers.wikijs.entrypoints=websecure"
+      - "traefik.http.routers.wikijs.tls=true"
+      - "traefik.http.routers.wikijs.tls.certresolver=cloudflare"
+      - "traefik.http.services.wikijs.loadbalancer.server.port=3000"
+      - "traefik.http.routers.wikijs.middlewares=security-headers@file"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ============================================
+  # PROMETHEUS - Metrics Collection
+  # ============================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    networks:
+      - openagile_network
+      - traefik_public
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - prometheus_data:/prometheus
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./configs/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ============================================
+  # GRAFANA - Metrics Visualization
+  # ============================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    environment:
+      - GF_SERVER_ROOT_URL=https://metrics.zubbystudio.shop
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`metrics.zubbystudio.shop`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grafana.middlewares=security-headers@file"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ============================================
+  # VSCODE
+  # ============================================
+  vscode:
+    image: codercom/code-server:latest
+    container_name: vscode
+    restart: unless-stopped
+    environment:
+      - PASSWORD=${VSCODE_PASSWORD}
+    volumes:
+      - /home/zubbyik/code:/home/coder/project
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vscode.rule=Host(`vscode.zubbystudio.shop`)"
+      - "traefik.http.routers.vscode.entrypoints=websecure"
+      - "traefik.http.routers.vscode.tls=true"
+      - "traefik.http.routers.vscode.tls.certresolver=cloudflare"
+      - "traefik.http.services.vscode.loadbalancer.server.port=8080"
+      - "traefik.http.routers.vscode.middlewares=security-headers@file"
+    networks:
+      - openagile_network
+
+  # ============================================
+  # CACHE - Memcached for OpenProject
+  # ============================================
+  cache:
+    image: memcached:alpine
+    container_name: openproject_cache
+    restart: unless-stopped
+    networks:
+      - openagile_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+

@@ -1,0 +1,7 @@
+{
+ "db_name": "main_erpnext",
+ "db_password": "mwR7JoGnxtR7qhuB",
+ "db_type": "mariadb",
+ "developer_mode": 1,
+ "enable_scheduler": 1
+}

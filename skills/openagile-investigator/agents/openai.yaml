@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenAgile Investigator"
+  short_description: "Analyze OpenAgile infrastructure patterns"
+  default_prompt: "Use $openagile-investigator to reconstruct infrastructure rules for an OpenAgile target project."

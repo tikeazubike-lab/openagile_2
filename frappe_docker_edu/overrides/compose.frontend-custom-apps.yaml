@@ -1,0 +1,7 @@
+services:
+  frontend:
+    volumes:
+      # Mount custom app public directories directly (bypasses symlink issue)
+      - ./apps/edu_theme/edu_theme/public:/home/frappe/frappe-bench/sites/assets/edu_theme:ro
+      - ./apps/education/education/public:/home/frappe/frappe-bench/sites/assets/education:ro
+      - ./apps/library_management/library_management/public:/home/frappe/frappe-bench/sites/assets/library_management:ro

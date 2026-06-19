@@ -222,7 +222,7 @@ function PriceHistoryPage() {
                     </linearGradient>
                   </defs>
                   <XAxis
-                    dataKey="date"
+                    dataKey="recorded_date"
                     tickFormatter={(val) => format(new Date(val), "MMM d")}
                     style={{ fontFamily: "DM Mono", fontSize: "12px" }}
                     stroke="hsl(var(--muted-foreground))"
@@ -275,7 +275,7 @@ function PriceHistoryPage() {
                   {history.map((record) => (
                     <tr key={record.id} className="hover:bg-muted/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">
-                        {format(new Date(record.date), "MMM d, yyyy")}
+                        {format(new Date(record.recorded_date), "MMM d, yyyy")}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-right">
                         {parseFloat(record.price).toFixed(2)}

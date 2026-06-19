@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenAgile Orchestrator"
+  short_description: "Coordinate OpenAgile agent workflows"
+  default_prompt: "Use $openagile-orchestrator to sequence Investigator and Builder work for an OpenAgile project."

@@ -1,0 +1,47 @@
+services:
+  # ============================================
+  # KOKORO TTS — AI Voice Synthesis (CPU)
+  # ============================================
+  kokoro-tts:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2
+    container_name: kokoro-tts
+    restart: unless-stopped
+    networks:
+      - default
+      - openagile_openagile_network
+    ports:
+      - "127.0.0.1:8880:8880"
+    volumes:
+      - kokoro_models:/app/models
+    labels:
+      - "traefik.enable=false"
+      # Uncomment below to expose via Traefik:
+      # - "traefik.enable=true"
+      # - "traefik.docker.network=openagile_openagile_network"
+      # - "traefik.http.routers.kokoro-tts.rule=Host(`tts.zubbystudio.shop`)"
+      # - "traefik.http.routers.kokoro-tts.entrypoints=websecure"
+      # - "traefik.http.routers.kokoro-tts.tls=true"
+      # - "traefik.http.routers.kokoro-tts.tls.certresolver=cloudflare"
+      # - "traefik.http.services.kokoro-tts.loadbalancer.server.port=8880"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8880/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1536M
+        reservations:
+          cpus: '0.5'
+          memory: 768M
+
+volumes:
+  kokoro_models:
+
+networks:
+  openagile_openagile_network:
+    external: true
+    name: openagile_openagile_network

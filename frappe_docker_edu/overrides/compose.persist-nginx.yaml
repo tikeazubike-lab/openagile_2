@@ -1,0 +1,5 @@
+# Mount nginx config for persistence
+services:
+  frontend:
+    volumes:
+      - ./configs/nginx/frappe-site.conf:/etc/nginx/conf.d/frappe.conf

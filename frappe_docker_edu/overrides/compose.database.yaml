@@ -1,0 +1,40 @@
+# Complete database services for development
+
+services:
+  db:
+    image: mariadb:10.6
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+    volumes:
+      - ./data/mariadb:/var/lib/mysql
+    networks:
+      - default
+      - openagile_openagile_network
+    healthcheck:
+      test: mysqladmin ping -h localhost --password=admin
+      interval: 1s
+      retries: 15
+
+  redis-cache:
+    image: redis:6.2-alpine
+    volumes:
+      - ./data/redis-cache:/data
+    networks:
+      - default
+
+  redis-queue:
+    image: redis:6.2-alpine
+    volumes:
+      - ./data/redis-queue:/data
+    networks:
+      - default
+
+networks:
+  openagile_openagile_network:
+    external: true
+    name: openagile_openagile_network

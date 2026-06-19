@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenAgile Builder"
+  short_description: "Implement planned changes in OpenAgile"
+  default_prompt: "Use $openagile-builder to implement an approved plan in the OpenAgile workspace."

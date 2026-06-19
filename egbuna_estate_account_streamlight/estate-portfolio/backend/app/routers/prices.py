@@ -241,6 +241,9 @@ async def upload_ngx_pdf(
         "error": None,
     }
 
+def _envelope(data, meta=None):
+    return {"data": data, "meta": meta if meta is not None else {}, "error": None}
+
 @router.get("/history/{company_id}")
 async def get_price_history(
     company_id: int,
@@ -248,7 +251,6 @@ async def get_price_history(
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    from sqlalchemy import desc
     from datetime import datetime, timedelta, timezone
     
     query = select(PriceHistory).where(PriceHistory.company_id == company_id)
@@ -256,19 +258,19 @@ async def get_price_history(
         cutoff = datetime.now(timezone.utc).date() - timedelta(days=days)
         query = query.where(PriceHistory.price_date >= cutoff)
         
-    query = query.order_by(desc(PriceHistory.price_date))
+    query = query.order_by(PriceHistory.price_date.asc())
     result = await db.execute(query)
     
     data = []
     for hist in result.scalars().all():
         data.append({
             "id": hist.id,
-            "date": hist.price_date.isoformat(),
+            "recorded_date": hist.price_date.isoformat(),
             "price": str(hist.close_price),
             "source": hist.source,
         })
         
-    return _envelope(data)
+    return _envelope(data, meta={"total": len(data)})
 
 @router.get("")
 async def get_current_prices(

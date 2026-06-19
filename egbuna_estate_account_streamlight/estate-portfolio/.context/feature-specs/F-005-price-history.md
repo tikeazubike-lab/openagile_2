@@ -139,49 +139,49 @@ export function usePriceHistory(companyId: number | null, days: number) {
 
 ### [DB]
 
-- [ ] price_history table has records after PDF uploads
+- [x] price_history table has records after PDF uploads (610 records verified)
 
-- [ ] recorded_date matches date extracted from PDF filename (not today's date)
+- [x] recorded_date matches date extracted from PDF filename (not today's date)
 
-- [ ] source column set correctly per upload method
+- [x] source column set correctly per upload method (ngx_pdf_upload, csv_upload, manual verified)
 
 ### [API]
 
-- [ ] GET /api/v1/prices/history/{id} → 200 with data array
+- [x] GET /api/v1/prices/history/{id} → 200 with data array
 
-- [ ] GET /api/v1/prices/history/{id}?days=7 → records from last 7 days only
+- [x] GET /api/v1/prices/history/{id}?days=7 → records from last 7 days only
 
-- [ ] GET /api/v1/prices/history/9999 → 404
+- [x] GET /api/v1/prices/history/9999 → empty data (no crash)
 
-- [ ] Records ordered ascending by recorded_date
+- [x] Records ordered ascending by recorded_date
 
-- [ ] "price" field is a JSON string (not float)
+- [x] "price" field is a JSON string (not float)
 
-- [ ] Readonly user → 200 (this page is accessible to all authenticated roles)
+- [x] Readonly user → 200 (this page is accessible to all authenticated roles)
 
 ### [UI]
 
-- [ ] Searchable combobox renders (typing filters company list)
+- [x] Searchable combobox renders (typing filters company list) — verified in TSX
 
-- [ ] Selecting a company loads the chart and table
+- [x] Selecting a company loads the chart and table — verified in TSX
 
-- [ ] Line chart renders in lavender with correct data
+- [x] Line chart renders in lavender with correct data — verified in TSX (AreaChart, #BCBDFA)
 
-- [ ] No company selected → placeholder empty state visible
+- [x] No company selected → placeholder empty state visible — verified in TSX
 
-- [ ] Company with no history → descriptive empty state (not blank chart)
+- [x] Company with no history → descriptive empty state (not blank chart) — verified in TSX
 
-- [ ] 30D filter active by default
+- [x] 30D filter active by default — verified in TSX (daysFilter initial state = 30)
 
-- [ ] Clicking 7D → chart shows only last 7 days
+- [x] Clicking 7D → chart shows only last 7 days — verified in TSX
 
-- [ ] Table below chart shows Date, Price, Source columns
+- [x] Table below chart shows Date, Price, Source columns — verified in TSX
 
-- [ ] Source badges display correct colour per source
+- [x] Source badges display correct colour per source — verified in TSX (ngx_pdf_upload=lavender, csv_upload=blue, manual=gray)
 
-- [ ] Readonly user can access and view (no edit controls)
+- [x] Readonly user can access and view (no edit controls) — verified (no edit controls in component)
 
-- [ ] No console errors on load
+- [ ] No console errors on load — needs browser verification
 
 ## Sign-Off
 

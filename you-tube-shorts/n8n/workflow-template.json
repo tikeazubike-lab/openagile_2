@@ -1,0 +1,226 @@
+{
+  "name": "YouTube Shorts Creator Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24,
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "node-1-schedule",
+      "name": "Daily Schedule (08:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "niche_a_voice", "value": "af_sarah" },
+            { "name": "niche_b_voice", "value": "bm_george" },
+            { "name": "niche_c_voice", "value": "am_michael" },
+            { "name": "kokoro_url", "value": "http://kokoro-tts:8880/v1/audio/speech" },
+            { "name": "openclaw_url", "value": "http://openclaw-gateway:18789/v1/chat/completions" },
+            { "name": "clips_dir", "value": "/home/zubbyik/shorts-pipeline/clips" },
+            { "name": "audio_dir", "value": "/home/zubbyik/shorts-pipeline/audio" },
+            { "name": "output_dir", "value": "/home/zubbyik/shorts-pipeline/output" }
+          ]
+        }
+      },
+      "id": "node-2-set-vars",
+      "name": "Set Niche Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "command": "yt-dlp --no-playlist --max-downloads 5 -f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]\" --merge-output-format mp4 -o \"{{ $json.clips_dir }}/%(id)s.%(ext)s\" \"https://www.youtube.com/feed/trending?bp=4gINGgt5dGQtdHJlbmRpbmc%3D\""
+      },
+      "id": "node-3-fetch-clips",
+      "name": "Fetch Trending Clips (yt-dlp)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "notes": "Downloads up to 5 trending clips. For Reddit/TikTok sources, add parallel fetch nodes."
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.openclaw_url }}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"glm-4-plus\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"PASTE FULL SYSTEM PROMPT FOR SELECTED NICHE HERE\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Generate a script for this clip: {{ $json.clip_description }}\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 500\n}"
+      },
+      "id": "node-4-openclaw-script",
+      "name": "Generate Script (OpenCLAW)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "notes": "Replace system prompt content with the full niche-specific prompt from prompt_draft.md. Parse response.choices[0].message.content as JSON."
+    },
+    {
+      "parameters": {
+        "url": "http://kokoro-tts:8880/v1/audio/speech",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"kokoro\",\n  \"input\": \"{{ $json.full_script }}\",\n  \"voice\": \"{{ $json.voice }}\",\n  \"response_format\": \"mp3\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "node-5-kokoro-tts",
+      "name": "Synthesize Voice (Kokoro TTS)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300],
+      "notes": "Downloads MP3. Use a 'Write Binary File' node after this to save to audio_dir."
+    },
+    {
+      "parameters": {
+        "command": "/home/zubbyik/openagile/you-tube-shorts/scripts/process_short.sh {{ $json.clips_dir }}/{{ $json.clip_id }}.mp4 {{ $json.audio_dir }}/{{ $json.clip_id }}.mp3 {{ $json.output_dir }}/{{ $json.clip_id }}_short.mp4 {{ $json.niche }}"
+      },
+      "id": "node-6-ffmpeg",
+      "name": "FFmpeg Processing",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "video": "={{ $json.output_dir }}/{{ $json.clip_id }}_short.mp4",
+        "caption": "🎬 *New Short ready for review*\nNiche: {{ $json.niche_label }}\nTitle: {{ $json.title }}\nTags: {{ $json.tags }}\n\nReply with:\n/approve — upload to YouTube now\n/reject — discard this Short\n/edit [your notes] — revise the script"
+      },
+      "id": "node-7-telegram-preview",
+      "name": "Send Telegram Preview",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1560, 300],
+      "notes": "Configure Telegram credentials in N8N first."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shorts-approval",
+        "responseMode": "lastNode"
+      },
+      "id": "node-8-webhook",
+      "name": "Wait for Approval (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [1780, 300],
+      "notes": "Configure OpenCLAW Telegram bot to forward replies to this webhook URL."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.message }}",
+              "operation": "contains",
+              "value2": "/approve"
+            }
+          ]
+        }
+      },
+      "id": "node-9-route",
+      "name": "Route on Approval",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, 300],
+      "notes": "True → Upload. Add additional conditions for /reject (cleanup) and /edit (loop back to Node 4)."
+    },
+    {
+      "parameters": {
+        "command": "python3 /home/zubbyik/openagile/you-tube-shorts/scripts/youtube_upload.py --file {{ $json.output_dir }}/{{ $json.clip_id }}_short.mp4 --title \"{{ $json.title }}\" --description \"{{ $json.description }}\" --tags \"{{ $json.tags_csv }}\" --category {{ $json.category_id }}"
+      },
+      "id": "node-10-youtube-upload",
+      "name": "YouTube Upload",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2220, 200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "✅ Short uploaded to YouTube!\n{{ $json.youtube_url }}"
+      },
+      "id": "node-11-telegram-confirm",
+      "name": "Telegram Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2440, 200]
+    },
+    {
+      "parameters": {
+        "command": "rm -f {{ $json.clips_dir }}/{{ $json.clip_id }}.mp4\nrm -f {{ $json.audio_dir }}/{{ $json.clip_id }}.mp3"
+      },
+      "id": "node-12-cleanup",
+      "name": "Cleanup Temp Files",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2660, 300],
+      "notes": "Keep output files for 7 days, then purge."
+    }
+  ],
+  "connections": {
+    "Daily Schedule (08:00)": {
+      "main": [[{ "node": "Set Niche Variables", "type": "main", "index": 0 }]]
+    },
+    "Set Niche Variables": {
+      "main": [[{ "node": "Fetch Trending Clips (yt-dlp)", "type": "main", "index": 0 }]]
+    },
+    "Fetch Trending Clips (yt-dlp)": {
+      "main": [[{ "node": "Generate Script (OpenCLAW)", "type": "main", "index": 0 }]]
+    },
+    "Generate Script (OpenCLAW)": {
+      "main": [[{ "node": "Synthesize Voice (Kokoro TTS)", "type": "main", "index": 0 }]]
+    },
+    "Synthesize Voice (Kokoro TTS)": {
+      "main": [[{ "node": "FFmpeg Processing", "type": "main", "index": 0 }]]
+    },
+    "FFmpeg Processing": {
+      "main": [[{ "node": "Send Telegram Preview", "type": "main", "index": 0 }]]
+    },
+    "Send Telegram Preview": {
+      "main": [[{ "node": "Wait for Approval (Webhook)", "type": "main", "index": 0 }]]
+    },
+    "Wait for Approval (Webhook)": {
+      "main": [[{ "node": "Route on Approval", "type": "main", "index": 0 }]]
+    },
+    "Route on Approval": {
+      "main": [
+        [{ "node": "YouTube Upload", "type": "main", "index": 0 }],
+        [{ "node": "Cleanup Temp Files", "type": "main", "index": 0 }]
+      ]
+    },
+    "YouTube Upload": {
+      "main": [[{ "node": "Telegram Confirmation", "type": "main", "index": 0 }]]
+    },
+    "Telegram Confirmation": {
+      "main": [[{ "node": "Cleanup Temp Files", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "youtube-shorts" },
+    { "name": "automation" }
+  ]
+}

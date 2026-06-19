@@ -1,0 +1,11 @@
+Q: What should the LLM do with your raw text?
+
+A: Polish and expand it into a proper voiceover (hook + body + closer)
+
+
+
+Q: The niche (A, B, C) controls voice, subtitle style, and search keywords. If text is the source of truth, should niche still be set manually?
+
+A: Semi-auto — the LLM suggests a niche but I confirm it
+
+-- Please delete after use --

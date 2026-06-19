@@ -1,0 +1,7 @@
+{
+ "db_name": "education_db",
+ "db_password": "BnjEeyEgFWPmBZj0",
+ "db_type": "mariadb",
+ "developer_mode": 1,
+ "maintenance_mode": 0
+}

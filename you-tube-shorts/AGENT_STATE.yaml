@@ -1,0 +1,108 @@
+# Agent Workflow State — YouTube Shorts Pipeline
+# Sub-project of OpenAgile. Parent state: ../AGENT_STATE.yaml
+# All agents must read and update this file during workflow execution.
+
+platform:
+  agent: "Antigravity"
+  license: "unrestricted"
+  created_at: "2026-03-19T23:40:00Z"
+  last_updated: "2026-03-19T23:40:00Z"
+
+workflow:
+  name: "YouTube Shorts Pipeline Setup"
+  current_phase: "initialization"  # initialization | infrastructure | pipeline | validation | production
+  started_at: "2026-03-19T23:40:00Z"
+  last_updated: "2026-03-19T23:40:00Z"
+
+agents:
+  pipeline_builder:
+    status: "pending"  # pending | active | complete | error
+    prompt_file: "./agents/PIPELINE_BUILDER_AGENT.md"
+    current_task: "Awaiting invocation"
+    completed_tasks: []
+    last_run: null
+
+  content_agent:
+    status: "pending"
+    prompt_file: "./agents/CONTENT_AGENT.md"
+    current_task: "Awaiting invocation"
+    completed_tasks: []
+    last_run: null
+
+parent_coordination:
+  orchestrator: "../agents/ORCHESTRATOR_AGENT.md"
+  investigator: "../agents/INVESTIGATOR_AGENT.md"
+  builder: "../agents/BUILDER_AGENT.md"
+  infrastructure_contract: "../INFRASTRUCTURE_CONTRACT.md"
+  parent_state: "../AGENT_STATE.yaml"
+
+artifacts:
+  gemini_doc:
+    file: "./GEMINI.md"
+    status: "complete"
+
+  docker_compose:
+    file: "./docker-compose.yml"
+    status: "complete"
+
+  deploy_script:
+    file: "./deploy.sh"
+    status: "complete"
+
+  github_actions:
+    file: "../.github/workflows/deploy-youtube-shorts.yml"
+    status: "complete"
+
+  pipeline_scripts:
+    files:
+      - "./scripts/process_short.sh"
+      - "./scripts/youtube_auth.py"
+      - "./scripts/youtube_upload.py"
+      - "./scripts/health_check.sh"
+    status: "complete"
+
+  n8n_workflow:
+    file: "./n8n/workflow-template.json"
+    status: "complete"
+
+  deployment_checklist:
+    file: "./docs/DEPLOYMENT_CHECKLIST.md"
+    status: "complete"
+
+target_services:
+  kokoro_tts:
+    image: "ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2"
+    port: 8880
+    status: "not_deployed"
+
+  n8n:
+    location: "main_stack"
+    url: "https://n8n.zubbystudio.shop"
+    status: "running"
+
+  openclaw:
+    location: "../openclaw/"
+    url: "http://openclaw-gateway:18789"
+    status: "running"
+
+known_constraints:
+  - id: "MEM-001"
+    description: "Server has <4GB RAM; Kokoro TTS on CPU may cause resource pressure"
+    severity: "medium"
+    mitigation: "Resource limits in docker-compose.yml; daily async schedule"
+
+  - id: "API-001"
+    description: "YouTube Data API v3 quota: 10,000 units/day (~6 uploads)"
+    severity: "low"
+    mitigation: "Pipeline produces max 3 Shorts/day (one per niche)"
+
+  - id: "SCRAPE-001"
+    description: "TikTok/Instagram scraping is fragile; yt-dlp needs weekly updates"
+    severity: "medium"
+    mitigation: "Start with YouTube-only sources; add Apify later"
+
+# Instructions:
+# 1. Read this file at the start of every session
+# 2. Check your agent's status before taking action
+# 3. Update status and outputs after completing tasks
+# 4. For parent-level coordination, reference ../AGENT_STATE.yaml

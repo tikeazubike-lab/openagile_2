@@ -1,0 +1,166 @@
+-----> Existing PostgreSQL cluster found in /var/openproject/pgdata.
+-----> Setting PGVERSION=13 PGBIN=/usr/lib/postgresql/13/bin PGCONF_FILE=/etc/postgresql/13/main/postgresql.conf
+-----> Starting the all-in-one OpenProject setup at /app/docker/prod/supervisord...
+-----> Database cluster already exists, not modifying.
+       waiting for server to start.... done
+       server started
+       Trying to contact PostgreSQL server instance or waiting for it to come online.
+       Starting memcached: memcached.
+-----> Running migrations...
+       I, [2025-11-02T14:58:15.364197 #63]  INFO -- : Using schema cache file /app/db/schema_cache.yml
+-----> Seeding database...
+       I, [2025-11-02T14:58:43.995076 #88]  INFO -- : Using schema cache file /app/db/schema_cache.yml
+       *** Seeding for locale: 'en'
+       *** Seeding basic data for standard edition
+        ↳ BuiltinUsersSeeder
+        ↳ ProjectRoleSeeder
+          *** Skipping project roles as there are already some configured
+        ↳ WorkPackageRoleSeeder
+          *** Skipping work package roles as there are already some configured
+        ↳ ProjectQueryRoleSeeder
+          *** Skipping project query roles as there are already some configured
+        ↳ GlobalRoleSeeder
+          *** Skipping global roles as there are already some configured
+        ↳ TimeEntryActivitySeeder
+          *** Skipping time entry activities as there are already some configured
+        ↳ ColorSeeder
+          *** Skipping colors as there are already some configured
+        ↳ ColorSchemeSeeder
+          *** Skipping open color palette as there are already some configured
+        ↳ WorkflowSeeder
+          *** Skipping types, statuses and workflows as there are already some configured
+        ↳ PrioritySeeder
+          *** Skipping priorities as there are already some configured
+        ↳ SettingSeeder
+          *** Skipping settings as all settings already exist in the db
+        ↳ ProjectCustomFieldSectionSeeder
+          *** Skipping project custom field sections as there are already some configured
+       Loading discovered seeders: Backlogs::SettingSeeder, Documents::EnumerationSeeder
+        ↳ Backlogs::SettingSeeder
+          *** Skipping BasicData::Backlogs::SettingSeeder
+        ↳ Documents::EnumerationSeeder
+          *** Skipping document categories as there are already some configured
+       *** Seeding admin user
+          *** No need to seed an admin as there already is one.
+       *** Seeding OAuth applications
+       Seeding mobile oauth application failed:
+         Client ID has already been taken.
+       *** Seeding demo data
+        ↳ GroupSeeder
+           ↳ Creating groups
+        ↳ GlobalQuerySeeder
+           ↳ Creating global queries
+        ↳ ProjectsSeeder
+          *** Skipping DemoData::ProjectsSeeder
+        ↳ OverviewSeeder
+          *** Skipping DemoData::OverviewSeeder
+       *** Loading action_view_railtie seed data
+       *** Loading active_storage seed data
+       *** Loading action_cable_engine seed data
+       *** Loading action_mailbox seed data
+       *** Loading action_text seed data
+       *** Loading view_component_engine seed data
+       *** Loading primer_view_components seed data
+       *** Loading doorkeeper_engine seed data
+       *** Loading date_validator_engine seed data
+       *** Loading good_job seed data
+       *** Loading ok_computer seed data
+       *** Loading lookbook seed data
+       *** Loading turbo seed data
+       *** Loading turbo_power_engine seed data
+       *** Loading openproject_auth_plugins seed data
+       *** Loading openproject_auth_saml seed data
+       *** Loading openproject_openid_connect seed data
+       *** Loading openproject_documents seed data
+       *** Loading openproject_xls_export seed data
+       *** Loading costs seed data
+       *** Loading openproject_reporting seed data
+       *** Loading openproject_meeting seed data
+       *** Loading openproject_backlogs seed data
+       *** Loading openproject_avatars seed data
+       *** Loading openproject_two_factor_authentication seed data
+       *** Loading openproject_webhooks seed data
+       *** Loading openproject_github_integration seed data
+       *** Loading openproject_gitlab_integration seed data
+       *** Loading openproject_ldap_groups seed data
+       *** Loading openproject_recaptcha seed data
+       *** Loading openproject_job_status seed data
+       *** Loading grids_engine seed data
+       *** Loading my_page_engine seed data
+       *** Loading dashboards seed data
+       *** Loading openproject_boards seed data
+       *** Loading overviews seed data
+       *** Loading budgets_engine seed data
+       *** Loading openproject_team_planner seed data
+       *** Loading openproject_gantt seed data
+       *** Loading openproject_calendar seed data
+       *** Loading openproject_storages seed data
+       *** Loading openproject_bim seed data
+       *** Seeding data from environment variables
+        ↳ LdapSeeder
+          *** Skipping EnvData::LdapSeeder
+       Stopping memcached: memcached.
+       waiting for server to shut down.... done
+       server stopped
+-----> Database setup finished.
+       On first installation, the default admin credentials are login: admin, password: admin
+-----> Launching supervisord...
+2025-11-02 14:58:54,953 INFO Set uid to user 0 succeeded
+2025-11-02 14:58:54,957 INFO RPC interface 'supervisor' initialized
+2025-11-02 14:58:54,957 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2025-11-02 14:58:54,958 INFO supervisord started with pid 1
+2025-11-02 14:58:55,961 INFO spawned: 'postgres' with pid 115
+2025-11-02 14:58:55,964 INFO spawned: 'apache2' with pid 116
+2025-11-02 14:58:55,967 INFO spawned: 'web' with pid 117
+2025-11-02 14:58:55,970 INFO spawned: 'worker' with pid 118
+2025-11-02 14:58:55,972 INFO spawned: 'memcached' with pid 120
+2025-11-02 14:58:55,975 INFO spawned: 'postfix' with pid 121
+2025-11-02 14:58:56,043 INFO success: postfix entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+Action '-DFOREGROUND' failed.
+The Apache error log may have more information.
+2025-11-02 14:58:56,248 WARN exited: apache2 (exit status 1; not expected)
+2025-11-02 14:58:56,583 INFO exited: postfix (exit status 0; expected)
+2025-11-02 14:58:57,583 INFO success: postgres entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-02 14:58:57,586 INFO spawned: 'apache2' with pid 247
+2025-11-02 14:58:57,587 INFO success: web entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-02 14:58:57,588 INFO success: worker entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-02 14:58:57,588 INFO success: memcached entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+Action '-DFOREGROUND' failed.
+The Apache error log may have more information.
+2025-11-02 14:58:57,623 WARN exited: apache2 (exit status 1; not expected)
+2025-11-02 14:58:59,628 INFO spawned: 'apache2' with pid 250
+Action '-DFOREGROUND' failed.
+The Apache error log may have more information.
+2025-11-02 14:58:59,659 WARN exited: apache2 (exit status 1; not expected)
+2025-11-02 14:59:02,665 INFO spawned: 'apache2' with pid 253
+Action '-DFOREGROUND' failed.
+The Apache error log may have more information.
+2025-11-02 14:59:02,704 WARN exited: apache2 (exit status 1; not expected)
+2025-11-02 14:59:02,705 INFO gave up: apache2 entered FATAL state, too many start retries too quickly
+=> Booting Puma
+=> Rails 7.1.4 application starting in production 
+=> Run `bin/rails server --help` for more startup options
+I, [2025-11-02T14:59:57.985012 #117]  INFO -- : Using schema cache file /app/db/schema_cache.yml
+Exiting
+2025-11-02 15:00:00,109 WARN exited: web (exit status 1; not expected)
+I, [2025-11-02T14:59:58.273050 #129]  INFO -- : Using schema cache file /app/db/schema_cache.yml
+I, [2025-11-02T15:00:00.189019 #129]  INFO -- : [GoodJob] [129] GoodJob 3.26.2 started scheduler with queues=* max_threads=20.
+2025-11-02 15:00:00,191 INFO spawned: 'web' with pid 289
+I, [2025-11-02T15:00:00.262191 #129]  INFO -- : [GoodJob] GoodJob started cron with 16 jobs.
+I, [2025-11-02T15:00:00.315663 #129]  INFO -- : [GoodJob] Notifier subscribed with LISTEN
+2025-11-02 15:00:01,317 INFO success: web entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+=> Booting Puma
+=> Rails 7.1.4 application starting in production 
+=> Run `bin/rails server --help` for more startup options
+I, [2025-11-02T15:01:00.102342 #129]  INFO -- : [ActiveJob] Enqueued Storages::ManageStorageIntegrationsJob (Job ID: eb590a79-540e-4cb4-a2a7-8ac9dbd077bd) to GoodJob(default)
+I, [2025-11-02T15:01:00.171782 #129]  INFO -- : [ActiveJob] [Storages::ManageStorageIntegrationsJob] [eb590a79-540e-4cb4-a2a7-8ac9dbd077bd] Performing Storages::ManageStorageIntegrationsJob (Job ID: eb590a79-540e-4cb4-a2a7-8ac9dbd077bd) from GoodJob(default) enqueued at 2025-11-02T15:01:00.034373985Z
+I, [2025-11-02T15:01:00.213134 #129]  INFO -- : [ActiveJob] [Storages::ManageStorageIntegrationsJob] [eb590a79-540e-4cb4-a2a7-8ac9dbd077bd] Performed Storages::ManageStorageIntegrationsJob (Job ID: eb590a79-540e-4cb4-a2a7-8ac9dbd077bd) from GoodJob(default) in 40.93ms
+I, [2025-11-02T15:01:00.214165 #129]  INFO -- : [GoodJob] [129] [GoodJob::Scheduler(queues=* max_threads=20)-thread-2] Executed GoodJob eb590a79-540e-4cb4-a2a7-8ac9dbd077bd
+I, [2025-11-02T15:01:04.643132 #289]  INFO -- : Using schema cache file /app/db/schema_cache.yml
+Exiting
+2025-11-02 15:01:06,437 WARN exited: web (exit status 1; not expected)
+2025-11-02 15:01:07,440 INFO spawned: 'web' with pid 323
+2025-11-02 15:01:08,443 INFO success: web entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+=> Booting Puma
+=> Rails 7.1.4 application starting in production 
+=> Run `bin/rails server --help` for more startup options

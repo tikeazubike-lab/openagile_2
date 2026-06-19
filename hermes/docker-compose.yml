@@ -1,0 +1,23 @@
+services:
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes
+    restart: unless-stopped
+    command: gateway run
+    volumes:
+      - /home/zubbyik/.hermes:/opt/data
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS}
+    networks:
+      - openagile_openagile_network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+
+networks:
+  openagile_openagile_network:
+    external: true

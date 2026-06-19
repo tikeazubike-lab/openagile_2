@@ -1,0 +1,66 @@
+# OpenAgile Traefik integration
+
+services:
+  frontend:
+    networks:
+      - default
+      - openagile_openagile_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=openagile_openagile_network"
+      
+      - "traefik.http.routers.erpnext.rule=Host(`erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext.entrypoints=websecure"
+      - "traefik.http.routers.erpnext.tls=true"
+      - "traefik.http.routers.erpnext.tls.certresolver=cloudflare"
+      - "traefik.http.routers.erpnext.service=erpnext-frontend"
+      
+      - "traefik.http.routers.erpnext-library.rule=Host(`library.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-library.entrypoints=websecure"
+      - "traefik.http.routers.erpnext-library.tls=true"
+      - "traefik.http.routers.erpnext-library.tls.certresolver=cloudflare"
+      - "traefik.http.routers.erpnext-library.service=erpnext-frontend"
+      
+      - "traefik.http.services.erpnext-frontend.loadbalancer.server.port=8080"
+      
+      - "traefik.http.routers.erpnext-http.rule=Host(`erpnext.zubbystudio.shop`) || Host(`library.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-http.entrypoints=web"
+      - "traefik.http.routers.erpnext-http.middlewares=redirect-to-https"
+      
+      - "traefik.http.middlewares.erpnext-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.erpnext-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.erpnext-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.erpnext-headers.headers.browserXssFilter=true"
+      - "traefik.http.routers.erpnext.middlewares=erpnext-headers"
+      - "traefik.http.routers.erpnext-library.middlewares=erpnext-headers"
+    ports: []
+
+  backend:
+    networks:
+      - default
+      - openagile_openagile_network
+
+  websocket:
+    networks:
+      - default
+      - openagile_openagile_network
+
+  queue-short:
+    networks:
+      - default
+      - openagile_openagile_network
+
+  queue-long:
+    networks:
+      - default
+      - openagile_openagile_network
+
+  scheduler:
+    networks:
+      - default
+      - openagile_openagile_network
+
+networks:
+  openagile_openagile_network:
+    external: true
+    name: openagile_openagile_network

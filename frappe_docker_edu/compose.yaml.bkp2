@@ -1,0 +1,292 @@
+version: "3.8"
+
+services:
+  backend:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    deploy:
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - ${SITES_DIR}:/home/frappe/frappe-bench/sites
+      - ${APPS_DIR}:/home/frappe/frappe-bench/apps
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - REDIS_CACHE=${REDIS_CACHE}
+      - REDIS_QUEUE=${REDIS_QUEUE}
+      - REDIS_SOCKETIO=${REDIS_CACHE}
+      - DEVELOPER_MODE=${DEVELOPER_MODE}
+      - HTTP_TIMEOUT=${HTTP_TIMEOUT}
+    networks:
+      - frappe_internal
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+
+  frontend:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    command:
+      - nginx-entrypoint.sh
+    environment:
+      - BACKEND=backend:8000
+      - FRAPPE_SITE_NAME_HEADER=$$host
+      - UPSTREAM_REAL_IP_ADDRESS=172.18.0.0/16
+      - UPSTREAM_REAL_IP_RECURSIVE=on
+      - UPSTREAM_REAL_IP_HEADER=X-Forwarded-For
+    volumes:
+      - ${SITES_DIR}:/home/frappe/frappe-bench/sites
+      - ./configs/nginx/frappe-site.conf:/etc/nginx/conf.d/frappe-site.conf:ro
+    networks:
+      - frappe_internal
+      - ${TRAEFIK_NETWORK}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK}"
+      
+      - "traefik.http.routers.erpnext-main.rule=Host(`erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-main.entrypoints=websecure"
+      - "traefik.http.routers.erpnext-main.tls=true"
+      - "traefik.http.routers.erpnext-main.tls.certresolver=letsencrypt"
+      
+      - "traefik.http.routers.erpnext-library.rule=Host(`library.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-library.entrypoints=websecure"
+      - "traefik.http.routers.erpnext-library.tls=true"
+      - "traefik.http.routers.erpnext-library.tls.certresolver=letsencrypt"
+      
+      - "traefik.http.services.erpnext.loadbalancer.server.port=8080"
+      
+      - "traefik.http.routers.erpnext-main-http.rule=Host(`erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-main-http.entrypoints=web"
+      - "traefik.http.routers.erpnext-main-http.middlewares=https-redirect"
+      - "traefik.http.routers.erpnext-library-http.rule=Host(`library.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-library-http.entrypoints=web"
+      - "traefik.http.routers.erpnext-library-http.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+    depends_on:
+      - backend
+
+  scheduler:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    command:
+      - bench
+      - schedule
+    volumes:
+      - ${SITES_DIR}:/home/frappe/frappe-bench/sites
+      - ${APPS_DIR}:/home/frappe/frappe-bench/apps
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - REDIS_CACHE=${REDIS_CACHE}
+      - REDIS_QUEUE=${REDIS_QUEUE}
+      - REDIS_SOCKETIO=${REDIS_CACHE}
+      - DEVELOPER_MODE=${DEVELOPER_MODE}
+    networks:
+      - frappe_internal
+    depends_on:
+      - backend
+
+  queue-short:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    command:
+      - bench
+      - worker
+      - --queue
+      - short
+    volumes:
+      - ${SITES_DIR}:/home/frappe/frappe-bench/sites
+      - ${APPS_DIR}:/home/frappe/frappe-bench/apps
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - REDIS_CACHE=${REDIS_CACHE}
+      - REDIS_QUEUE=${REDIS_QUEUE}
+      - REDIS_SOCKETIO=${REDIS_CACHE}
+      - DEVELOPER_MODE=${DEVELOPER_MODE}
+    networks:
+      - frappe_internal
+    depends_on:
+      - backend
+
+  queue-long:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    command:
+      - bench
+      - worker
+      - --queue
+      - long
+    volumes:
+      - ${SITES_DIR}:/home/frappe/frappe-bench/sites
+      - ${APPS_DIR}:/home/frappe/frappe-bench/apps
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - REDIS_CACHE=${REDIS_CACHE}
+      - REDIS_QUEUE=${REDIS_QUEUE}
+      - REDIS_SOCKETIO=${REDIS_CACHE}
+      - DEVELOPER_MODE=${DEVELOPER_MODE}
+    networks:
+      - frappe_internal
+    depends_on:
+      - backend
+
+  queue-default:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    command:
+      - bench
+      - worker
+      - --queue
+      - default
+    volumes:
+      - ${SITES_DIR}:/home/frappe/frappe-bench/sites
+      - ${APPS_DIR}:/home/frappe/frappe-bench/apps
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - REDIS_CACHE=${REDIS_CACHE}
+      - REDIS_QUEUE=${REDIS_QUEUE}
+      - REDIS_SOCKETIO=${REDIS_CACHE}
+      - DEVELOPER_MODE=${DEVELOPER_MODE}
+    networks:
+      - frappe_internal
+    depends_on:
+      - backend
+
+  mariadb:
+    image: mariadb:10.6
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    volumes:
+      - ${DB_DATA_DIR}:/var/lib/mysql
+    networks:
+      - frappe_internal
+    healthcheck:
+      test: mysqladmin ping -h localhost --password=${DB_ROOT_PASSWORD}
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+  redis-cache:
+    image: redis:alpine
+    volumes:
+      - ${REDIS_CACHE_DIR}:/data
+    networks:
+      - frappe_internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  redis-queue:
+    image: redis:alpine
+    volumes:
+      - ${REDIS_QUEUE_DIR}:/data
+    networks:
+      - frappe_internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Fixed configurator with proper shell command execution
+  configurator:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        ls -1 apps > sites/apps.txt
+        bench set-config -g db_host ${DB_HOST}
+        bench set-config -gp db_port ${DB_PORT}
+        bench set-config -g redis_cache "redis://${REDIS_CACHE}"
+        bench set-config -g redis_queue "redis://${REDIS_QUEUE}"
+        bench set-config -g redis_socketio "redis://${REDIS_CACHE}"
+        bench set-config -gp developer_mode ${DEVELOPER_MODE}
+    volumes:
+      - ${SITES_DIR}:/home/frappe/frappe-bench/sites
+      - ${APPS_DIR}:/home/frappe/frappe-bench/apps
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - REDIS_CACHE=${REDIS_CACHE}
+      - REDIS_QUEUE=${REDIS_QUEUE}
+      - REDIS_SOCKETIO=${REDIS_CACHE}
+    networks:
+      - frappe_internal
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+
+  # Fixed create-site with proper shell command execution
+  create-site:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        # Wait for configurator
+        sleep 10
+        
+        # Create main ERPNext site if not exists
+        if [ ! -d "sites/erpnext.zubbystudio.shop" ]; then
+          echo "Creating main ERPNext site..."
+          bench new-site erpnext.zubbystudio.shop \
+            --no-mariadb-socket \
+            --db-name=main_erpnext \
+            --admin-password="${ADMIN_PASSWORD}" \
+            --install-app=erpnext
+          
+          bench --site erpnext.zubbystudio.shop set-config developer_mode 1
+          bench --site erpnext.zubbystudio.shop clear-cache
+          echo "Main site created successfully"
+        else
+          echo "Main site already exists, skipping creation"
+        fi
+        
+        # Create library site if not exists
+        if [ ! -d "sites/library.erpnext.zubbystudio.shop" ]; then
+          echo "Creating library site..."
+          bench new-site library.erpnext.zubbystudio.shop \
+            --no-mariadb-socket \
+            --db-name=library_erpnext \
+            --admin-password="${ADMIN_PASSWORD}"
+          
+          bench --site library.erpnext.zubbystudio.shop set-config developer_mode 1
+          bench --site library.erpnext.zubbystudio.shop clear-cache
+          echo "Library site created successfully"
+        else
+          echo "Library site already exists, skipping creation"
+        fi
+    volumes:
+      - ${SITES_DIR}:/home/frappe/frappe-bench/sites
+      - ${APPS_DIR}:/home/frappe/frappe-bench/apps
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - REDIS_CACHE=${REDIS_CACHE}
+      - REDIS_QUEUE=${REDIS_QUEUE}
+      - REDIS_SOCKETIO=${REDIS_CACHE}
+    networks:
+      - frappe_internal
+    depends_on:
+      - configurator
+
+networks:
+  frappe_internal:
+    driver: bridge
+  openagile_network:
+    external: true
