@@ -1,0 +1,64 @@
+# Agent-to-Model Routing Configuration
+# Single source of truth for multi-agent model assignments.
+# Referenced by: AGENTS.md, .cursor/rules/, ai-workflow-rules.md
+#
+# Last verified: 2026-06-19
+
+agents:
+  owl-alpha:
+    role: backend-executor
+    model: openrouter/owl-alpha
+    provider: openrouter
+    owns:
+      - backend/
+      - docker-compose.v3.yml
+      - deploy.sh
+    never_touches:
+      - estate-portfolio-manager/src/
+    responsibilities:
+      - API development
+      - Database logic
+      - Test writing (unit + integration)
+      - Bug fixing based on RCA
+      - Infrastructure and deployment
+    workflow_gate: Implements ONLY after DeepSeek approval and failing tests exist
+
+  nex-n2:
+    role: frontend-executor
+    model: openrouter/nex-agi/nex-n2-pro:free
+    provider: openrouter
+    owns:
+      - estate-portfolio-manager/src/
+    never_touches:
+      - backend/
+    responsibilities:
+      - UI implementation
+      - Component design
+      - Frontend state logic
+      - API integration on UI layer
+      - UI test validation
+    workflow_gate: Must not modify backend logic. UI only.
+
+  deepseek:
+    role: reviewer-architect
+    model: openrouter/deepseek/deepseek-v4-flash
+    provider: openrouter
+    owns: []  # No code execution
+    responsibilities:
+      - Architecture validation
+      - Feature spec interpretation
+      - Test plan approval
+      - Code review gatekeeping
+      - Final correctness validation
+      - Detect logic inconsistencies
+    workflow_gate: No implementation allowed. Only review, decide, approve, or reject.
+
+routing:
+  backend_task:
+    primary: owl-alpha
+    reviewer: deepseek
+  frontend_task:
+    primary: nex-n2
+    reviewer: deepseek
+  complex_analytical:
+    primary: deepseek

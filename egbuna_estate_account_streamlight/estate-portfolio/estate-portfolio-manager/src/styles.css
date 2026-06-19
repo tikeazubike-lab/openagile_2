@@ -1,0 +1,167 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Estate Portfolio Manager — Design System
+ * Hex palette mapped to oklch tokens. Accents are identical in both themes.
+ */
+
+@theme inline {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --color-background: var(--bg-canvas);
+  --color-foreground: var(--text-primary);
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-subtle: var(--bg-subtle);
+  --color-sidebar: var(--bg-sidebar);
+  --color-sidebar-foreground: var(--text-on-sidebar);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--accent-lavender);
+
+  --color-lavender: var(--accent-lavender);
+  --color-gold: var(--accent-gold);
+  --color-success: var(--accent-green);
+  --color-danger: var(--accent-red);
+  --color-warning: var(--accent-amber);
+
+  /* shadcn aliases mapped to EPM tokens */
+  --color-card: var(--bg-surface);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-surface);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--accent-lavender);
+  --color-primary-foreground: oklch(0.18 0.005 270);
+  --color-secondary: var(--bg-subtle);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--bg-subtle);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--bg-subtle);
+  --color-accent-foreground: var(--text-primary);
+  --color-destructive: var(--accent-red);
+  --color-destructive-foreground: oklch(0.99 0 0);
+}
+
+:root {
+  /* Backgrounds — light */
+  --bg-canvas: oklch(0.994 0.0015 110);     /* #FDFEFE */
+  --bg-surface: oklch(1 0 0);               /* #FFFFFF */
+  --bg-subtle: oklch(0.967 0.002 270);      /* #F5F5F7 */
+  --bg-sidebar: oklch(0.46 0.004 130);      /* #646763 */
+
+  /* Text */
+  --text-primary: oklch(0.18 0.005 270);    /* #1A1A1A */
+  --text-secondary: oklch(0.46 0.004 130);  /* #646763 */
+  --text-muted: oklch(0.7 0.012 260);       /* #9CA3AF */
+  --text-on-sidebar: oklch(1 0 0);
+
+  /* Accents (shared) */
+  --accent-lavender: oklch(0.81 0.09 285);  /* #BCBDFA */
+  --accent-gold: oklch(0.79 0.085 85);      /* #DABF82 */
+  --accent-green: oklch(0.72 0.18 145);     /* #22C55E */
+  --accent-red: oklch(0.66 0.22 25);        /* #EF4444 */
+  --accent-amber: oklch(0.78 0.16 70);      /* #F59E0B */
+
+  --border: oklch(0.93 0.005 270);          /* #E8E8EC */
+  --shadow-card: 0 1px 4px rgba(100, 103, 99, 0.12), 0 0 0 1px oklch(0.93 0.005 270);
+  --shadow-dropdown: 0 8px 24px rgba(100, 103, 99, 0.2);
+  --shadow-modal: 0 16px 48px rgba(100, 103, 99, 0.25);
+  --focus-ring: 0 0 0 3px rgba(188, 189, 250, 0.4);
+
+  --radius: 12px;
+}
+
+.dark {
+  --bg-canvas: oklch(0.18 0.015 260);       /* #0d1117 */
+  --bg-surface: oklch(0.225 0.018 260);     /* #161b22 */
+  --bg-subtle: oklch(0.255 0.018 260);      /* #1c2128 */
+  --bg-sidebar: oklch(0.18 0.015 260);
+
+  --text-primary: oklch(0.93 0.012 245);    /* #e6edf3 */
+  --text-secondary: oklch(0.65 0.018 245);  /* #8b949e */
+  --text-muted: oklch(0.42 0.014 245);      /* #484f58 */
+  --text-on-sidebar: oklch(0.93 0.012 245);
+
+  --border: oklch(0.32 0.014 250);          /* #30363d */
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.4), 0 0 0 1px oklch(0.32 0.014 250);
+  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --focus-ring: 0 0 0 3px rgba(188, 189, 250, 0.3);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-mono,
+  .mono {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum";
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-dropdown {
+    box-shadow: var(--shadow-dropdown);
+  }
+  .shadow-modal {
+    box-shadow: var(--shadow-modal);
+  }
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle) 0%,
+    var(--border) 50%,
+    var(--bg-subtle) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}

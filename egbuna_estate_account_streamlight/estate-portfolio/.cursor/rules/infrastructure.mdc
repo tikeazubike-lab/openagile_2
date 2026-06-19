@@ -1,0 +1,158 @@
+---
+description: Infrastructure rules — apply when editing docker-compose.yml, Dockerfile, GitHub Actions workflows, or any CI/CD configuration
+globs:
+  - "docker-compose*.yml"
+  - "Dockerfile*"
+  - ".github/workflows/*.yml"
+  - ".github/workflows/*.yaml"
+alwaysApply: false
+---
+
+# EPM Infrastructure Rules
+
+## The Absolute Rule
+
+```
+Local workstation: git add, git commit, git push — NOTHING ELSE
+All execution:     GitHub Actions (cloud) or Netcup VPS via SSH
+
+Note: When running directly on the VPS, deployment is done via docker compose.
+See .context/AGENT.md for the authoritative deployment procedure.
+```
+
+## GitHub Actions — SSH Heredoc Must Be Quoted
+
+```yaml
+# ✅ CORRECT — variables resolve on remote server
+- name: Deploy
+  uses: appleboy/ssh-action@master
+  with:
+    script: |
+      cd /root/openagile/egbuna_estate_account_streamlight/estate-portfolio
+      git pull origin main
+      docker compose up -d epm_v2
+
+# If writing raw heredoc in shell step:
+# ✅ CORRECT — single-quoted delimiter
+run: |
+  ssh user@host << 'ENDSSH'
+    cd /path && docker compose up -d
+  ENDSSH
+
+# ❌ WRONG — unquoted, variables resolve on runner not server
+run: |
+  ssh user@host << ENDSSH
+    cd $HOME/openagile && docker compose up -d
+  ENDSSH
+```
+
+## CI Pipeline — Fast Path vs Full Path
+
+```yaml
+# Fast path (feature/**, develop): static analysis + build + staging deploy
+# Full path (main, test, schedule, workflow_dispatch): full pyramid
+
+# Gate condition for expensive stages:
+if: |
+  github.ref == 'refs/heads/main' ||
+  github.ref == 'refs/heads/test' ||
+  github.event_name == 'schedule' ||
+  github.event.inputs.full_suite == 'true'
+```
+
+## Docker — Never New Postgres Container
+
+```yaml
+# ✅ CORRECT — reuse shared postgres
+services:
+  backend:
+    networks:
+      - openagile_network
+
+networks:
+  openagile_network:
+    external: true   # ← MUST be external, not created here
+
+# ❌ WRONG — creating a new postgres
+services:
+  db:
+    image: postgres:15
+    # This will conflict with shared openagile_postgres
+```
+
+## Docker — Frontend Build in GitHub Actions, Not on VPS
+
+```yaml
+# GitHub Actions workflow:
+- name: Build React SPA
+  run: |
+    cd estate-portfolio-manager
+    npm ci
+    npm run build
+
+- name: Copy into backend static dir
+  run: cp -r estate-portfolio-manager/dist/. backend/app/static/
+
+- name: Build Docker image
+  run: docker build -t epm-backend ./backend
+# The image already contains the built React files — no npm on VPS
+```
+
+## Docker — Always --no-cache for Frontend Hotfixes
+
+```bash
+# ✅ On VPS when deploying frontend UI changes
+docker compose build --no-cache epm
+
+# Regular backend-only changes can use cached build
+docker compose build epm
+```
+
+## Traefik Labels — Always Include All Required Labels
+
+```yaml
+# ✅ CORRECT — full label set required
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.SERVICE.rule=Host(`SUBDOMAIN.zubbystudio.shop`)"
+  - "traefik.http.routers.SERVICE.entrypoints=websecure"
+  - "traefik.http.routers.SERVICE.tls=true"
+  - "traefik.http.routers.SERVICE.tls.certresolver=letsencrypt"
+  - "traefik.http.services.SERVICE.loadbalancer.server.port=PORT"
+  - "traefik.docker.network=openagile_network"
+```
+
+## GitHub Secrets — Never Hardcode
+
+```yaml
+# ✅ CORRECT — all credentials from secrets
+env:
+  DB_HOST: ${{ secrets.DB_HOST }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+# ❌ WRONG — hardcoded credentials
+env:
+  DB_PASSWORD: "mypassword123"
+```
+
+## Required GitHub Secrets Reference
+
+```
+VPS_HOST, VPS_USER, VPS_SSH_KEY
+JWT_SECRET
+DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT
+DB_TEST_SCHEMA (= estate_portfolio_test)
+ADMIN_USERNAME, ADMIN_PASSWORD (EPM admin credentials)
+E2E_ADMIN_USER, E2E_ADMIN_PASS, E2E_VIEWER_USER, E2E_VIEWER_PASS
+SNYK_TOKEN
+```
+
+## Vault Sync — Reuse Existing SSH Key
+
+```
+DO NOT generate a new SSH key for vault sync.
+Reuse the existing VPS key (id_ed25519 or equivalent).
+Add existing public key to private vault repo deploy keys (read-only).
+vault-sync.yml uses: key: ${{ secrets.VPS_SSH_KEY }}  (same secret)
+```

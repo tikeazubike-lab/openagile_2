@@ -1,0 +1,44 @@
+type: CONTEXT_STATE
+id: EPM_AGENT_STATE
+title: Estate Portfolio Manager Agent State
+status: active
+version: 2.0
+updated: "2026-06-19"
+
+project:
+  name: Estate Portfolio Manager
+  path: egbuna_estate_account/streamlight/estate-portfolio
+  branch: test
+  deployment_law: GitHub Actions only
+
+current_work:
+  phase: bugs_open_cleanup
+  active_bugs: .context/current-issues.md
+
+agents:
+  deepseek_v4:
+    role: reviewer_architect
+    status: pending
+    owns: []
+    model: openrouter/deepseek/deepseek-v4-flash
+  owl_alpha:
+    role: backend_builder
+    status: pending
+    owns:
+      - backend/
+      - backend/tests/
+      - backend/migrations/
+      - backend/app/
+    model: openrouter/owl-alpha
+  nex_n2:
+    role: frontend_builder
+    status: pending
+    owns:
+      - estate-portfolio-manager/src/
+    model: openrouter/nex-agi/nex-n2-pro:free
+
+guardrails:
+  local_docker: forbidden
+  local_deployment: forbidden
+  root_handover_moves: forbidden_until_approved
+  destructive_deletes: forbidden_until_approved

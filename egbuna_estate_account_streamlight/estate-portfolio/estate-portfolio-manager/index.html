@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Estate Portfolio Manager</title>
+    <meta name="description" content="Personal NGX investment portfolio tracker" />
+
+    <!--
+      Anti-FOUC: apply dark class before first paint so there is no flash.
+      Must run synchronously in <head>. Mirrors the logic in useTheme.ts.
+    -->
+    <script>
+      try {
+        var t = localStorage.getItem('epm-theme');
+        var d = t === 'dark' || ((!t || t === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (d) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+
+    <!-- Google Fonts: DM Mono (numbers) + Plus Jakarta Sans (UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
