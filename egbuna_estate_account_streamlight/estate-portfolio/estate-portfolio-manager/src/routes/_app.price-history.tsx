@@ -216,7 +216,7 @@ function PriceHistoryPage() {
                     ...d,
                     price: parseFloat(d.price),
                   }))}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 20, right: 40, left: 60, bottom: 40 }}
                 >
                   <defs>
                     <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
@@ -227,14 +227,16 @@ function PriceHistoryPage() {
                   <XAxis
                     dataKey="recorded_date"
                     tickFormatter={(val) => format(new Date(val), "MMM d")}
-                    style={{ fontFamily: "DM Mono", fontSize: "12px", fill: "hsl(var(--foreground))" }}
+                    tick={{ fontFamily: "DM Mono", fontSize: 12, fill: "hsl(var(--foreground))" }}
                     stroke="hsl(var(--muted-foreground))"
+                    height={40}
                   />
                   <YAxis
                     domain={["auto", "auto"]}
                     tickFormatter={(val) => `₦${val}`}
-                    style={{ fontFamily: "DM Mono", fontSize: "12px", fill: "hsl(var(--foreground))" }}
+                    tick={{ fontFamily: "DM Mono", fontSize: 12, fill: "hsl(var(--foreground))" }}
                     stroke="hsl(var(--muted-foreground))"
+                    width={60}
                   />
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                   <RechartsTooltip
