@@ -208,7 +208,19 @@ function PriceHistoryPage() {
       ) : (
         <div className="space-y-6">
           <div className="border rounded-lg bg-card shadow-sm p-6">
-            <h3 className="text-lg font-medium mb-6">Price Trend ({selectedCompany?.ticker})</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-medium">Price Trend ({selectedCompany?.ticker})</h3>
+              {(() => {
+                const prices = (history ?? []).map((d) => parseFloat(d.price));
+                const min = prices.length ? Math.min(...prices) : 0;
+                const max = prices.length ? Math.max(...prices) : 0;
+                return (
+                  <p className="text-xs text-muted-foreground font-mono">
+                    Range: ₦{min.toFixed(2)} – ₦{max.toFixed(2)}
+                  </p>
+                );
+              })()}
+            </div>
             <div className="h-[400px] w-full" style={{ minWidth: 0, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
@@ -216,7 +228,7 @@ function PriceHistoryPage() {
                     ...d,
                     price: parseFloat(d.price),
                   }))}
-                  margin={{ top: 20, right: 40, left: 60, bottom: 40 }}
+                  margin={{ top: 20, right: 40, left: 60, bottom: 60 }}
                 >
                   <defs>
                     <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
@@ -227,18 +239,19 @@ function PriceHistoryPage() {
                   <XAxis
                     dataKey="recorded_date"
                     tickFormatter={(val) => format(new Date(val), "MMM d")}
-                    tick={{ fontFamily: "DM Mono", fontSize: 12, fill: "hsl(var(--foreground))" }}
+                    tick={{ fontFamily: "DM Mono", fontSize: 12, fill: "#c5cbe0" }}
                     stroke="hsl(var(--muted-foreground))"
                     height={40}
                   />
                   <YAxis
                     domain={["auto", "auto"]}
+                    tickAmount={5}
                     tickFormatter={(val) => `₦${val}`}
-                    tick={{ fontFamily: "DM Mono", fontSize: 12, fill: "hsl(var(--foreground))" }}
+                    tick={{ fontFamily: "DM Mono", fontSize: 12, fill: "#c5cbe0" }}
                     stroke="hsl(var(--muted-foreground))"
                     width={60}
                   />
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
                   <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",

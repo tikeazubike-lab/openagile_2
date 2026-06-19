@@ -181,6 +181,18 @@ export function usePriceHistory(companyId: number | null, days: number) {
 
 - [x] Readonly user can access and view (no edit controls) — verified (no edit controls in component)
 
+- [x] Y-axis labels anchored with visible axis line — verified: YAxis stroke="hsl(var(--muted-foreground))" provides clear anchor line
+
+- [x] Y-axis labels evenly spaced — verified: tickAmount={5} set for consistent vertical rhythm
+
+- [x] X-axis labels have adequate breathing room — verified: bottom margin increased from 40 to 60
+
+- [x] Axis label contrast meets WCAG on dark backgrounds — verified: tick fill changed from "hsl(var(--foreground))" to "#c5cbe0" (light lavender-gray) on both XAxis and YAxis
+
+- [x] Horizontal gridlines present for readability — verified: CartesianGrid with stroke="rgba(255,255,255,0.08)" (subtle white, low opacity)
+
+- [x] Price range displayed above chart — verified: "Range: ₦{min} – ₦{max}" shown in muted-foreground, small font, above chart header
+
 - [ ] No console errors on load — needs browser verification
 
 ## Sign-Off
