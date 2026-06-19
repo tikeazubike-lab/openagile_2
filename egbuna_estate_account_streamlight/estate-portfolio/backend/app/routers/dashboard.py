@@ -117,7 +117,8 @@ async def get_dashboard(
             "ticker": h.company.ticker if h.company else "N/A",
             "company": h.company.name if h.company else "Unknown",
             "value": str(val) if val else "0.00",
-            "return_pct": str(round(ret, 2)) if ret else "0.00"
+            "num_shares": str(h.num_shares) if h.num_shares else "0.0000",
+            "return_pct": str(round(ret, 2))
         })
 
     response_data = {

@@ -78,6 +78,7 @@ function DashboardPage() {
   const topHoldingsChartData = topHoldings.map((h: any) => ({
     ticker: h.ticker,
     value: safeParseFloat(h.value),
+    shares: safeParseFloat(h.num_shares),
     return_pct: safeParseFloat(h.return_pct),
     displayValue: displayValueStr(h.value),
     displayReturn: displayPctStr(h.return_pct),
@@ -249,11 +250,21 @@ function DashboardPage() {
                     <LabelList
                       dataKey="displayReturn"
                       position="right"
-                      style={{
-                        fill: "var(--text-secondary)",
-                        fontSize: 12,
-                        fontFamily: "DM Mono",
-                      }}
+                      content={({ value }: { value?: any }) =>
+                        value === "0.00%" ? (
+                          <tspan
+                            style={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "DM Mono" }}
+                          >
+                            N/A
+                          </tspan>
+                        ) : (
+                          <tspan
+                            style={{ fill: "var(--text-secondary)", fontSize: 12, fontFamily: "DM Mono" }}
+                          >
+                            {value}
+                          </tspan>
+                        )
+                      }
                     />
                   )}
                 </Bar>

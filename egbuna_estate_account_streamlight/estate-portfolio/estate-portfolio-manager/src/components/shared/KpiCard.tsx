@@ -34,7 +34,7 @@ export function KpiCard({
 
   return (
     <div
-      className="bg-[var(--bg-surface)] rounded-xl p-5 shadow-card relative overflow-hidden"
+      className="bg-[var(--bg-surface)] rounded-xl p-6 shadow-card relative overflow-hidden"
     >
       <div className="flex items-start justify-between">
         <div className="text-[12px] uppercase tracking-wider text-[var(--text-secondary)]">
@@ -44,7 +44,7 @@ export function KpiCard({
       </div>
       <div
         className={cn(
-          "mt-3 font-mono text-[28px] md:text-[30px] font-semibold text-[var(--text-primary)] tabular-nums leading-none",
+          "mt-3 font-mono text-[22px] md:text-[24px] font-semibold text-[var(--text-primary)] tabular-nums leading-none pr-4",
         )}
       >
         {display}
