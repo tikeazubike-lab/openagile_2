@@ -224,7 +224,7 @@ function PriceHistoryPage() {
             <div className="h-[450px] w-full" style={{ minWidth: 0, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={(history ?? []).slice().reverse().map((d) => ({
+                  data={(history ?? []).map((d) => ({
                     ...d,
                     price: parseFloat(d.price),
                   }))}
