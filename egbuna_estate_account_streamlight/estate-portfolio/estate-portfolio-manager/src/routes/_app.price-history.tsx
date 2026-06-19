@@ -221,7 +221,7 @@ function PriceHistoryPage() {
                 );
               })()}
             </div>
-            <div className="h-[400px] w-full" style={{ minWidth: 0, minHeight: 0 }}>
+            <div className="h-[450px] w-full" style={{ minWidth: 0, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={(history ?? []).slice().reverse().map((d) => ({
@@ -240,18 +240,21 @@ function PriceHistoryPage() {
                     dataKey="recorded_date"
                     tickFormatter={(val) => format(new Date(val), "MMM d")}
                     tick={{ fontFamily: "DM Mono", fontSize: 12, fill: "#c5cbe0" }}
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke="#6b7280"
+                    axisLine={true}
                     height={40}
+                    interval={0}
                   />
                   <YAxis
-                    domain={["auto", "auto"]}
+                    domain={["dataMin - 0.05", "dataMax + 0.05"]}
                     tickAmount={5}
                     tickFormatter={(val) => `₦${val}`}
                     tick={{ fontFamily: "DM Mono", fontSize: 12, fill: "#c5cbe0" }}
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke="#6b7280"
+                    axisLine={true}
                     width={60}
                   />
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.15)" />
                   <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
