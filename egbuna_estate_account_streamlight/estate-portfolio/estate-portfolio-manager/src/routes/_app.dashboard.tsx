@@ -51,14 +51,16 @@ function DashboardPage() {
     );
   }
 
-  const safeParseFloat = (v: string | null | undefined): number =>
-    v ? parseFloat(v) : 0;
+  const safeParseFloat = (v: number | string | null | undefined): number => {
+    if (v === null || v === undefined) return 0;
+    return typeof v === "string" ? parseFloat(v) : v;
+  };
 
-  const displayValueStr = (v: string | null | undefined): string =>
-    v ? fmtNaira(Number(v)) : "—";
+  const displayValueStr = (v: number | string | null | undefined): string =>
+    v !== null && v !== undefined ? fmtNaira(Number(v)) : "—";
 
-  const displayPctStr = (v: string | null | undefined): string =>
-    v ? `${v}%` : "—";
+  const displayPctStr = (v: number | string | null | undefined): string =>
+    v !== null && v !== undefined ? `${v}%` : "—";
 
   const sectorAllocation = data?.sector_allocation ?? [];
   const topHoldings = data?.top_holdings ?? [];
@@ -89,21 +91,21 @@ function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           label="Total Portfolio Value"
-          value={data.total_portfolio_value}
+          value={safeParseFloat(data?.total_portfolio_value)}
           Icon={TrendingUp}
           accent="lavender"
-          subtitle={`Unrealised gain ${fmtNaira(data.unrealised_gain_loss, { compact: true, sign: true })}`}
+          subtitle={`Unrealised gain ${fmtNaira(safeParseFloat(data?.unrealised_gain_loss), { compact: true, sign: true })}`}
         />
         <KpiCard
           label="Total Invested"
-          value={data.total_invested}
+          value={safeParseFloat(data?.total_invested)}
           Icon={DollarSign}
           accent="gold"
           subtitle="Cost basis"
         />
         <KpiCard
           label="Unrealised Gain/Loss"
-          value={data.unrealised_gain_loss}
+          value={safeParseFloat(data?.unrealised_gain_loss)}
           Icon={BarChart2}
           accent={gainPositive ? "green" : "red"}
           formatter={(n) => fmtNaira(n, { sign: true })}
@@ -118,12 +120,12 @@ function DashboardPage() {
         />
         <KpiCard
           label="Total Holdings"
-          value={data.total_holdings}
+          value={safeParseFloat(data?.total_holdings)}
           Icon={Briefcase}
           accent="lavender"
           integer
           subtitle={
-            isAdmin ? `${data.live_holdings} live · ${data.draft_holdings} draft` : undefined
+            isAdmin ? `${safeParseFloat(data?.live_holdings)} live · ${safeParseFloat(data?.draft_holdings)} draft` : undefined
           }
         />
       </div>

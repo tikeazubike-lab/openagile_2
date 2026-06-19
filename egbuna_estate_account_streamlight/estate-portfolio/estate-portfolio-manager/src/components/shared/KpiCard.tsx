@@ -35,7 +35,6 @@ export function KpiCard({
   return (
     <div
       className="bg-[var(--bg-surface)] rounded-xl p-5 shadow-card relative overflow-hidden"
-      style={{ borderLeft: `3px solid ${ACCENT[accent]}` }}
     >
       <div className="flex items-start justify-between">
         <div className="text-[12px] uppercase tracking-wider text-[var(--text-secondary)]">
