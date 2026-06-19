@@ -60,16 +60,18 @@ function DashboardPage() {
   const displayPctStr = (v: string | null | undefined): string =>
     v ? `${v}%` : "—";
 
-  const sectorAllocation = data.sector_allocation ?? [];
-  const topHoldings = data.top_holdings ?? [];
-  const recentTransactions = data.recent_transactions ?? [];
+  const sectorAllocation = data?.sector_allocation ?? [];
+  const topHoldings = data?.top_holdings ?? [];
+  const recentTransactions = data?.recent_transactions ?? [];
 
-  const sectorChartData = sectorAllocation.map((s: any) => ({
-    name: s.name || s.sector,
-    value: safeParseFloat(s.value),
-    displayPct: displayPctStr(s.pct),
-    displayValue: displayValueStr(s.value),
-  }));
+  const sectorChartData = sectorAllocation
+    .filter((s: any) => safeParseFloat(s.value) > 0)
+    .map((s: any) => ({
+      name: s.name || s.sector,
+      value: safeParseFloat(s.value),
+      displayPct: displayPctStr(s.pct),
+      displayValue: displayValueStr(s.value),
+    }));
 
   const topHoldingsChartData = topHoldings.map((h: any) => ({
     ticker: h.ticker,
@@ -79,7 +81,7 @@ function DashboardPage() {
     displayReturn: displayPctStr(h.return_pct),
   }));
 
-  const gainPositive = Number(data.unrealised_gain_loss) >= 0;
+  const gainPositive = safeParseFloat(data?.unrealised_gain_loss) >= 0;
 
   return (
     <div className="space-y-6">
@@ -109,8 +111,8 @@ function DashboardPage() {
             <span
               className={gainPositive ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}
             >
-              {data.unrealised_gain_pct > 0 ? "+" : ""}
-              {data.unrealised_gain_pct.toFixed(2)}% overall
+              {safeParseFloat(data?.unrealised_gain_pct) > 0 ? "+" : ""}
+              {safeParseFloat(data?.unrealised_gain_pct).toFixed(2)}% overall
             </span>
           }
         />
@@ -131,8 +133,8 @@ function DashboardPage() {
         <Card className="lg:col-span-5">
           <CardHeader title="Sector Allocation" right={<PeriodPill />} />
           <div className="flex items-center gap-4">
-            <div className="w-[200px] h-[200px] relative shrink-0">
-              <ResponsiveContainer>
+            <div style={{ width: 200, height: 200 }} className="relative shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={sectorChartData}
@@ -146,7 +148,10 @@ function DashboardPage() {
                       <Cell key={i} fill={SECTOR_CHART_COLORS[i % SECTOR_CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v, n, props) => props.payload.displayValue} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(v: any, _n: any, props: any) => props?.payload?.displayValue ?? fmtNaira(parseFloat(v))}
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -197,8 +202,8 @@ function DashboardPage() {
               </div>
             }
           />
-          <div className="h-[260px]">
-            <ResponsiveContainer>
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={topHoldingsChartData}
                 layout="vertical"
@@ -227,8 +232,10 @@ function DashboardPage() {
                 <Tooltip
                   cursor={{ fill: "var(--bg-subtle)" }}
                   contentStyle={tooltipStyle}
-                  formatter={(v, n, props) =>
-                    holdingsChartView === "value" ? props.payload.displayValue : Number(v).toLocaleString()
+                  formatter={(v: any, _n: any, props: any) =>
+                    holdingsChartView === "value"
+                      ? props?.payload?.displayValue ?? fmtNaira(parseFloat(v))
+                      : Number(v).toLocaleString()
                   }
                 />
                 <Bar
@@ -268,7 +275,7 @@ function DashboardPage() {
               </a>
             }
           />
-          {data.recent_transactions.length === 0 ? (
+          {recentTransactions.length === 0 ? (
             <Empty Icon={ListX} text="No transactions yet" />
           ) : (
             <div className="overflow-x-auto -mx-2">
@@ -283,7 +290,7 @@ function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.recent_transactions.map((tx, i) => (
+                  {recentTransactions.map((tx, i) => (
                     <tr
                       key={i}
                       className="border-t border-[var(--border)] hover:bg-[var(--bg-subtle)]"
@@ -314,7 +321,7 @@ function DashboardPage() {
             title="Action Items"
             right={<Bell className="w-4 h-4 text-[var(--text-muted)]" />}
           />
-          {data.action_items.filter((a) => a.count > 0).length === 0 ? (
+          {(data?.action_items ?? []).filter((a) => a.count > 0).length === 0 ? (
             <div className="text-center py-6">
               <CheckCircle2 className="w-12 h-12 mx-auto text-[var(--accent-green)]" />
               <div className="mt-3 text-[14px] text-[var(--text-secondary)]">
@@ -323,7 +330,7 @@ function DashboardPage() {
             </div>
           ) : (
             <ul className="space-y-2">
-              {data.action_items
+              {(data?.action_items ?? [])
                 .filter((a) => a.count > 0)
                 .map((a) => (
                   <li
@@ -358,14 +365,16 @@ function DashboardPage() {
           )}
           <div className="mt-4 text-right text-[11px] font-mono text-[var(--text-muted)]">
             Last updated:{" "}
-            {new Date(data.last_updated).toLocaleString("en-NG", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}{" "}
+            {data?.last_updated
+              ? new Date(data.last_updated).toLocaleString("en-NG", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—"}{" "}
             WAT
           </div>
         </Card>

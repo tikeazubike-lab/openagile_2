@@ -121,15 +121,15 @@ async def get_dashboard(
         })
 
     response_data = {
-        "total_portfolio_value": portfolio_totals["total_assets"],
-        "active_portfolio_value": portfolio_totals["active_portfolio_value"],
-        "claims_portfolio_value": portfolio_totals["claims_portfolio_value"],
+        "total_portfolio_value": str(portfolio_totals["total_assets"]),
+        "active_portfolio_value": str(portfolio_totals["active_portfolio_value"]),
+        "claims_portfolio_value": str(portfolio_totals["claims_portfolio_value"]),
         "total_invested": str(total_invested),
         "unrealised_gain_loss": str(unrealised_gain_loss),
-        "unrealised_gain_pct": round(unrealised_gain_pct, 2),
-        "total_holdings": total_holdings,
-        "live_holdings": live_holdings,
-        "draft_holdings": draft_holdings,
+        "unrealised_gain_pct": str(round(unrealised_gain_pct, 2)),
+        "total_holdings": str(total_holdings),
+        "live_holdings": str(live_holdings),
+        "draft_holdings": str(draft_holdings),
         "sector_allocation": sector_allocation,
         "top_holdings": top_holdings,
         "recent_transactions": recent_transactions,
