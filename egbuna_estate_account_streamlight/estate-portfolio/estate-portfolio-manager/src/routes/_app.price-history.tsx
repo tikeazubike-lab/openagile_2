@@ -209,10 +209,13 @@ function PriceHistoryPage() {
         <div className="space-y-6">
           <div className="border rounded-lg bg-card shadow-sm p-6">
             <h3 className="text-lg font-medium mb-6">Price Trend ({selectedCompany?.ticker})</h3>
-            <div className="h-[400px] w-full">
+            <div className="h-[400px] w-full" style={{ minWidth: 0, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={history.slice().reverse()} // API might return descending, chart wants ascending
+                  data={(history ?? []).slice().reverse().map((d) => ({
+                    ...d,
+                    price: parseFloat(d.price),
+                  }))}
                   margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                 >
                   <defs>
@@ -224,13 +227,13 @@ function PriceHistoryPage() {
                   <XAxis
                     dataKey="recorded_date"
                     tickFormatter={(val) => format(new Date(val), "MMM d")}
-                    style={{ fontFamily: "DM Mono", fontSize: "12px" }}
+                    style={{ fontFamily: "DM Mono", fontSize: "12px", fill: "hsl(var(--foreground))" }}
                     stroke="hsl(var(--muted-foreground))"
                   />
                   <YAxis
                     domain={["auto", "auto"]}
                     tickFormatter={(val) => `₦${val}`}
-                    style={{ fontFamily: "DM Mono", fontSize: "12px" }}
+                    style={{ fontFamily: "DM Mono", fontSize: "12px", fill: "hsl(var(--foreground))" }}
                     stroke="hsl(var(--muted-foreground))"
                   />
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
