@@ -36,7 +36,7 @@ Example: "Fixing dashboard chart blank bug (BUG-001) — Deepseek v4"
 
 | F-004| Price Entry         | ✅ Complete  | AT-001   | PDF parser, CSV, audit log   |
 
-| F-005| Price History       | ⚠️ Bugs open  | AT-003-1 | Chart, table, date filter    |
+| F-005| Price History       | ✅ Complete  | AT-003-1 | Chart, table, date filter    |
 
 | F-006| Registrars          | ⚠️ Bugs open  | AT-002   | Docs, requirements, linking  |
 
@@ -109,6 +109,8 @@ Then rebuild container:
 ## Recent Sessions (newest first)
 
 2026-06-15 | Framework initialisation | Claude | Created .context/ files + F-001–F-006 specs
+
+2026-06-19 | F-005 backend verification & wrap-up | Owl Alpha | Verified API matches spec, all checks pass, marked complete
 
 [Agent appends here after each session]
 

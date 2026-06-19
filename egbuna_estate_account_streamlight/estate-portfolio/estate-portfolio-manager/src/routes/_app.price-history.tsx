@@ -251,6 +251,26 @@ function PriceHistoryPage() {
                       `₦${value.toFixed(2)}`,
                       "Price",
                     ]}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const data = payload[0].payload;
+                      return (
+                        <div
+                          className="p-3 border rounded-lg shadow-lg"
+                          style={{
+                            backgroundColor: "hsl(var(--card))",
+                            borderColor: "hsl(var(--border))",
+                            fontFamily: "DM Mono",
+                          }}
+                        >
+                          <p className="text-sm font-medium">{format(new Date(label), "MMM d, yyyy")}</p>
+                          <p className="text-sm">₦{Number(data.price).toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Source: {data.source === "ngx_pdf_upload" ? "NGX PDF" : data.source === "csv_upload" ? "CSV" : "Manual"}
+                          </p>
+                        </div>
+                      );
+                    }}
                   />
                   <Area
                     type="monotone"

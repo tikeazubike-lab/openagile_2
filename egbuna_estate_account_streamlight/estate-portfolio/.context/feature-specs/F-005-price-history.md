@@ -3,7 +3,7 @@
 id: F-005
 
 title: Price History
-status: BUGS-OPEN
+status: COMPLETE
 owner-backend: Owl Alpha | Nex N2             owner-frontend: Nex N2       
 Review/Architect role: Deepseek
 
