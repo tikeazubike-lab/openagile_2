@@ -36,7 +36,7 @@ Example: "Fixing dashboard chart blank bug (BUG-001) — Deepseek v4"
 
 | F-004| Price Entry         | ✅ Complete  | AT-001   | PDF parser, CSV, audit log   |
 
-| F-005| Price History       | ✅ Complete  | AT-003-1 | Chart, table, date filter    |
+|| F-005| Price History       | ⚠️ Bugs open | AT-003-1 | Chart UX refinement deferred — functional but needs visual polish |
 
 | F-006| Registrars          | ⚠️ Bugs open  | AT-002   | Docs, requirements, linking  |
 

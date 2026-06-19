@@ -3,7 +3,12 @@
 id: F-005
 
 title: Price History
-status: COMPLETE
+status: BUGS-OPEN
+ux-refinement-deferred: true
+ux-notes: >
+  Chart is functionally complete. Visual/UX refinement (axis styling, gridlines, 
+  date label spacing, tooltip design, dark theme contrast) deferred per user direction.
+  Return after completing higher-priority features.
 owner-backend: Owl Alpha | Nex N2             owner-frontend: Nex N2       
 Review/Architect role: Deepseek
 
