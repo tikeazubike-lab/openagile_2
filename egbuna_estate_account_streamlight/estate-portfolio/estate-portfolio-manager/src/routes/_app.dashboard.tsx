@@ -75,14 +75,20 @@ function DashboardPage() {
       displayValue: displayValueStr(s.value),
     }));
 
-  const topHoldingsChartData = topHoldings.map((h: any) => ({
-    ticker: h.ticker,
-    value: safeParseFloat(h.value),
-    shares: safeParseFloat(h.num_shares),
-    return_pct: safeParseFloat(h.return_pct),
-    displayValue: displayValueStr(h.value),
-    displayReturn: displayPctStr(h.return_pct),
-  }));
+  const topHoldingsChartData = topHoldings
+    .map((h: any) => ({
+      ticker: h.ticker,
+      value: safeParseFloat(h.value),
+      shares: safeParseFloat(h.num_shares),
+      return_pct: safeParseFloat(h.return_pct),
+      displayValue: displayValueStr(h.value),
+      displayReturn: displayPctStr(h.return_pct),
+    }))
+    .sort((a, b) => {
+      const key = holdingsChartView === "shares" ? "shares" : "value";
+      return b[key] - a[key];
+    })
+    .slice(0, 5);
 
   const gainPositive = safeParseFloat(data?.unrealised_gain_loss) >= 0;
 

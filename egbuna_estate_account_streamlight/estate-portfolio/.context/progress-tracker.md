@@ -30,7 +30,7 @@ Example: "Fixing dashboard chart blank bug (BUG-001) — Deepseek v4"
 
 | F-001| Authentication      | ✅ Complete  | HO-008   | 30-day cookie, logout fixed. Owner: Owl Alpha (backend) + Nex N2 (frontend) |
 
-| F-002| Dashboard           | ⚠️ Bugs open | AT-003-1 | Charts blank, bell broken    |
+|| F-002| Dashboard           | ⚠️ Bugs open | AT-003-1 | Charts blank, bell broken. Recent Transactions + Action Items cards are 📋 Planned — depend on F-009 (Transactions) and F-016 (Settings / User Management) |
 
 | F-003| Holdings            | ⚠️ Bugs open | AT-003-1 | Inline edit, Add Holding 500 |
 
@@ -120,12 +120,14 @@ Then rebuild container:
 
 1. Fix BUG-001 through BUG-005 (open from AT-003-1)
 
-2. Then F-007 NAV History
+2. F-009 Transactions — needed for Dashboard Recent Transactions card (F-002 dependency)
 
-3. Then F-008 Dividends
+3. F-016 Settings / User Management — needed for Dashboard Action Items card (F-002 dependency)
 
-4. Then F-009 Transactions
+4. Then F-007 NAV History
 
-5. Then F-010 Claims
+5. Then F-008 Dividends
+
+6. Then F-010 Claims
 
 
