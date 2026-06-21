@@ -198,3 +198,4 @@ yarn-error.log*
 # Yarn Integrity file
 *.zip
 */*/*.zip
+./you-tube-shorts/youtube_credentials.json
