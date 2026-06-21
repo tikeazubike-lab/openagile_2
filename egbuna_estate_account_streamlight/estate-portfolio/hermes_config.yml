@@ -1,0 +1,492 @@
+# ~/.hermes/config.yaml
+# EPM Development Configuration
+# Last updated: 2026-06-15
+
+model:
+  default: openrouter/owl-alpha        # Primary model — change to your preferred
+  provider: openrouter
+  base_url: https://openrouter.ai/api/v1
+  api_mode: chat_completions
+
+providers: {}
+fallback_providers: []
+credential_pool_strategies: {}
+
+toolsets:
+- hermes-cli
+
+max_concurrent_sessions: null
+
+agent:
+  max_turns: 60
+  gateway_timeout: 1800
+  restart_drain_timeout: 180
+  api_max_retries: 3
+  service_tier: ''
+  tool_use_enforcement: auto
+  task_completion_guidance: true
+  environment_probe: true
+  environment_hint: ''
+  coding_context: auto
+  gateway_timeout_warning: 900
+  clarify_timeout: 600
+  gateway_notify_interval: 180
+  gateway_auto_continue_freshness: 3600
+  image_input_mode: auto
+  disabled_toolsets: []
+  verbose: false
+  reasoning_effort: medium
+
+  personalities:
+    # ── EPM Project Personalities ─────────────────────────────────────────────
+
+    epm-builder: |
+      You are Hermes, a senior full-stack engineer working on the Estate
+      Portfolio Manager (EPM) — a self-hosted Nigerian stock portfolio tracker.
+      Stack: FastAPI + React 18 + PostgreSQL on a Netcup VPS.
+
+      Your operating rules (non-negotiable):
+      - Read .context/AGENTS.md before starting any task
+      - No production code before tests are RED (Uncle Bob TDD)
+      - No feature work without a feature spec in .context/feature-specs/
+      - Diagnose bugs with exact logs before proposing fixes
+      - All monetary values are strings in API responses — never floats
+      - bcrypt==4.0.1 is pinned — do not suggest upgrading
+      - Use get_session() not get_db()
+      - Soft delete only: datetime.now(timezone.utc)
+      - Deployment: docker compose -f docker-compose.v2.yml up -d --build epm_v2
+
+      When a task is complete: update .context/progress-tracker.md and
+      write a handover brief in docs/handovers/HO-XXX.md.
+
+    epm-debugger: |
+      You are Hermes in debug mode for the Estate Portfolio Manager (EPM).
+      Your sole purpose is systematic root cause analysis.
+
+      Debug protocol (strictly in this order):
+      1. Capture the exact error — do not paraphrase it
+         Backend: docker compose -f docker-compose.v2.yml logs epm_v2 --tail=50
+         Frontend: DevTools Console → exact error message and stack trace
+         API: DevTools Network → exact request payload + exact response body
+         DB: psql query → exact row state
+
+      2. Identify which layer failed: [DB] [API] [UI]
+
+      3. Trace to the exact file and line responsible
+
+      4. Write a root cause analysis — what broke, where, why
+
+      5. Propose ONE fix plan with exact files and lines to change
+
+      6. Wait for approval before changing any code
+
+      Never fix by trial and error. Never change multiple things at once.
+
+    epm-architect: |
+      You are Hermes in architecture review mode for EPM.
+      You do not implement. You design, critique, and specify.
+
+      When given a feature or problem:
+      - Map it to the existing architecture (FastAPI routers, SQLAlchemy models, React routes)
+      - Check for conflicts with existing invariants (see .context/architecture.md)
+      - Identify dependencies on other features
+      - Write a structured spec in F-XXX format ready for an implementing agent
+      - Flag any decision that requires the product owner's input before proceeding
+
+      Output is always a document, never code.
+
+    epm-tester: |
+      You are Hermes in testing mode for EPM.
+      You write Gherkin scenarios and execute acceptance tests.
+
+      For every feature:
+      1. Write Given/When/Then scenarios covering: happy path, validation errors,
+         auth/role checks, empty states, and data persistence
+      2. Translate scenarios to standard pytest functions (not pytest-bdd)
+      3. Add traceability comments above each assertion: # Spec: F-XXX | SC-YYY
+      4. Run tests against testdrive.epm.zubbystudio.shop
+      5. File results as AT-XXX-feature-YYYY-MM-DD.md in docs/testing/acceptance/
+
+      3-layer format for every test item:
+      [DB]  — verify in PostgreSQL
+      [API] — verify via curl or DevTools Network
+      [UI]  — verify in browser
+
+    # ── General Purpose Personalities (kept for non-EPM use) ─────────────────
+
+    helpful: You are a helpful, friendly AI assistant.
+    concise: You are a concise assistant. Keep responses brief and to the point.
+    technical: |
+      You are a senior systems engineer. Provide production-ready solutions with
+      complete code and configs. Assume Ubuntu 24.04 + Bash unless told otherwise.
+      Include inline comments explaining complex logic. Always explain the why
+      behind architectural decisions, not just the how. When debugging: diagnostic
+      steps first, then solution with exact commands.
+    teacher: You are a patient teacher. Explain concepts clearly with examples.
+
+terminal:
+  backend: local
+  modal_mode: auto
+  cwd: /home/zubbyik/openagile_2/egbuna_estate_account_streamlight/estate-portfolio
+  timeout: 180
+  env_passthrough: []
+  home_mode: auto
+  shell_init_files: []
+  auto_source_bashrc: true
+  docker_image: nikolaik/python-nodejs:python3.11-nodejs20
+  docker_forward_env: []
+  docker_env: {}
+  persistent_shell: true
+  container_cpu: 1
+  container_memory: 5120
+  container_disk: 51200
+  container_persistent: true
+  docker_volumes: []
+  docker_mount_cwd_to_workspace: false
+  docker_extra_args: []
+  docker_run_as_host_user: false
+  vercel_runtime: node24
+  lifetime_seconds: 300
+
+web:
+  backend: ''
+  search_backend: ''
+  extract_backend: ''
+
+browser:
+  inactivity_timeout: 120
+  command_timeout: 30
+  record_sessions: false
+  allow_private_urls: false
+  engine: auto
+  auto_local_for_private_urls: true
+  cdp_url: ''
+  dialog_policy: must_respond
+  dialog_timeout_s: 300
+  camofox:
+    managed_persistence: false
+    user_id: ''
+    session_key: ''
+    adopt_existing_tab: false
+    rewrite_loopback_urls: false
+    loopback_host_alias: host.docker.internal
+
+checkpoints:
+  enabled: false
+  max_snapshots: 20
+  max_total_size_mb: 500
+  max_file_size_mb: 10
+  auto_prune: true
+  retention_days: 7
+  delete_orphans: true
+  min_interval_hours: 24
+
+context_file_max_chars: null
+file_read_max_chars: 100000
+
+tool_output:
+  max_bytes: 50000
+  max_lines: 2000
+  max_line_length: 2000
+
+tool_loop_guardrails:
+  warnings_enabled: true
+  hard_stop_enabled: false
+  warn_after:
+    exact_failure: 2
+    same_tool_failure: 3
+    idempotent_no_progress: 2
+  hard_stop_after:
+    exact_failure: 5
+    same_tool_failure: 8
+    idempotent_no_progress: 5
+
+compression:
+  enabled: true
+  threshold: 0.5
+  target_ratio: 0.2
+  protect_last_n: 20
+  hygiene_hard_message_limit: 400
+  protect_first_n: 3
+  abort_on_summary_failure: false
+  codex_gpt55_autoraise: true
+
+prompt_caching:
+  cache_ttl: 5m
+
+openrouter:
+  response_cache: true
+  response_cache_ttl: 300
+  min_coding_score: 0.65
+
+# ── Per-Task Model Routing ──────────────────────────────────────────────────
+_config_version: 30
+# This is how you configure which model handles which internal task.
+# provider: auto means Hermes picks. Specify explicitly to control routing.
+#
+# For EPM work, recommended routing strategy:
+#   Heavy reasoning (architecture, debugging):  claude-sonnet-4 or o3
+#   Fast coding (small edits, tests):           gemini-2.5-flash or gpt-4o-mini
+#   Compression (context summarisation):        gemini-2.5-flash (fast + cheap)
+#   Vision (screenshots, images):               gpt-4o or gemini-2.5-pro
+#   Web extraction:                             gemini-2.5-flash
+#
+# Uncomment and set provider+model to override auto routing.
+
+auxiliary:
+  vision:
+    provider: auto          # Set to: openrouter | model: google/gemini-2.5-pro
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 120
+    extra_body: {}
+    download_timeout: 30
+
+  web_extract:
+    provider: auto          # Set to: openrouter | model: google/gemini-2.5-flash
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 360
+    extra_body: {}
+
+  compression:
+    # Handles context window summarisation — use a fast cheap model
+    provider: auto          # Recommended: openrouter | model: google/gemini-flash-1.5
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 120
+    extra_body: {}
+
+  skills_hub:
+    # Runs skill selection logic
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
+
+  approval:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
+
+  mcp:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
+
+  kanban_decomposer:
+    # Breaks kanban tasks into subtasks — benefits from reasoning model
+    provider: auto          # Recommended: openrouter | model: anthropic/claude-sonnet-4
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 180
+    extra_body: {}
+
+  triage_specifier:
+    # Classifies incoming tasks — fast model sufficient
+    provider: auto          # Recommended: openrouter | model: google/gemini-2.5-flash
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 120
+    extra_body: {}
+
+  curator:
+    # Memory curation — runs infrequently, quality matters
+    provider: auto          # Recommended: openrouter | model: anthropic/claude-sonnet-4
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 600
+    extra_body: {}
+
+  monitor:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 60
+    extra_body: {}
+
+  session_search:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
+    max_concurrency: 3
+
+  title_generation:
+    provider: auto          # Fast model fine here
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
+
+  tts_audio_tags:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
+
+  profile_describer:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 60
+    extra_body: {}
+
+# ── Sub-Agent Delegation ───────────────────────────────────────────────────
+# Model used when Hermes spawns child agents (delegation toolset).
+# For EPM: coding sub-agents benefit from a capable coding model.
+delegation:
+  model: ''                 # Inherits default if empty. Set explicitly:
+  provider: ''              # e.g. provider: openrouter
+  base_url: ''              #      model: anthropic/claude-sonnet-4
+  api_key: ''
+  api_mode: ''
+  inherit_mcp_toolsets: true
+  max_iterations: 50
+  child_timeout_seconds: 600
+  reasoning_effort: ''
+  max_concurrent_children: 3
+  max_async_children: 3
+  max_spawn_depth: 1
+  orchestrator_enabled: true
+  subagent_auto_approve: false
+
+display:
+  compact: false
+  personality: epm-builder  # Changed from kawaii — use epm-builder as default
+  resume_display: full
+  resume_exchanges: 10
+  resume_max_user_chars: 300
+  resume_max_assistant_chars: 200
+  resume_max_assistant_lines: 3
+  resume_skip_tool_only: true
+  busy_input_mode: interrupt
+  interface: cli
+  tui_auto_resume_recent: false
+  tui_agents_nudge: true
+  bell_on_complete: false
+  show_reasoning: false
+  memory_notifications: 'on'
+  streaming: true
+  timestamps: false
+  final_response_markdown: strip
+  persistent_output: true
+  persistent_output_max_lines: 200
+  persist_prompts: true
+  inline_diffs: true
+  file_mutation_verifier: true
+  credits_notices: true
+  turn_completion_explainer: true
+  show_cost: true           # Changed to true — useful for tracking model costs
+  skin: default
+  language: en
+  tui_status_indicator: kaomoji
+  user_message_preview:
+    first_lines: 2
+    last_lines: 2
+  interim_assistant_messages: true
+  tool_progress_command: false
+  tool_progress_overrides: {}
+  tool_preview_length: 0
+  tool_progress_grouping: accumulate
+  ephemeral_system_ttl: 0
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  write_approval: false
+  memory_char_limit: 2200
+  user_char_limit: 1375
+  provider: ''
+  nudge_interval: 10
+  flush_min_turns: 6
+
+context:
+  engine: compressor
+
+goals:
+  max_turns: 20
+
+skills:
+  external_dirs: []
+  template_vars: true
+  inline_shell: false
+  inline_shell_timeout: 10
+  guard_agent_created: false
+  write_approval: false
+  creation_nudge_interval: 15
+
+approvals:
+  mode: manual
+  timeout: 60
+  cron_mode: deny
+  mcp_reload_confirm: true
+  destructive_slash_confirm: false
+
+command_allowlist:
+- script execution via -e/-c flag
+
+# ── Fallback Model ─────────────────────────────────────────────────────────
+# Uncomment to enable automatic failover when primary model is unavailable.
+# Triggers on 429 (rate limit), 529 (overload), 503 (service error).
+#
+# fallback_model:
+#   provider: openrouter
+#   model: anthropic/claude-sonnet-4
+
+security:
+  allow_private_urls: false
+  redact_secrets: true
+  tirith_enabled: true
+  tirith_path: tirith
+  tirith_timeout: 5
+  tirith_fail_open: true
+  website_blocklist:
+    enabled: false
+    domains: []
+    shared_files: []
+  acked_advisories: []
+  allow_lazy_installs: true
+
+sessions:
+  auto_prune: false
+  retention_days: 90
+  vacuum_after_prune: true
+  min_interval_hours: 24
+  write_json_snapshots: false
+
+logging:
+  level: INFO
+  max_size_mb: 5
+  backup_count: 3
+
+model_catalog:
+  enabled: true
+  url: https://hermes-agent.nousresearch.com/docs/api/model-catalog.json
+  ttl_hours: 1
+  providers: {}
+
+network:
+  force_ipv4: false
+
