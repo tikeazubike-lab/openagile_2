@@ -1,14 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, ArrowUp, X } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  YAxis,
-  XAxis,
-  AreaChart,
-  Area,
-  ResponsiveContainer,
-} from "recharts";
 import { cn } from "@/lib/utils";
 
 type Stage = "launcher" | "input" | "panel";
@@ -21,11 +12,8 @@ type Message = {
 };
 
 type ChartData =
-  | { kind: "bars"; title: string; items: { label: string; value: number }[] }
+  | { kind: "bars"; title: string; items: { label: string; value: number; color?: string }[] }
   | { kind: "spark"; title: string; points: number[] };
-
-const ACCENT = "oklch(0.78 0.10 295)";
-const ACCENT_FILL = "oklch(0.78 0.10 295 / 0.15)";
 
 const SUGGESTIONS = [
   "What's my biggest holding?",
@@ -33,6 +21,7 @@ const SUGGESTIONS = [
   "Any dividends due this month?",
 ];
 
+// Read-only canned responses
 function answer(q: string): Message {
   const id = crypto.randomUUID();
   const lower = q.toLowerCase();
@@ -97,10 +86,8 @@ export function AiAssistant() {
   const [stage, setStage] = useState<Stage>("launcher");
   const [value, setValue] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [pending, setPending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (stage === "input" || stage === "panel") inputRef.current?.focus();
@@ -108,44 +95,30 @@ export function AiAssistant() {
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, pending]);
-
-  // Click-outside → collapse to launcher, preserving draft and history
-  useEffect(() => {
-    if (stage === "launcher") return;
-    const onDown = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setStage("launcher");
-      }
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [stage]);
+  }, [messages]);
 
   const submit = (text?: string) => {
     const q = (text ?? value).trim();
-    if (!q || pending) return;
+    if (!q) return;
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", text: q };
-    setMessages((m) => [...m, userMsg]);
+    const reply = answer(q);
+    setMessages((m) => [...m, userMsg, reply]);
     setValue("");
     setStage("panel");
-    setPending(true);
-    setTimeout(() => {
-      setMessages((m) => [...m, answer(q)]);
-      setPending(false);
-    }, 600);
   };
 
-  const close = () => setStage("launcher");
+  const close = () => {
+    setStage("launcher");
+  };
 
   return (
-    <div ref={containerRef} className="fixed bottom-6 right-6 z-[9999]">
+    <div className="fixed bottom-6 left-6 z-50">
       {/* Stage 1 — Launcher */}
       {stage === "launcher" && (
         <button
           onClick={() => setStage("input")}
           aria-label="Open assistant"
-          className="group relative grid h-[52px] w-[52px] place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_0_1px_oklch(0.78_0.10_295/0.5),0_8px_28px_-6px_oklch(0.78_0.10_295/0.6)] transition-all hover:scale-105 hover:shadow-[0_0_0_1px_oklch(0.78_0.10_295/0.7),0_12px_36px_-6px_oklch(0.78_0.10_295/0.8)]"
+          className="group relative grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_0_1px_oklch(0.78_0.10_295/0.5),0_8px_28px_-6px_oklch(0.78_0.10_295/0.6)] transition-all hover:scale-105 hover:shadow-[0_0_0_1px_oklch(0.78_0.10_295/0.7),0_12px_36px_-6px_oklch(0.78_0.10_295/0.8)]"
         >
           <span className="absolute inset-0 rounded-full bg-primary/40 blur-md -z-10 animate-pulse" />
           <Sparkles className="h-5 w-5" strokeWidth={2.2} />
@@ -154,22 +127,23 @@ export function AiAssistant() {
 
       {/* Stage 2 — Input only */}
       {stage === "input" && (
-        <div className="animate-in slide-in-from-right-2 fade-in duration-200">
+        <div className="animate-in slide-in-from-left-2 fade-in duration-200">
           <InputBar
             value={value}
             onChange={setValue}
             onSubmit={() => submit()}
             onClose={close}
             inputRef={inputRef}
-            width={320}
-            disabled={pending}
+            width={340}
           />
         </div>
       )}
 
       {/* Stage 3 — Full panel */}
       {stage === "panel" && (
-        <div className="flex flex-col w-[380px] max-h-[500px] rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-2 fade-in duration-200">
+        <div
+          className="flex flex-col w-[380px] max-h-[70vh] rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-2 fade-in duration-200"
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
@@ -192,11 +166,10 @@ export function AiAssistant() {
             {messages.map((m) => (
               <MessageBubble key={m.id} message={m} />
             ))}
-            {pending && <LoadingDots />}
           </div>
 
           {/* Suggestions (only before first message) */}
-          {messages.length === 0 && !pending && (
+          {messages.length === 0 && (
             <div className="px-4 pb-2 flex flex-wrap gap-1.5">
               {SUGGESTIONS.map((s) => (
                 <button
@@ -218,7 +191,6 @@ export function AiAssistant() {
               onSubmit={() => submit()}
               inputRef={inputRef}
               embedded
-              disabled={pending}
             />
           </div>
         </div>
@@ -235,7 +207,6 @@ function InputBar({
   inputRef,
   width,
   embedded,
-  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -244,7 +215,6 @@ function InputBar({
   inputRef: React.RefObject<HTMLInputElement | null>;
   width?: number;
   embedded?: boolean;
-  disabled?: boolean;
 }) {
   return (
     <div
@@ -262,29 +232,17 @@ function InputBar({
           if (e.key === "Enter") onSubmit();
           if (e.key === "Escape" && onClose) onClose();
         }}
-        placeholder="Ask about your portfolio..."
+        placeholder="Ask EPM a question..."
         className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 outline-none py-1.5"
       />
       <button
         onClick={onSubmit}
-        disabled={!value.trim() || disabled}
+        disabled={!value.trim()}
         aria-label="Send"
         className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
       >
         <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
       </button>
-    </div>
-  );
-}
-
-function LoadingDots() {
-  return (
-    <div className="flex justify-start">
-      <div className="flex items-center gap-1 px-1 py-2">
-        <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-pulse" style={{ animationDelay: "0ms" }} />
-        <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-pulse" style={{ animationDelay: "150ms" }} />
-        <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-pulse" style={{ animationDelay: "300ms" }} />
-      </div>
     </div>
   );
 }
@@ -311,56 +269,43 @@ function MessageBubble({ message }: { message: Message }) {
 
 function InlineChart({ data }: { data: ChartData }) {
   if (data.kind === "bars") {
-    const chartData = data.items.map((it) => ({ label: it.label, value: it.value }));
-    const height = data.items.length * 26 + 8;
+    const max = Math.max(...data.items.map((i) => i.value));
     return (
-      <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+      <div className="rounded-lg border border-border bg-background/40 p-3 space-y-1.5">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{data.title}</div>
-        <div style={{ width: "100%", height }}>
-          <ResponsiveContainer>
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 0, right: 28, bottom: 0, left: 0 }}
-              barSize={10}
-            >
-              <XAxis type="number" hide />
-              <YAxis
-                type="category"
-                dataKey="label"
-                width={88}
-                tick={{ fill: "oklch(0.65 0.02 270)", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
+        {data.items.map((it) => (
+          <div key={it.label} className="flex items-center gap-2 text-xs">
+            <span className="w-24 truncate text-muted-foreground">{it.label}</span>
+            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full"
+                style={{ width: `${(it.value / max) * 100}%` }}
               />
-              <Bar
-                dataKey="value"
-                fill={ACCENT}
-                radius={[4, 4, 4, 4]}
-                label={{
-                  position: "right",
-                  fill: "oklch(0.95 0.005 270)",
-                  fontSize: 11,
-                  
-                }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+            </div>
+            <span className="tabular text-foreground w-10 text-right">{it.value}</span>
+          </div>
+        ))}
       </div>
     );
   }
-  const sparkData = data.points.map((v, i) => ({ i, v }));
+  // sparkline
+  const { points, title } = data;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const w = 280;
+  const h = 50;
+  const step = w / (points.length - 1);
+  const path = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${i * step} ${h - ((p - min) / range) * h}`)
+    .join(" ");
   return (
     <div className="rounded-lg border border-border bg-background/40 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{data.title}</div>
-      <div style={{ width: "100%", height: 50 }}>
-        <ResponsiveContainer>
-          <AreaChart data={sparkData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-            <Area type="monotone" dataKey="v" stroke={ACCENT} fill={ACCENT_FILL} strokeWidth={1.5} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{title}</div>
+      <svg width={w} height={h} className="overflow-visible">
+        <path d={`${path} L ${w} ${h} L 0 ${h} Z`} fill="oklch(0.78 0.10 295 / 0.15)" />
+        <path d={path} fill="none" stroke="oklch(0.78 0.10 295)" strokeWidth={1.5} />
+      </svg>
     </div>
   );
 }

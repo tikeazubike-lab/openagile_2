@@ -1,0 +1,5 @@
+All decisions locked. Let me address both tasks now with full clarity.
+On the chatbot numbering: F-017 stays as "Remove editMode toggle". Chatbot becomes F-022 (next available after F-021 Production Cutover).
+On Grok's gaps: Every single one is valid and must be resolved before the spec is implementation-ready. Grok is right that 95% → 100% requires locking those contracts. I'll address all 7 in the spec.
+On the LLM question (your concern about training): You do not need to train any model on your project data. The architecture works differently — the LLM receives the relevant data as context in the prompt at query time, retrieved from your PostgreSQL database. This is called RAG (Retrieval-Augmented Generation). When you ask "what is my portfolio value?", the backend queries the DB, gets the number, injects it into the prompt alongside your question, and the LLM answers. The model never needs training — it just receives data as text. A local Ollama model works fine for this because the reasoning is simple — the hard work is in the retrieval, not the generation.
+Now producing both deliverables:
