@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect, Fragment } from "react";
+import { useMemo, useState, useEffect, Fragment, useCallback } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -9,7 +9,7 @@ import {
   createColumnHelper,
   type SortingState,
 } from "@tanstack/react-table";
-import { Search, Plus, Download, Pencil, Trash2, Check, X, Save } from "lucide-react";
+import { Search, Plus, Download, Pencil, Trash2, Check, X } from "lucide-react";
 import {
   useHoldings,
   useAddHolding,
@@ -25,6 +25,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { cn } from "@/lib/utils";
 import { AddHoldingDrawer } from "@/components/holdings/AddHoldingDrawer";
+import { InlineEditRow } from "@/components/holdings/InlineEditRow";
 
 export const Route = createFileRoute("/_app/holdings")({
   component: HoldingsPage,
@@ -48,15 +49,11 @@ function HoldingsPage() {
   const [statusFilter, setStatusFilter] = useState<"All" | "LIVE" | "DRAFT">("All");
   const [sorting, setSorting] = useState<SortingState>([{ id: "curr_value", desc: true }]);
 
-  const [editingRowId, setEditingRowId] = useState<number | "new" | null>(null);
+  const [editingRowId, setEditingRowId] = useState<number | null>(null);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
-  const [editForm, setEditForm] = useState<{
-    company_id?: number;
-    shares: number | string;
-    avg_cost: number | string;
-  }>({ shares: "", avg_cost: "" });
   const [errorMsg, setErrorMsg] = useState("");
 
+  // BUG-002 fix: clear editing row immediately when edit mode is toggled off
   useEffect(() => {
     if (!editMode) {
       setEditingRowId(null);
@@ -78,40 +75,26 @@ function HoldingsPage() {
 
   const handleEditClick = (holding: Holding) => {
     setEditingRowId(holding.id);
-    setEditForm({ shares: holding.shares, avg_cost: holding.avg_cost });
     setErrorMsg("");
   };
 
-  const handleSaveEdit = async (id: number) => {
-    const shares = Number(editForm.shares);
-    const avgCost = parseFloat(String(editForm.avg_cost));
-
-    if (!Number.isInteger(shares) || shares <= 0) {
-      setErrorMsg("Shares must be a whole number greater than zero");
-      return;
-    }
-    if (isNaN(avgCost) || avgCost <= 0) {
-      setErrorMsg("Average cost must be a positive number");
-      return;
-    }
-
+  // BUG-002 fix: save callback passed to InlineEditRow child component
+  const handleSaveInline = useCallback(async (
+    id: number,
+    saveData: { num_shares: number; avg_purchase_price: string }
+  ) => {
     try {
-      await updateHolding.mutateAsync({ 
-        id, 
-        num_shares: shares, 
-        avg_purchase_price: avgCost.toFixed(2) 
+      await updateHolding.mutateAsync({
+        id,
+        num_shares: saveData.num_shares,
+        avg_purchase_price: saveData.avg_purchase_price,
       });
       setEditingRowId(null);
       setErrorMsg("");
     } catch (e: any) {
       setErrorMsg(e.message || "Failed to update holding.");
     }
-  };
-
-  const handleSaveNew = async () => {
-    // This is no longer used for inline, but we keep it or remove it.
-    // It's better to remove it since the drawer handles it.
-  };
+  }, [updateHolding]);
 
   const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this holding?")) {
@@ -136,36 +119,14 @@ function HoldingsPage() {
       ch.accessor("shares", {
         header: () => <div className="text-right">Shares</div>,
         cell: (i) => {
-          if (editingRowId === i.row.original.id) {
-            return (
-              <input
-                type="number"
-                min="1"
-                step="1"
-                className="w-24 px-2 py-1 text-right bg-background border rounded font-mono text-[13px]"
-                value={editForm.shares}
-                onChange={(e) => setEditForm({ ...editForm, shares: e.target.value })}
-              />
-            );
-          }
+          // When editing, shares cell is handled by InlineEditRow (rendered below)
           return <div className="text-right font-mono">{i.getValue().toLocaleString()}</div>;
         },
       }),
       ch.accessor("avg_cost", {
         header: () => <div className="text-right">Avg Cost</div>,
         cell: (i) => {
-          if (editingRowId === i.row.original.id) {
-            return (
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                className="w-24 px-2 py-1 text-right bg-background border rounded font-mono text-[13px]"
-                value={editForm.avg_cost}
-                onChange={(e) => setEditForm({ ...editForm, avg_cost: e.target.value })}
-              />
-            );
-          }
+          // When editing, avg_cost cell is handled by InlineEditRow (rendered below)
           return <div className="text-right font-mono">{fmtNaira(i.getValue())}</div>;
         },
       }),
@@ -214,16 +175,8 @@ function HoldingsPage() {
               cell: (i) => {
                 const id = i.row.original.id;
                 if (editingRowId === id) {
-                  return (
-                    <div className="flex items-center gap-1 justify-end">
-                      <IconBtn onClick={() => handleSaveEdit(id)} className="text-green-600">
-                        <Save className="w-4 h-4" />
-                      </IconBtn>
-                      <IconBtn onClick={() => setEditingRowId(null)}>
-                        <X className="w-4 h-4" />
-                      </IconBtn>
-                    </div>
-                  );
+                  // Save/Cancel buttons are handled by InlineEditRow
+                  return null;
                 }
                 return (
                   <div className="flex items-center gap-1 justify-end">
@@ -248,7 +201,7 @@ function HoldingsPage() {
           ]
         : []),
     ],
-    [isAdmin, editMode, editingRowId, editForm]
+    [isAdmin, editMode, editingRowId, handleEditClick, handleDelete, publishHolding]
   );
 
   const table = useReactTable({
@@ -360,9 +313,33 @@ function HoldingsPage() {
               </thead>
               <tbody>
                 {table.getRowModel().rows.map((row, idx) => {
-                  const draft = row.original.status === "DRAFT";
-                  const isEditing = editingRowId === row.original.id;
-                  
+                  const holding = row.original;
+                  const draft = holding.status === "DRAFT";
+                  const isEditing = editingRowId === holding.id;
+
+                  // BUG-002 fix: render InlineEditRow as child component with its own state
+                  if (isEditing) {
+                    return (
+                      <Fragment key={row.id}>
+                        <InlineEditRow
+                          holding={holding}
+                          onSave={handleSaveInline}
+                          onCancel={() => setEditingRowId(null)}
+                          onValidationError={setErrorMsg}
+                        />
+                        {errorMsg && (
+                          <tr>
+                            <td colSpan={columns.length}>
+                              <p className="text-xs text-[var(--accent-red)] px-3 py-1 bg-red-50/50 rounded-b-md mb-2">
+                                {errorMsg}
+                              </p>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  }
+
                   return (
                     <Fragment key={row.id}>
                       <tr
@@ -391,19 +368,10 @@ function HoldingsPage() {
                           </td>
                         ))}
                       </tr>
-                      {isEditing && errorMsg && (
-                        <tr>
-                          <td colSpan={columns.length}>
-                            <p className="text-xs text-[var(--accent-red)] px-3 py-1 bg-red-50/50 rounded-b-md mb-2">
-                              {errorMsg}
-                            </p>
-                          </td>
-                        </tr>
-                      )}
                     </Fragment>
                   );
                 })}
-                {table.getRowModel().rows.length === 0 && editingRowId !== "new" && (
+                {table.getRowModel().rows.length === 0 && (
                   <tr>
                     <td colSpan={columns.length} className="text-center py-10 text-[var(--text-muted)]">
                       No holdings match your filters.

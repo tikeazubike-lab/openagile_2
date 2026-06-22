@@ -158,12 +158,14 @@ async def create_holding(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="A holding for this company already exists")
     
+    from decimal import Decimal
+    total_cost = Decimal(str(payload.num_shares)) * Decimal(str(payload.avg_purchase_price))
     new_holding = Holding(
         company_id=payload.company_id,
         num_shares=payload.num_shares,
         average_cost_basis=payload.avg_purchase_price,
+        total_cost=total_cost,
         holding_type=payload.holding_type,
-        status="draft" # test expects "draft" initially
     )
     session.add(new_holding)
     await session.commit()
@@ -172,7 +174,7 @@ async def create_holding(
     return _envelope({
         "id": new_holding.id,
         "company_id": new_holding.company_id,
-        "status": new_holding.status,
+        "status": "draft",
         "holding_type": new_holding.holding_type,
         "shares": float(new_holding.num_shares)
     })

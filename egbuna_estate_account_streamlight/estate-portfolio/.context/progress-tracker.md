@@ -59,10 +59,10 @@ See .context/current-issues.md for full details.
 
 Quick reference:
   BUG-001  Dashboard charts blank (sector allocation + top holdings) — FIXED, needs verification
-  BUG-002  Holdings inline edit cursor jumps on keystroke
-  BUG-003  POST /api/v1/holdings 500 error (Add Holding drawer)
-  BUG-004  Theme toggle icon does not change on click
-  BUG-005  Notification bell not showing action items
+  BUG-002  Holdings inline edit cursor jumps on keystroke — IN PROGRESS (Nex N2)
+  BUG-003  POST /api/v1/holdings 500 error (Add Holding drawer) — FIXED by Owl Alpha, needs verification
+  BUG-004  Theme toggle icon does not change on click — ✅ Complete (already fixed in existing code)
+  BUG-005  Notification bell not showing action items — ✅ Complete (Nex N2)
 
 ---
 

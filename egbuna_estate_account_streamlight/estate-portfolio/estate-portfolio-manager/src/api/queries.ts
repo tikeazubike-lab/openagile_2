@@ -101,12 +101,20 @@ export function useDashboard() {
 }
 
 export function useActionItems() {
-  const { data: dashboard } = useDashboard();
+  const { data: dashboard, isLoading } = useDashboard();
+
+  if (isLoading || !dashboard) {
+    return { data: { items: [], count: 0 }, isLoading: true };
+  }
+
+  const items = dashboard?.action_items ?? [];
 
   return {
     data: {
-      items: dashboard?.action_items || []
-    }
+      items,
+      count: items.length,
+    },
+    isLoading: false,
   };
 }
 
