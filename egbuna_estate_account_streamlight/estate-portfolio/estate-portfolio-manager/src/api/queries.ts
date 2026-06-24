@@ -530,3 +530,90 @@ export function useDocumentHistory(reqId: number | null) {
     enabled: !!reqId,
   });
 }
+
+// ─── Admin Users ──────────────────────────────────────────────────────────────
+
+export interface AdminUser {
+  id: number
+  username: string
+  name: string
+  role: "admin" | "readonly"
+  is_active: boolean
+  created_at: string | null
+  updated_at: string | null
+  deleted_at: string | null
+}
+
+export function useAdminUsers(includeInactive = false) {
+  return useQuery({
+    queryKey: ["admin-users", includeInactive],
+    queryFn: () =>
+      fetch(`/api/v1/admin/users?include_inactive=${includeInactive}`, {
+        credentials: "include",
+      })
+        .then(r => r.json())
+        .then(r => r.data as AdminUser[]),
+  })
+}
+
+export function useAdminCreateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { username: string; name: string; password: string; role: string }) =>
+      fetch("/api/v1/admin/users", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] })
+    },
+  })
+}
+
+export function useAdminUpdateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: { name?: string; role?: string; is_active?: boolean } }) =>
+      fetch(`/api/v1/admin/users/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] })
+    },
+  })
+}
+
+export function useAdminResetPassword() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, newPassword }: { id: number; newPassword: string }) =>
+      fetch(`/api/v1/admin/users/${id}/reset-password`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ new_password: newPassword }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] })
+    },
+  })
+}
+
+export function useAdminDeleteUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) =>
+      fetch(`/api/v1/admin/users/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] })
+    },
+  })
+}
