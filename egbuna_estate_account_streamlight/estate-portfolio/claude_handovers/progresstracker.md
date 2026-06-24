@@ -1,6 +1,6 @@
 # progress-tracker.md — EPM Progress Tracker
 
-**Last updated**: 2026-06-15 (added Phase 3C-4 features)
+**Last updated**: 2026-06-24 (F-016 User Management → COMPLETE)
 
 ---
 
@@ -34,15 +34,15 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 
 | ID     | Feature                    | Status   | Notes                                              |
 |--------|----------------------------|----------|----------------------------------------------------|
-| F-003b | Holdings Admin Edit View   | PLANNED  | /admin/holdings replaces inline edit toggle        |
-| F-006b | Registrars Admin Edit View | PLANNED  | /admin/registrars replaces inline edit toggle      |
-| F-017  | Remove editMode toggle     | PLANNED  | Delete uiStore.editMode, role guards replace it    |
+| F-003b | Holdings Admin Edit View   | COMPLETE | /admin/holdings replaces inline edit toggle        |
+| F-006b | Registrars Admin Edit View | COMPLETE | /admin/registrars replaces inline edit toggle      |
+| F-017  | Remove editMode toggle     | COMPLETE | Delete uiStore.editMode, role guards replace it    |
 
 ### Phase 3C (New Core Features)
 
 | ID    | Feature         | Status   | Notes                                              |
 |-------|-----------------|----------|----------------------------------------------------|
-| F-016 | User Management | PLANNED  | BUILD FIRST — roles used by all other features     |
+| F-016 | User Management | COMPLETE  | F-016    | Admin-gated user CRUD + role definitions |
 | F-007 | NAV History     | PLANNED  | Gherkin SC-025-031 written                         |
 | F-008 | Dividends       | PLANNED  | WHT, annual summary, DRIP                          |
 | F-009 | Transactions    | PLANNED  | CRUD + auto-generate from holdings                 |
@@ -125,10 +125,7 @@ Hidden from read-only users entirely:
 ## Priority Order (Next Sprint)
 
 1.  Fix BUG-001 through BUG-005
-2.  F-016 User Management (defines roles used everywhere else)
-3.  F-017 Remove editMode toggle
-4.  F-003b + F-006b Admin edit views for Holdings + Registrars
-5.  F-007 NAV History
+2.  F-007 NAV History
 6.  F-012 Watchlist
 7.  F-013 Companies + Company Profile
 8.  F-008 Dividends
