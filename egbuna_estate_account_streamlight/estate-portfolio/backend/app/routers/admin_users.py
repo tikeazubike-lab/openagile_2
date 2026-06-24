@@ -35,6 +35,7 @@ def _envelope(data: object, meta: Optional[dict] = None) -> dict:
 # ─── Pydantic Schemas ─────────────────────────────────────────────────────────
 
 VALID_ROLES = ("admin", "readonly")
+MIN_PASSWORD_LENGTH = 8
 
 
 class UserCreate(BaseModel):
@@ -42,6 +43,13 @@ class UserCreate(BaseModel):
     name: str
     password: str
     role: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < MIN_PASSWORD_LENGTH:
+            raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+        return v
 
     @field_validator("role")
     @classmethod
@@ -66,6 +74,13 @@ class UserUpdate(BaseModel):
 
 class PasswordReset(BaseModel):
     new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < MIN_PASSWORD_LENGTH:
+            raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+        return v
 
 
 # ─── Endpoints ─────────────────────────────────────────────────────────────────
