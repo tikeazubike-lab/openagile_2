@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.deps import get_current_user, get_session, require_admin
 from app.models import User
 
-router = APIRouter(tags=["admin-users"])
+router = APIRouter(prefix="/api/v1", tags=["admin-users"])
 
 # ─── Password Hashing ─────────────────────────────────────────────────────────
 
