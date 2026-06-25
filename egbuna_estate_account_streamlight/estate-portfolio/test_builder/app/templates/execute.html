@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Execute Tests — EPM Test Builder{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Execute Tests</h1>
+    <p class="text-secondary">Record execution results for submitted test cases.</p>
+</div>
+
+{% if test_cases %}
+{% for item in test_cases %}
+<div class="card test-case-card">
+    <div class="card-header">
+        <h2 class="test-case-id">{{ item.test_case.id }}</h2>
+        <span class="badge {% if item.latest_run and item.latest_run.status == 'Passed' %}badge-success{% elif item.latest_run and item.latest_run.status == 'Failed' %}badge-danger{% else %}badge-muted{% endif %}">
+            {% if item.latest_run %}{{ item.latest_run.status }}{% else %}Not Run{% endif %}
+        </span>
+    </div>
+    <p class="text-secondary">{{ item.test_case.title }}</p>
+    <div class="test-meta">
+        <span>{{ item.test_case.domain_code }}</span>
+        <span>{{ item.test_case.workflow }}</span>
+        <span>{{ item.test_case.layer }}</span>
+        <span>{{ item.test_case.test_type }}</span>
+        <span>{{ item.total_runs }} run{{ 's' if item.total_runs != 1 else '' }}</span>
+    </div>
+
+    <form class="run-form" id="run-form-{{ item.test_case.id }}">
+        <input type="hidden" name="test_case_id" value="{{ item.test_case.id }}">
+        <div class="form-grid">
+            <div class="form-group form-group-full">
+                <label>Execution Path</label>
+                <textarea name="execution_path" rows="2" placeholder="Steps taken to test..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Expected Result</label>
+                <textarea name="expected_result" rows="2" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Actual Result</label>
+                <textarea name="actual_result" rows="2" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" required>
+                    <option value="">Select...</option>
+                    <option value="Passed">Passed</option>
+                    <option value="Failed">Failed</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" onclick="saveRun('{{ item.test_case.id }}')">Save Result</button>
+        </div>
+    </form>
+    <div id="run-error-{{ item.test_case.id }}" class="error-message" style="display:none;"></div>
+    <div id="run-success-{{ item.test_case.id }}" class="success-message" style="display:none;"></div>
+
+    {% if item.run_history %}
+    <details class="run-history">
+        <summary>Run History ({{ item.run_history|length }})</summary>
+        <table class="data-table data-table-sm">
+            <thead>
+                <tr><th>Run #</th><th>Status</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+                {% for run in item.run_history %}
+                <tr>
+                    <td class="font-mono">#{{ run.run_number }}</td>
+                    <td>
+                        <span class="badge {% if run.status == 'Passed' %}badge-success{% else %}badge-danger{% endif %}">{{ run.status }}</span>
+                    </td>
+                    <td class="font-mono">{{ run.executed_at[:10] if run.executed_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </details>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="card text-center">
+    <p class="text-muted">No test cases submitted yet. <a href="/test-cases">Add test cases first</a>.</p>
+</div>
+{% endif %}
+{% endblock %}

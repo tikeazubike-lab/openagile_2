@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Reports — EPM Test Builder{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Reports</h1>
+    <p class="text-secondary">Generate markdown summaries and download bug reports.</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Test Run Report</h2>
+    </div>
+    <p class="text-secondary">Generate a markdown report from the latest execution of each test case.</p>
+    <div class="form-actions">
+        <button type="button" class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+    </div>
+    <div id="report-error" class="error-message" style="display:none;"></div>
+    <div id="report-success" class="success-message" style="display:none;"></div>
+</div>
+
+<div id="report-display" class="card" style="display:none;">
+    <div class="card-header">
+        <h2>Generated Report</h2>
+        <a id="download-link" class="btn btn-ghost" href="#" download>Download .md</a>
+    </div>
+    <pre id="report-markdown" class="report-preview"></pre>
+</div>
+
+{% if reports %}
+<div class="card">
+    <h2>Saved Reports</h2>
+    <table class="data-table">
+        <thead>
+            <tr><th>ID</th><th>Generated</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td class="font-mono">#{{ report.id }}</td>
+                <td class="font-mono">{{ report.generated_at[:19] if report.generated_at else '-' }}</td>
+                <td><a href="/reports/api/reports/{{ report.id }}/download" class="btn btn-ghost btn-sm">Download</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if bug_reports %}
+<div class="card">
+    <h2>Bug Reports</h2>
+    <table class="data-table">
+        <thead>
+            <tr><th>ID</th><th>Run ID</th><th>Generated</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for bug in bug_reports %}
+            <tr>
+                <td class="font-mono">#{{ bug.id }}</td>
+                <td class="font-mono">#{{ bug.test_run_id }}</td>
+                <td class="font-mono">{{ bug.generated_at[:19] if bug.generated_at else '-' }}</td>
+                <td><a href="/reports/api/bug-reports/{{ bug.id }}/download" class="btn btn-ghost btn-sm">Download</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<script>
+async function generateReport() {
+    const errEl = document.getElementById('report-error');
+    const successEl = document.getElementById('report-success');
+    const displayEl = document.getElementById('report-display');
+    errEl.style.display = 'none';
+    successEl.style.display = 'none';
+    displayEl.style.display = 'none';
+
+    try {
+        const res = await fetch('/reports/api/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            errEl.textContent = data.detail || 'Failed to generate report';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        const data = await res.json();
+        document.getElementById('report-markdown').textContent = data.markdown;
+        document.getElementById('download-link').href = `/reports/api/reports/${data.report_id}/download`;
+        displayEl.style.display = 'block';
+        successEl.textContent = 'Report generated successfully';
+        successEl.style.display = 'block';
+    } catch (e) {
+        errEl.textContent = 'Network error: ' + e.message;
+        errEl.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}

@@ -1,3 +1,4 @@
 .context/current-issues.md
 uploads/
 .env
+.env.test-builder

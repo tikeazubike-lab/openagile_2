@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Add Test Cases — EPM Test Builder{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Add Test Cases</h1>
+    <p class="text-secondary">Draft test cases with taxonomy-compliant IDs, then submit to the database.</p>
+</div>
+
+<div class="card">
+    <h2>New Test Case</h2>
+    <form id="test-case-form" class="form-grid">
+        <div class="form-group">
+            <label for="domain">Domain</label>
+            <select id="domain" name="domain" required>
+                <option value="">Select domain...</option>
+                {% for d in domains %}
+                <option value="{{ d.code }}">{{ d.code }} — {{ d.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="workflow">Workflow</label>
+            <input type="text" id="workflow" name="workflow" placeholder="e.g. CREATE, LOGIN, UPDATE" required>
+        </div>
+        <div class="form-group">
+            <label for="layer">Layer</label>
+            <select id="layer" name="layer" required>
+                <option value="">Select layer...</option>
+                <option value="BE">BE — Backend</option>
+                <option value="FE">FE — Frontend</option>
+                <option value="SEC">SEC — Security</option>
+                <option value="INF">INF — Infrastructure</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="test_type">Test Type</label>
+            <select id="test_type" name="test_type" required>
+                <option value="">Select type...</option>
+                <option value="UT">UT — Unit</option>
+                <option value="INT">INT — Integration</option>
+                <option value="API">API — API</option>
+                <option value="E2E">E2E — End-to-End</option>
+                <option value="SEC">SEC — Security</option>
+                <option value="SMK">SMK — Smoke</option>
+            </select>
+        </div>
+        <div class="form-group form-group-full">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" placeholder="Brief description of what this test verifies" required>
+        </div>
+        <div class="form-group form-group-full">
+            <label for="requirement_ref">Requirement Reference (optional)</label>
+            <input type="text" id="requirement_ref" name="requirement_ref" placeholder="e.g. REQ-HOLD-001">
+        </div>
+        <div class="form-actions">
+            <span id="test-id-preview" class="test-id-preview"></span>
+            <button type="button" class="btn btn-ghost" onclick="previewTestId()">Preview ID</button>
+            <button type="submit" class="btn btn-primary">Save Draft</button>
+        </div>
+    </form>
+    <div id="form-error" class="error-message" style="display:none;"></div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Draft Test Cases</h2>
+        <span id="draft-count" class="badge">0 cases</span>
+    </div>
+    <div id="draft-list" class="draft-list">
+        <p class="text-muted text-center">No test cases drafted yet. Fill in the form above and click "Save Draft".</p>
+    </div>
+    <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="submit-btn" onclick="submitDrafts()" disabled>
+            Submit Test Cases
+        </button>
+    </div>
+    <div id="submit-error" class="error-message" style="display:none;"></div>
+</div>
+{% endblock %}

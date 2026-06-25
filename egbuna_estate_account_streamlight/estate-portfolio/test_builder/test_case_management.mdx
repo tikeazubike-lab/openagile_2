@@ -1,0 +1,42 @@
+Feature: Author and persist test cases
+  As a QA tester
+  I want to draft test cases with taxonomy-compliant IDs and save them
+  So that a repository of test cases exists before any execution happens
+
+  Background:
+    Given I am authenticated on the test case builder
+    And the domain code list contains "AUTH", "HOLD", "PRIC"
+
+  Scenario: Draft a new test case is cached in local storage
+    Given I am on the "Add Test Cases" page
+    When I fill in domain "AUTH", workflow "LOGIN", layer "BE", type "INT"
+    And I click "Save"
+    Then a test case with ID "AUTH-LOGIN-BE-INT-001" appears in the on-page list
+    And the test case is persisted in browser local storage
+    And no database record exists yet for "AUTH-LOGIN-BE-INT-001"
+
+  Scenario: Sequential numbering within the same taxonomy key
+    Given a local-storage test case "AUTH-LOGIN-BE-INT-001" already exists
+    When I fill in domain "AUTH", workflow "LOGIN", layer "BE", type "INT"
+    And I click "Save"
+    Then the new test case is assigned ID "AUTH-LOGIN-BE-INT-002"
+
+  Scenario: Reject a test case missing a required taxonomy field
+    Given I am on the "Add Test Cases" page
+    When I leave the "layer" field empty
+    And I click "Save"
+    Then I see the error "Layer is required to generate a Test ID"
+    And no test case is added to the list
+
+  Scenario: Submit all drafted test cases to the database
+    Given local storage contains 3 drafted test cases
+    When I click "Submit Test Cases"
+    Then all 3 test cases are written to the "test_cases" table in Postgres
+    And local storage is cleared for those 3 test cases
+    And I am redirected to the "Execute Tests" page
+
+  Scenario: Block submission when no test cases have been drafted
+    Given local storage contains 0 drafted test cases
+    When I click "Submit Test Cases"
+    Then I see the error "Add at least one test case before submitting"
+    And I remain on the "Add Test Cases" page

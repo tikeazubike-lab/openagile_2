@@ -1,0 +1,31 @@
+services:
+  test-builder:
+    build:
+      context: ./test_builder
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.test-builder
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/test_builder.db
+      REPO_TESTS_PATH: /repo/tests
+    volumes:
+      - test_builder_data:/data
+      - /home/zubbyik/openagile_2/egbuna_estate_account_streamlight/estate-portfolio/tests:/repo/tests
+    networks:
+      - openagile_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.test-builder.rule=Host(`testbuild.zubbystudio.shop`)"
+      - "traefik.http.routers.test-builder.entrypoints=websecure"
+      - "traefik.http.routers.test-builder.tls=true"
+      - "traefik.http.routers.test-builder.tls.certresolver=letsencrypt"
+      - "traefik.http.services.test-builder.loadbalancer.server.port=8000"
+      - "traefik.docker.network=openagile_network"
+
+volumes:
+  test_builder_data:
+
+networks:
+  openagile_network:
+    external: true

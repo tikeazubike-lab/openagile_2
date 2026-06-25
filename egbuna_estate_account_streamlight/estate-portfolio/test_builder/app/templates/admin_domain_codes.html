@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Domain Codes — EPM Test Builder{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Admin: Domain Codes</h1>
+    <p class="text-secondary">Manage the taxonomy domain codes used for test ID generation.</p>
+</div>
+
+<div class="card">
+    <h2>Add Domain Code</h2>
+    <form method="post" action="/admin/domain-codes" class="form-grid">
+        <div class="form-group">
+            <label>Code</label>
+            <input type="text" name="code" maxlength="4" placeholder="e.g. OBSD" required>
+        </div>
+        <div class="form-group">
+            <label>Label</label>
+            <input type="text" name="label" placeholder="e.g. Obsidian Import" required>
+        </div>
+        <div class="form-group">
+            <label>Folder Slug</label>
+            <input type="text" name="folder_slug" placeholder="e.g. admin/obsidian" required>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Domain Code</button>
+        </div>
+    </form>
+    <div id="add-error" class="error-message" style="display:none;"></div>
+</div>
+
+<div class="card">
+    <h2>Existing Domain Codes ({{ codes|length }})</h2>
+    <table class="data-table">
+        <thead>
+            <tr><th>Code</th><th>Label</th><th>Folder</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for c in codes %}
+            <tr>
+                <td class="font-mono"><strong>{{ c.code }}</strong></td>
+                <td>{{ c.label }}</td>
+                <td class="font-mono">{{ c.folder_slug }}</td>
+                <td>
+                    <button class="btn btn-ghost btn-sm" onclick="toggleEdit('{{ c.code }}')">Edit</button>
+                    <form method="post" action="/admin/domain-codes/{{ c.code }}/delete" style="display:inline" onsubmit="return confirm('Delete {{ c.code }}?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <tr id="edit-{{ c.code }}" style="display:none;">
+                <td colspan="4">
+                    <form method="post" action="/admin/domain-codes/{{ c.code }}/edit" class="form-grid form-inline">
+                        <div class="form-group">
+                            <input type="text" name="label" value="{{ c.label }}" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" name="folder_slug" value="{{ c.folder_slug }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEdit('{{ c.code }}')">Cancel</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function toggleEdit(code) {
+    const row = document.getElementById('edit-' + code);
+    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+</script>
+{% endblock %}
