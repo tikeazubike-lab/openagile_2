@@ -580,7 +580,6 @@ async def bulk_csv_import(
         "data": {
             "valid": len(valid_rows),
             "errors": len(error_rows),
-</parameter_rows),
             "committed": committed,
             "error_rows": error_rows,
         },
