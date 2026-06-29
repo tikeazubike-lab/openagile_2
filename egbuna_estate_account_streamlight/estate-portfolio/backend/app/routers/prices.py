@@ -356,6 +356,23 @@ async def quick_price_update(
     await db.commit()
     await db.refresh(audit)
 
+    # Recalculate affected holding
+    result = await db.execute(
+        select(Holding)
+        .options(selectinload(Holding.company))
+        .where(Holding.company_id == company.id)
+        .where(Holding.deleted_at.is_(None))
+        .where(Holding.holding_type == "active")
+    )
+    holding = result.scalar_one_or_none()
+    if holding and company.current_price is not None and holding.num_shares is not None and holding.average_cost_basis is not None:
+        current_value = holding.num_shares * company.current_price
+        eff_cost = holding.num_shares * holding.average_cost_basis
+        if holding.holding_type == "claim" and holding.cost_basis_override is not None:
+            eff_cost = holding.cost_basis_override
+        holding.current_value = current_value
+        holding.unrealized_gain_loss = current_value - eff_cost
+
     # Compute delta_pct for response
     delta_pct = None
     if old_price and old_price != 0:
@@ -542,10 +559,28 @@ async def bulk_csv_import(
 
     await db.commit()
 
+    # Recalculate all active holdings after price updates
+    result = await db.execute(
+        select(Holding)
+        .options(selectinload(Holding.company))
+        .where(Holding.deleted_at.is_(None))
+        .where(Holding.holding_type == "active")
+    )
+    active_holdings = result.scalars().all()
+    for holding in active_holdings:
+        if holding.company and holding.company.current_price is not None and holding.num_shares is not None and holding.average_cost_basis is not None:
+            current_value = holding.num_shares * holding.company.current_price
+            eff_cost = holding.num_shares * holding.average_cost_basis
+            if holding.holding_type == "claim" and holding.cost_basis_override is not None:
+                eff_cost = holding.cost_basis_override
+            holding.current_value = current_value
+            holding.unrealized_gain_loss = current_value - eff_cost
+
     return {
         "data": {
             "valid": len(valid_rows),
             "errors": len(error_rows),
+</parameter_rows),
             "committed": committed,
             "error_rows": error_rows,
         },
