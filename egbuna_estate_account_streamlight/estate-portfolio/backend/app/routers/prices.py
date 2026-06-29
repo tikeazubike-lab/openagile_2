@@ -5,10 +5,12 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select, desc
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_session, get_current_user, require_admin
-from app.models import Company, PriceAudit, PriceHistory, User
+from app.models import Company, PriceAudit, PriceHistory, User, Holding
+from app.services.holdings import recalculate_all_holdings
 
 router = APIRouter(prefix="/api/v1/prices", tags=["prices"])
 
@@ -226,6 +228,23 @@ async def upload_ngx_pdf(
         updated += 1
 
     await db.commit()
+
+    # Recalculate all active holdings after price updates
+    result = await db.execute(
+        select(Holding)
+        .options(selectinload(Holding.company))
+        .where(Holding.deleted_at.is_(None))
+        .where(Holding.holding_type == "active")
+    )
+    active_holdings = result.scalars().all()
+    for holding in active_holdings:
+        if holding.company and holding.company.current_price is not None:
+            current_value = holding.num_shares * holding.company.current_price
+            eff_cost = holding.num_shares * holding.average_cost_basis
+            if holding.holding_type == "claim" and holding.cost_basis_override is not None:
+                eff_cost = holding.cost_basis_override
+            holding.current_value = current_value
+            holding.unrealized_gain_loss = current_value - eff_cost
 
     all_errors = parse_errors
 
