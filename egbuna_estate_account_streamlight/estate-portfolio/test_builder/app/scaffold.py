@@ -30,11 +30,12 @@ def test_id_to_path(test_id: str, base_path: str):
 
 
 def generate_test_stub(test_id: str, domain_code: str, workflow: str, layer: str,
-                       test_type: str, title: str, requirement_ref: str = "") -> str:
+                       test_type: str, title: str, requirement_ref: str = "", tags: str = "") -> str:
     """Generate pytest stub file content with docstring header and failing assertion."""
     func_name = test_id.replace("-", "_").lower()
 
     req_line = f'Requirement: {requirement_ref}' if requirement_ref else ''
+    tags_line = f'Tags:        {tags}' if tags else ''
 
     lines = [
         '"""',
@@ -47,6 +48,8 @@ def generate_test_stub(test_id: str, domain_code: str, workflow: str, layer: str
     ]
     if req_line:
         lines.append(req_line)
+    if tags_line:
+        lines.append(tags_line)
     lines.append('"""')
     lines.append('')
     lines.append('')

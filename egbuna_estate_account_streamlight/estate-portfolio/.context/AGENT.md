@@ -28,11 +28,11 @@ Then read your assigned feature spec:
 
 | Agent | Model | Owns | Never Touches |
 |-------|-------|------|---------------|
-| Owl Alpha | openrouter/owl-alpha | backend/ · docker-compose.v3.yml · deploy.sh | estate-portfolio-manager/src/ |
-| Nex N2 | openrouter/nex-agi/nex-n2-pro:free | estate-portfolio-manager/src/ | backend/ |
-| DeepSeek | openrouter/deepseek/deepseek-v4-flash | Review/Architect role. No code execution. | — |
+| Deepseek:flash | openrouter/deepseek/deepseek-v4-flash | backend/ · docker-compose.v3.yml · deploy.sh | estate-portfolio-manager/src/ |
+| Nemotron | openrouter/nemotron/nemotron-3-ultra-550b-a55b:free | estate-portfolio-manager/src/ | backend/ |
+| DeepSeek v4 | openrouter/deepseek/deepseek-v4-flash | Review/Architect role. No code execution. | — |
 
-Sequence: Owl Alpha finishes backend first. Nex N2 reads it then fixes frontend. DeepSeek reviews architecture and approves feature specs. Never both sides in the same session simultaneously.
+Sequence: Deepseek:flash finishes backend first. Nemotron reads it then fixes frontend. DeepSeek v4 reviews architecture and approves feature specs. Never both sides in the same session simultaneously.
 
 ---
 

@@ -1,10 +1,10 @@
 ---
-
 id: F-006
 title: Registrars
 status: BUGS-OPEN
-owner-backend: Owl Alpha | Nex N2             owner-frontend: Nex N2
-Review/Architect role: Deepseek
+owner-backend: Deepseek:flash
+owner-frontend: Nemotron
+Review/Architect role: DeepSeek v4
 
 sprint: Phase 3B (complete)
 
@@ -15,9 +15,7 @@ sprint: Phase 3B (complete)
 ## Goal
 
 Manage registrar relationships including contact details (multiple phones,
-
 emails, etc.), document requirements per task type, uploaded document files,
-
 and linked companies. All document uploads are auth-gated and version-tracked.
 
 ## What Is Built
@@ -255,4 +253,5 @@ NEVER use plain <a href> — cookie not sent without credentials:'include'
 ## Sign-Off
 
 - [ ] All checklist items verified
+
 - [ ] No open bugs

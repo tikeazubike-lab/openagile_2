@@ -52,6 +52,13 @@ function handleSaveDraft() {
     const testType = document.getElementById('test_type').value.trim();
     const title = document.getElementById('title').value.trim();
     const requirementRef = document.getElementById('requirement_ref').value.trim();
+    const tagsInput = document.getElementById('tags').value.trim();
+
+    // Parse tags: split by comma, trim whitespace, filter empty
+    const tags = tagsInput
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
 
     // Validation
     const errorEl = document.getElementById('form-error');
@@ -83,6 +90,7 @@ function handleSaveDraft() {
         sequence_no: nextSeq,
         title: title,
         requirement_ref: requirementRef || null,
+        tags: tags,  // NEW: include tags
         created_at: new Date().toISOString(),
     };
 
@@ -158,6 +166,7 @@ function renderDraftList() {
                     <td>${d.domain}</td>
                     <td>${d.layer}</td>
                     <td>${d.test_type}</td>
+                    <td><span class="tags-badge">${(d.tags || []).join(', ')}</span></td>
                     <td><button class="btn btn-ghost btn-sm" onclick="removeDraft(${i})">Remove</button></td>
                 </tr>
             `).join('')}
@@ -211,6 +220,155 @@ function showSubmitError(msg) {
     const el = document.getElementById('submit-error');
     el.textContent = msg;
     el.style.display = 'block';
+}
+
+// === Test Run Execution ===
+async function saveRun(testCaseId) {
+    const form = document.getElementById('run-form-' + testCaseId);
+    if (!form) return;
+
+    const errorEl = document.getElementById('run-error-' + testCaseId);
+    const successEl = document.getElementById('run-success-' + testCaseId);
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+
+    // Validation
+    const executionPath = form.elements['execution_path'].value.trim();
+    const expectedResult = form.elements['expected_result'].value.trim();
+    const actualResult = form.elements['actual_result'].value.trim();
+    const status = form.elements['status'].value;
+
+    if (!executionPath) {
+        showRunError(testCaseId, 'Execution path is required');
+        return;
+    }
+    if (!expectedResult) {
+        showRunError(testCaseId, 'Expected result is required');
+        return;
+    }
+    if (!actualResult) {
+        showRunError(testCaseId, 'Actual result is required');
+        return;
+    }
+    if (!status || (status !== 'Passed' && status !== 'Failed')) {
+        showRunError(testCaseId, 'Status must be Passed or Failed');
+        return;
+    }
+
+    try {
+        const res = await fetch('/test-cases/execute/api/runs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                test_case_id: testCaseId,
+                execution_path: executionPath,
+                expected_result: expectedResult,
+                actual_result: actualResult,
+                status: status,
+            }),
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            showRunError(testCaseId, data.detail || 'Failed to save run');
+            return;
+        }
+
+        const data = await res.json();
+        successEl.textContent = `Run #${data.run_number} saved as ${data.status}`;
+        successEl.style.display = 'block';
+        errorEl.style.display = 'none';
+
+        // Refresh the page after a short delay to show updated run history
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+        showRunError(testCaseId, 'Network error: ' + err.message);
+    }
+}
+
+function showRunError(testCaseId, msg) {
+    const el = document.getElementById('run-error-' + testCaseId);
+    if (el) {
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+}
+
+function showRunSuccess(testCaseId, msg) {
+    const el = document.getElementById('run-success-' + testCaseId);
+    if (el) {
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+}
+
+function showRunSuccess(testCaseId, msg) {
+    const el = document.getElementById('run-success-' + testCaseId);
+    if (el) {
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+}
+
+// === Test Case Edit/Delete ===
+async function editTestCase(testCaseId) {
+    const newTitle = prompt('Enter new title:');
+    if (!newTitle || newTitle.trim() === '') return;
+
+    try {
+        const res = await fetch('/test-cases/' + testCaseId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ title: newTitle.trim() }),
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            alert('Failed to update: ' + (data.detail || 'Unknown error'));
+            return;
+        }
+
+        window.location.reload();
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+async function deleteTestCase(testCaseId) {
+    if (!confirm('Delete test case ' + testCaseId + '? This cannot be undone.')) return;
+
+    try {
+        const res = await fetch('/test-cases/' + testCaseId, {
+            method: 'DELETE',
+            credentials: 'include',
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            alert('Failed to delete: ' + (data.detail || 'Unknown error'));
+            return;
+        }
+
+        window.location.reload();
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+// === Tag Filter on Execute Page ===
+function filterByTags() {
+    const filter = document.getElementById('tags-filter').value.toLowerCase();
+    const cards = document.querySelectorAll('.test-case-card');
+    cards.forEach(card => {
+        const tagsText = card.querySelector('.tags-badge')?.textContent?.toLowerCase() || '';
+        if (!filter || tagsText.includes(filter)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
 }
 
 // === Utility ===

@@ -3,9 +3,9 @@
 id: F-003
 title: Holdings
 status: BUGS-OPEN
-owner-backend: Owl Alpha | Nex N2
-owner-frontend: Nex N2
-Review/Architect role: Deepseek 
+owner-backend: Deepseek:flash
+owner-frontend: Nemotron
+Review/Architect role: DeepSeek v4
 
 sprint: Phase 2B (bugs from AT-003-1)
 
@@ -18,11 +18,8 @@ open-bugs: BUG-002 BUG-003
 ## Goal
 
 Display all portfolio holdings in two tables (Active + Claims), allow
-
 inline editing of individual rows, add new holdings via a slide-out
-
 drawer, publish drafts, and soft-delete holdings. The grand total
-
 row below both tables shows combined net worth.
 
 ## What Is Built
@@ -302,5 +299,3 @@ Duplicate check: if company already has a holding → show error in drawer, no A
 - [ ] progress-tracker.md updated to ✅ Complete
 
 - [ ] HO filed in docs/handovers/
-
-

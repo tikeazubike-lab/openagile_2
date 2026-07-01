@@ -2,9 +2,9 @@
 id: F-002
 title: Dashboard
 status: BUGS-OPEN
-owner-backend: Owl Alpha | Nex N2
-owner-frontend: Nex N2
-Review/Architect role: Deepseek
+owner-backend: Deepseek:flash
+owner-frontend: Nemotron
+Review/Architect role: DeepSeek v4
 sprint: Phase 2B (bugs from AT-003-1)
 open-bugs: BUG-001 BUG-004 BUG-005
 ---
@@ -12,6 +12,7 @@ open-bugs: BUG-001 BUG-004 BUG-005
 # F-002 — Dashboard
 
 ## Goal
+
 A read-only consolidated view answering three morning questions:
 net worth, pending administration, and portfolio performance.
 No edit mode on this page — it is always read-only.
@@ -169,4 +170,3 @@ Bell click = dropdown panel with last 5 items, closes on outside click
 - [ ] BUG-001, BUG-004, BUG-005 resolved
 - [ ] progress-tracker.md updated to ✅ Complete
 - [ ] HO filed in docs/handovers/
-

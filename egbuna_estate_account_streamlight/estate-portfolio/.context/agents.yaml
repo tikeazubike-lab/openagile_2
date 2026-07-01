@@ -2,12 +2,12 @@
 # Single source of truth for multi-agent model assignments.
 # Referenced by: AGENTS.md, .cursor/rules/, ai-workflow-rules.md
 #
-# Last verified: 2026-06-19
+# Last verified: 2026-06-30
 
 agents:
-  owl-alpha:
+  deepseek-flash:
     role: backend-executor
-    model: openrouter/owl-alpha
+    model: openrouter/deepseek/deepseek-v4-flash
     provider: openrouter
     owns:
       - backend/
@@ -23,9 +23,9 @@ agents:
       - Infrastructure and deployment
     workflow_gate: Implements ONLY after DeepSeek approval and failing tests exist
 
-  nex-n2:
+  nemotron:
     role: frontend-executor
-    model: openrouter/nex-agi/nex-n2-pro:free
+    model: openrouter/nemotron/nemotron-3-ultra-550b-a55b:free
     provider: openrouter
     owns:
       - estate-portfolio-manager/src/
@@ -39,7 +39,7 @@ agents:
       - UI test validation
     workflow_gate: Must not modify backend logic. UI only.
 
-  deepseek:
+  deepseek-v4:
     role: reviewer-architect
     model: openrouter/deepseek/deepseek-v4-flash
     provider: openrouter
@@ -55,10 +55,10 @@ agents:
 
 routing:
   backend_task:
-    primary: owl-alpha
-    reviewer: deepseek
+    primary: deepseek-flash
+    reviewer: deepseek-v4
   frontend_task:
-    primary: nex-n2
-    reviewer: deepseek
+    primary: nemotron
+    reviewer: deepseek-v4
   complex_analytical:
-    primary: deepseek
+    primary: deepseek-v4

@@ -1,0 +1,461 @@
+# .github/workflows/ci.yml
+# EPM Complete CI/CD Pipeline
+# Implements the full STLC pyramid: Stage 0 → Stage 5
+# Stage 6 (UAT) is manual — tracked in OpenProject.
+#
+# CRITICAL RULE (MASTER_CONTEXT.md):
+#   ALL server commands use quoted heredoc: << 'ENDSSH'
+#   Variables evaluate on the REMOTE server, not the GitHub runner.
+#   NEVER run docker commands locally. NEVER unquoted << ENDSSH.
+
+name: EPM CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, test]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/epm-backend
+
+# ============================================================================
+# STAGE 0: Static Analysis (runs in < 30s, blocks everything downstream)
+# ============================================================================
+
+jobs:
+  static-analysis:
+    name: "Stage 0 — Static Analysis"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---------- CI YAML lint ----------
+      - name: Install actionlint
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint .github/workflows/ci.yml
+
+      # ---------- Backend: ruff + mypy ----------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install backend static analysis tools
+        run: pip install ruff mypy pip-audit
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: ruff lint (backend)
+        working-directory: backend
+        run: ruff check app/ --select E,F,W,I --exit-zero-on-no-answer
+
+      - name: mypy type check (backend)
+        working-directory: backend
+        run: mypy app/ --ignore-missing-imports --no-error-summary
+
+      - name: pip-audit (backend dependency CVEs)
+        working-directory: backend
+        run: pip-audit -r requirements.txt --strict
+
+      # ---------- Frontend: eslint + tsc ----------
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: estate-portfolio-manager/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: estate-portfolio-manager
+        run: npm ci
+
+      - name: eslint (frontend)
+        working-directory: estate-portfolio-manager
+        run: npx eslint src/ --max-warnings=0
+
+      - name: tsc type check (frontend)
+        working-directory: estate-portfolio-manager
+        run: npx tsc --noEmit
+
+      - name: npm audit (frontend dependency CVEs)
+        working-directory: estate-portfolio-manager
+        run: npm audit --audit-level=high
+
+      # ---------- Secret detection ----------
+      - name: gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# ============================================================================
+# STAGE 1: Unit Tests (parallel backend + frontend)
+# ============================================================================
+
+  unit-backend:
+    name: "Stage 1A — Backend Unit Tests"
+    runs-on: ubuntu-latest
+    needs: static-analysis
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Install test dependencies
+        working-directory: backend
+        run: pip install pytest pytest-asyncio pytest-cov pytest-mock httpx
+
+      - name: Run backend unit tests
+        working-directory: backend
+        run: |
+          pytest tests/unit/ \
+            --cov=app \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=85 \
+            -v \
+            --tb=short
+        env:
+          PYTHONPATH: .
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          file: backend/coverage.xml
+          flags: backend-unit
+
+  unit-frontend:
+    name: "Stage 1B — Frontend Unit Tests"
+    runs-on: ubuntu-latest
+    needs: static-analysis
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: estate-portfolio-manager/package-lock.json
+
+      - name: Install dependencies
+        working-directory: estate-portfolio-manager
+        run: npm ci
+
+      - name: Run frontend unit tests
+        working-directory: estate-portfolio-manager
+        run: npm test -- --coverage --reporter=verbose
+
+      - name: Assert coverage threshold
+        working-directory: estate-portfolio-manager
+        run: |
+          # vitest outputs coverage to coverage/coverage-summary.json
+          node -e "
+            const s = require('./coverage/coverage-summary.json');
+            const pct = s.total.lines.pct;
+            if (pct < 85) {
+              console.error('Frontend coverage ' + pct + '% < 85% threshold');
+              process.exit(1);
+            }
+            console.log('Frontend coverage: ' + pct + '%  ✓');
+          "
+
+# ============================================================================
+# STAGE 2: Integration + Contract + Database Tests
+# ============================================================================
+
+  integration:
+    name: "Stage 2 — Integration, Contract & DB Tests"
+    runs-on: ubuntu-latest
+    needs: [unit-backend, unit-frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install backend + test dependencies
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx jsonschema asyncpg
+
+      - name: Run integration + contract + DB tests
+        working-directory: backend
+        run: |
+          pytest tests/integration/ tests/contract/ tests/db/ \
+            -v \
+            --tb=short \
+            -x
+        env:
+          PYTHONPATH: .
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+# ============================================================================
+# STAGE 3: Build Docker Image
+# ============================================================================
+
+  build:
+    name: "Stage 3 — Build & Scan Docker Image"
+    runs-on: ubuntu-latest
+    needs: integration
+    outputs:
+      image-digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build React frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: estate-portfolio-manager/package-lock.json
+
+      - name: Build React SPA
+        working-directory: estate-portfolio-manager
+        run: |
+          npm ci
+          npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Copy React dist into FastAPI static dir
+        run: |
+          mkdir -p backend/app/static
+          cp -r estate-portfolio-manager/dist/. backend/app/static/
+
+      # Build Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Scan image for secrets
+      - name: truffleHog scan on built image
+        run: |
+          pip install trufflehog3
+          trufflehog3 --no-history . --exclude=*.lock --exclude=dist/
+
+      # Bandit SAST
+      - name: Bandit security scan
+        working-directory: backend
+        run: |
+          pip install bandit
+          bandit -r app/ -ll --exit-zero
+
+# ============================================================================
+# STAGE 4: Deploy to Staging + E2E Tests
+# ============================================================================
+
+  deploy-staging:
+    name: "Stage 4 — Deploy to Staging"
+    runs-on: ubuntu-latest
+    needs: build
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to demo.estate.zubbystudio.shop
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # CRITICAL: quoted heredoc — variables evaluate on REMOTE server
+          script: |
+            cd /root/openagile/egbuna_estate_account_streamlight/estate-portfolio
+            git pull origin ${{ github.ref_name }}
+            docker compose pull
+            docker compose up -d --force-recreate epm_v2
+            docker compose ps
+
+  e2e-tests:
+    name: "Stage 4 — E2E Tests (Playwright)"
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: estate-portfolio-manager/package-lock.json
+
+      - name: Install Playwright dependencies
+        working-directory: estate-portfolio-manager
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Wait for staging to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -sf https://demo.estate.zubbystudio.shop/api/v1/health; then
+              echo "Staging ready"
+              break
+            fi
+            echo "Waiting for staging... ($i/30)"
+            sleep 10
+          done
+
+      - name: Run E2E tests
+        working-directory: estate-portfolio-manager
+        run: npx playwright test tests/e2e/
+        env:
+          E2E_BASE_URL: https://demo.estate.zubbystudio.shop
+          E2E_ADMIN_USER: ${{ secrets.E2E_ADMIN_USER }}
+          E2E_ADMIN_PASS: ${{ secrets.E2E_ADMIN_PASS }}
+          E2E_VIEWER_USER: ${{ secrets.E2E_VIEWER_USER }}
+          E2E_VIEWER_PASS: ${{ secrets.E2E_VIEWER_PASS }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: estate-portfolio-manager/playwright-report/
+
+# ============================================================================
+# STAGE 5: Non-Functional Tests
+# ============================================================================
+
+  non-functional:
+    name: "Stage 5 — Non-Functional Tests"
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---------- Performance (Locust) ----------
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Locust
+        run: pip install locust
+
+      - name: Run Locust load test
+        working-directory: backend
+        run: |
+          locust \
+            -f tests/performance/locustfile.py \
+            --headless \
+            --host=https://demo.estate.zubbystudio.shop \
+            --users=50 \
+            --spawn-rate=5 \
+            --run-time=60s \
+            --html=perf_report.html \
+            --exit-code-on-error 1
+        env:
+          E2E_ADMIN_USER: ${{ secrets.E2E_ADMIN_USER }}
+          E2E_ADMIN_PASS: ${{ secrets.E2E_ADMIN_PASS }}
+
+      - name: Upload performance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: locust-report
+          path: backend/perf_report.html
+
+      # ---------- Snyk dependency CVE scan ----------
+      - name: Snyk backend scan
+        uses: snyk/actions/python@master
+        with:
+          args: --file=backend/requirements.txt --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Snyk frontend scan
+        uses: snyk/actions/node@master
+        with:
+          args: --file=estate-portfolio-manager/package.json --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # ---------- OWASP ZAP DAST ----------
+      - name: OWASP ZAP API scan
+        uses: zaproxy/action-api-scan@v0.7.0
+        with:
+          target: "https://demo.estate.zubbystudio.shop/openapi.json"
+          rules_file_name: ".zap/rules.tsv"
+          cmd_options: "-a"
+
+      # ---------- Regression: re-run unit + integration ----------
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install backend deps for regression
+        working-directory: backend
+        run: pip install -r requirements.txt pytest pytest-asyncio pytest-cov pytest-mock httpx
+
+      - name: Regression — unit tests
+        working-directory: backend
+        run: pytest tests/unit/ -q --tb=line
+        env:
+          PYTHONPATH: .
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+# ============================================================================
+# STAGE: Deploy to Production (manual approval required)
+# ============================================================================
+
+  deploy-production:
+    name: "Deploy → estate.zubbystudio.shop"
+    runs-on: ubuntu-latest
+    needs: non-functional
+    if: github.ref == 'refs/heads/main'
+    environment: production   # requires manual approval in GitHub Environments
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to production
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # CRITICAL: quoted heredoc — variables evaluate on REMOTE server
+          script: |
+            cd /root/openagile/egbuna_estate_account_streamlight/estate-portfolio
+            git pull origin main
+            docker compose up -d --force-recreate epm_v2
+            docker compose ps
+            echo "Production deployment complete"

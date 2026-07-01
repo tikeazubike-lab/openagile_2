@@ -33,17 +33,29 @@ async def init_db():
         await conn.execute(text("PRAGMA journal_mode=WAL"))
         await conn.run_sync(Base.metadata.create_all)
 
+        # Migration: add tags column if it doesn't exist
+        try:
+            await conn.execute(text("ALTER TABLE test_cases ADD COLUMN tags TEXT NOT NULL DEFAULT ''"))
+        except Exception:
+            pass  # Column already exists
+
+        # Migration: add workflows column if it doesn't exist
+        try:
+            await conn.execute(text("ALTER TABLE domain_codes ADD COLUMN workflows TEXT NOT NULL DEFAULT '[]'"))
+        except Exception:
+            pass  # Column already exists
+
         # Seed default domain codes if table is empty
         from app.seed import DEFAULT_DOMAIN_CODES
         result = await conn.execute(text("SELECT COUNT(*) FROM domain_codes"))
         count = result.scalar()
         if count == 0:
-            for code, label, folder_slug in DEFAULT_DOMAIN_CODES:
+            for code, label, folder_slug, workflows in DEFAULT_DOMAIN_CODES:
                 await conn.execute(
                     text(
-                        "INSERT INTO domain_codes (code, label, folder_slug) VALUES (:code, :label, :folder_slug)"
+                        "INSERT INTO domain_codes (code, label, folder_slug, workflows) VALUES (:code, :label, :folder_slug, :workflows)"
                     ),
-                    {"code": code, "label": label, "folder_slug": folder_slug},
+                    {"code": code, "label": label, "folder_slug": folder_slug, "workflows": workflows},
                 )
 
 

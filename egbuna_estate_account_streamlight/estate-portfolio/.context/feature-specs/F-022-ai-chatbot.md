@@ -2,10 +2,10 @@
 id: F-022
 title: AI Assisted Interactive ChatBot
 status: PLANNED
-owner-backend: Owl Alpha
-owner-frontend: Nex N2
-architect: Claude
-reviewer: Deepseek
+owner-backend: Deepseek:flash
+owner-frontend: Nemotron
+architect: DeepSeek v4
+reviewer: DeepSeek v4
 sprint: Phase 4 (future — blocked on F-007 through F-016)
 grok-gaps-resolved: all 7
 ---

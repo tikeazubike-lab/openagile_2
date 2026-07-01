@@ -49,6 +49,7 @@ async def generate_scaffold(test_id: str, request: Request, session: AsyncSessio
             test_type=tc.test_type,
             title=tc.title,
             requirement_ref=tc.requirement_ref,
+            tags=tc.tags,
         )
         with open(test_file, "w") as f:
             f.write(content)
@@ -88,6 +89,7 @@ async def overwrite_scaffold(test_id: str, request: Request, session: AsyncSessi
             test_type=tc.test_type,
             title=tc.title,
             requirement_ref=tc.requirement_ref,
+            tags=tc.tags,
         )
         with open(test_file, "w") as f:
             f.write(content)

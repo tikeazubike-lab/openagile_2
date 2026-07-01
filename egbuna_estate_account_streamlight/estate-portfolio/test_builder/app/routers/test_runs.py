@@ -83,6 +83,7 @@ async def execute_page(request: Request, session: AsyncSession = Depends(get_ses
                 "workflow": tc.workflow,
                 "layer": tc.layer,
                 "test_type": tc.test_type,
+                "tags": tc.tags,
             },
             "latest_run": {
                 "run_number": latest_run.run_number if latest_run else None,

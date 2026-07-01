@@ -32,22 +32,27 @@ async def get_dashboard(
     all_holdings = result.scalars().all()
     
     active_holdings = [h for h in all_holdings if h.holding_type == 'active']
-    claim_holdings = [h for h in all_holdings if h.holding_type == 'claim']
+        claim_holdings = [h for h in all_holdings if h.holding_type == 'claim']
+        draft_holdings_list = [h for h in all_holdings if h.holding_type == 'draft']
     
-    # Collect all claims
-    claim_records = []
-    for h in claim_holdings:
-        claim_records.extend(h.claim_records)
+        # Collect all claims
+        claim_records = []
+        for h in claim_holdings:
+            claim_records.extend(h.claim_records)
         
-    portfolio_totals = calculate_total_assets(active_holdings, claim_records)
+        portfolio_totals = calculate_total_assets(active_holdings, claim_records)
     
-    total_invested = Decimal("0.00")
-    total_holdings = len(all_holdings)
-    live_holdings = len(active_holdings)
-    draft_holdings = len(claim_holdings)
+        total_invested = Decimal("0.00")
+        total_holdings = len(all_holdings)
+        live_holdings = len(active_holdings)
+        draft_holdings = len(draft_holdings_list)
     
-    for h in all_holdings:
-        total_invested += h.total_cost
+        for h in all_holdings:
+            # Use total_cost if available and > 0, else compute from shares * avg_cost_basis
+            if h.total_cost and h.total_cost > 0:
+                total_invested += h.total_cost
+            elif h.average_cost_basis and h.average_cost_basis > 0 and h.num_shares:
+                total_invested += h.num_shares * h.average_cost_basis
 
     unrealised_gain_loss = Decimal(portfolio_totals["total_assets"]) - total_invested
     unrealised_gain_pct = float(unrealised_gain_loss / total_invested * 100) if total_invested > 0 else 0.0

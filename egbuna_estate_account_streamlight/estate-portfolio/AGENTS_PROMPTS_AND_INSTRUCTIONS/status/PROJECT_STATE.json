@@ -1,0 +1,228 @@
+{
+  "meta": {
+    "version": "1.0",
+    "generated": "2026-06-15",
+    "source": "VPS audit + full conversation history HO-001 to HO-018",
+    "next_update": "after each completed feature sprint"
+  },
+
+  "system": {
+    "name": "Estate Portfolio Manager",
+    "version": "v2",
+    "domain_staging": "demo.estate.zubbystudio.shop",
+    "domain_production": "estate.zubbystudio.shop",
+    "production_status": "NOT YET CUT OVER — v1 Streamlit still serving production",
+    "vps": "185.216.177.250",
+    "vps_user": "zubbyik",
+    "project_root": "/home/zubbyik/openagile/egbuna_estate_account_streamlight/estate-portfolio",
+    "branch_active": "test",
+    "branch_production": "main"
+  },
+
+  "stack": {
+    "backend": {
+      "framework": "FastAPI 0.115.6",
+      "language": "Python 3.12",
+      "orm": "SQLAlchemy 2.0.36 async",
+      "migrations": "Alembic 1.14.0",
+      "database": "PostgreSQL 15 (shared openagile_postgres)",
+      "auth": "JWT httpOnly cookie, 30-day, bcrypt==4.0.1 PINNED",
+      "session_function": "get_session (NOT get_db)",
+      "token_function": "create_access_token(user_id: int, role: str)"
+    },
+    "frontend": {
+      "framework": "React 18 + TypeScript + Vite",
+      "routing": "TanStack Router (file-based, src/routes/)",
+      "server_state": "TanStack Query v5",
+      "ui_state": "Zustand",
+      "tables": "TanStack Table v8",
+      "charts": "Recharts",
+      "styling": "Tailwind v4 + oklch CSS variables",
+      "components": "shadcn/ui (47 components, copy-paste pattern)"
+    },
+    "infrastructure": {
+      "container": "Single Docker container (FastAPI + React static)",
+      "compose_v2": "docker-compose.v2.yml",
+      "compose_v1_legacy": "docker-compose.yml (Streamlit — retire after cutover)",
+      "reverse_proxy": "Traefik v2.10 + Let's Encrypt",
+      "network": "openagile_network (external bridge)",
+      "deployment": "manual deploy.sh — NO GitHub Actions CI/CD yet"
+    }
+  },
+
+  "database": {
+    "migrations_count": 5,
+    "migrations": [
+      "001_create_users_table",
+      "3f4739d78390_phase_2b_updates",
+      "4a8f2c1d9e05_phase_3a_price_audits",
+      "5b9c3e2f4a16_add_registrars_documents_tables",
+      "6c0d4f3e5b27_registrar_contact_fields"
+    ],
+    "models": [
+      "User", "Registrar", "RegistrarContactField", "Company",
+      "Holding", "ClaimRecord", "ObsidianSyncLog", "Transaction",
+      "Dividend", "PriceHistory", "PriceAudit",
+      "RegistrarRequirement", "RegistrarDocument"
+    ],
+    "models_count": 13,
+    "soft_delete_pattern": "deleted_at = datetime.now(timezone.utc)",
+    "monetary_api_contract": "all monetary values returned as strings from API"
+  },
+
+  "api": {
+    "endpoints_count": 40,
+    "routers": {
+      "auth": {"prefix": "/api/v1/auth", "endpoints": 4, "status": "complete"},
+      "dashboard": {"prefix": "/api/v1", "endpoints": 1, "status": "complete"},
+      "holdings": {"prefix": "/api/v1", "endpoints": 5, "status": "complete"},
+      "companies": {"prefix": "/api/v1/companies", "endpoints": 1, "status": "partial - list only, no CRUD"},
+      "prices": {"prefix": "/api/v1/prices", "endpoints": 7, "status": "complete"},
+      "registrars": {"prefix": "/api/v1", "endpoints": 16, "status": "complete"},
+      "claims": {"prefix": "/api/v1/claims", "endpoints": 4, "status": "complete"},
+      "obsidian": {"prefix": "/api/v1/obsidian", "endpoints": 2, "status": "complete"}
+    }
+  },
+
+  "frontend": {
+    "routes_count": 19,
+    "routes": {
+      "_app.dashboard.tsx": "complete",
+      "_app.holdings.tsx": "complete",
+      "_app.settings.price-entry.tsx": "complete",
+      "_app.price-history.tsx": "complete",
+      "_app.registrars.tsx": "complete",
+      "_app.dividends.tsx": "unknown - needs audit",
+      "_app.nav-history.tsx": "partial - hook disabled (enabled: false)",
+      "_app.rebalancing.tsx": "unknown - needs audit",
+      "_app.transactions.tsx": "unknown - needs audit",
+      "_app.companies.tsx": "unknown - needs audit",
+      "_app.watchlist.tsx": "unknown - needs audit",
+      "_app.settings.corporate-actions.tsx": "likely StubPage",
+      "_app.settings.data-import.tsx": "likely StubPage",
+      "_app.settings.deleted-records.tsx": "likely StubPage",
+      "_app.settings.users.tsx": "likely StubPage"
+    },
+    "hooks_count": 30,
+    "components_domain": 17,
+    "components_shadcn": 47
+  },
+
+  "testing": {
+    "backend_test_files": 17,
+    "frontend_test_files": 9,
+    "duplicate_tree": "epm-tests/ (15 files) — AUTHORITATIVE: backend/tests/",
+    "root_level_debris": [
+      "test_pdf.py through test_pdf8.py (8 files)",
+      "test_regex.py, test_regex2.py, test_regex3.py",
+      "scripts/test_apis.py"
+    ],
+    "ci_pipeline": "NONE - no GitHub Actions workflows",
+    "gherkin_specs": "5 feature files in docs/testing/features/"
+  },
+
+  "known_issues": {
+    "open": [
+      {
+        "id": "BUG-001",
+        "component": "dashboard",
+        "description": "Sector allocation and Top Holdings charts blank",
+        "root_cause": "Recharts requires name field + float values; API sends sector field + string values",
+        "fix_spec": "HO-015",
+        "status": "fix deployed, unverified"
+      },
+      {
+        "id": "BUG-002",
+        "component": "holdings",
+        "description": "Inline edit cursor jumps on keystroke",
+        "root_cause": "Parent table re-renders on every keystroke — editing state in parent component",
+        "fix_spec": "HO-018 BUG-3",
+        "status": "InlineEditRow child component spec written, not yet implemented"
+      },
+      {
+        "id": "BUG-003",
+        "component": "holdings",
+        "description": "POST /api/v1/holdings 500 error on Add Holding",
+        "root_cause": "Unconfirmed — likely user_id missing or UNIQUE constraint",
+        "fix_spec": "HO-018 BUG-1",
+        "status": "diagnosis pending"
+      },
+      {
+        "id": "BUG-004",
+        "component": "dashboard",
+        "description": "Theme toggle icon does not change on click",
+        "root_cause": "useTheme hook reads classList without useState — no re-render triggered",
+        "fix_spec": "HO-018 BUG-4",
+        "status": "fix spec written, not yet implemented"
+      },
+      {
+        "id": "BUG-005",
+        "component": "dashboard",
+        "description": "Notification bell not showing action items",
+        "root_cause": "useActionItems hook crashes when useDashboard returns undefined",
+        "fix_spec": "HO-018 BUG-5",
+        "status": "null-safe fix spec written, not yet implemented"
+      }
+    ],
+    "deferred": [
+      "scipy missing from requirements.txt (XIRR blocked)",
+      "APScheduler missing from requirements.txt (NAV History automation blocked)",
+      "ReadOnly user tests (no readonly user created yet)",
+      "Company linked pills in Holdings (Companies page not built)"
+    ]
+  },
+
+  "missing_dependencies": [
+    {"package": "scipy", "version": "1.13.1", "needed_for": "XIRR calculation"},
+    {"package": "APScheduler", "version": "3.10.4", "needed_for": "NAV History daily snapshot"}
+  ],
+
+  "debris_to_clean": [
+    "temp_daily.txt",
+    "temp_prices1.txt",
+    "temp_prices2.txt",
+    "tickers.txt (move to scripts/data/)",
+    "ngx_companies_list.txt (move to scripts/data/)",
+    "test_pdf.py through test_pdf8.py (delete or move to scripts/experiments/)",
+    "test_regex.py through test_regex3.py (delete or move to scripts/experiments/)",
+    "extract_tickers.py (move to scripts/utils/)",
+    "extract_tickers_from_txt.py (move to scripts/utils/)",
+    "Dialin-—-Analytics-Dashboard-UI-by-Orix-Creative-on-Dribbble.png (delete)",
+    "cron.log (add to .gitignore)",
+    "NigerianStocks/ (add to .gitignore — vault should not be in repo)",
+    "epm-tests/ (merge into backend/tests/ then delete duplicate tree)",
+    "scripts/rapidapi_scraper.py (defunct — delete)",
+    "scripts/yfinance_scraper.py (defunct — delete)",
+    "Dockerfile (v1 legacy — retire after cutover)",
+    "docker-compose.yml (v1 Streamlit — retire after cutover)"
+  ],
+
+  "agents": {
+    "Claude": "Architect — design, specs, handovers",
+    "Antigravity": "Builder — backend/**, docker-compose.yml, deploy.sh",
+    "Deepseek_v4": "Builder — estate-portfolio-manager/src/**",
+    "Codex": "Tester — test branch, SSH to VPS only",
+    "Lovable": "UI Generator — React from prompts, GitHub PR",
+    "Grok": "Spotter — verification, library versions"
+  },
+
+  "next_actions": {
+    "immediate": [
+      "Fix BUG-001 through BUG-005 (open from AT-003-1)",
+      "Add scipy and APScheduler to requirements.txt",
+      "Create GitHub Actions CI/CD pipeline (zero currently)"
+    ],
+    "this_sprint": [
+      "Clean root debris (temp files, test experiments)",
+      "Consolidate duplicate test trees (epm-tests/ → backend/tests/)",
+      "Audit unknown frontend routes (dividends, nav-history, rebalancing, transactions, companies, watchlist)",
+      "Write feature specs F-001 through F-006 (clean slate)"
+    ],
+    "next_sprint": [
+      "NAV History (APScheduler + page)",
+      "Dividends (API + page)",
+      "Transactions (API + page)",
+      "Claims page (table + UI)"
+    ]
+  }
+}

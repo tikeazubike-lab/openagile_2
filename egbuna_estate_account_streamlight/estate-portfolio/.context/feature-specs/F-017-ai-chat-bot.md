@@ -2,9 +2,9 @@
 id: F-017
 title: AI Chat Bot
 status: PLANNED
-owner-backend: Owl Alpha
-owner-frontend: Nex N2
-Review/Architect role: Deepseek
+owner-backend: Deepseek:flash
+owner-frontend: Nemotron
+Review/Architect role: DeepSeek v4
 sprint: Phase 4 (future)
 ---
 
@@ -78,7 +78,7 @@ Same as existing EPM: React 18 + TanStack Router + shadcn/ui + Recharts (fronten
 
 ## Files to Create / Modify
 
-### Frontend (Nex N2)
+### Frontend (Nemotron)
 - Create: `estate-portfolio-manager/src/components/chat/AiAssistant.tsx`
 - Create: `estate-portfolio-manager/src/components/chat/MessageBubble.tsx`
 - Create: `estate-portfolio-manager/src/components/chat/InlineChart.tsx`
@@ -86,11 +86,11 @@ Same as existing EPM: React 18 + TanStack Router + shadcn/ui + Recharts (fronten
 - Modify: `estate-portfolio-manager/src/routes/__root.tsx` — add AiAssistant
 - Modify: `estate-portfolio-manager/src/api/queries.ts` — add useChatQuery
 
-### Backend (Owl Alpha)
+### Backend (Deepseek:flash)
 - Create: `backend/app/routers/chat.py`
 - Modify: `backend/app/main.py` — register chat router
 
-### Test Files (Owl Alpha + Nex N2)
+### Test Files (Deepseek:flash + Nemotron)
 - Create: `backend/tests/unit/test_chat_intents.py`
 - Create: `estate-portfolio-manager/tests/unit/components/chat.test.tsx`
 

@@ -21,6 +21,11 @@
             <label>Folder Slug</label>
             <input type="text" name="folder_slug" placeholder="e.g. admin/obsidian" required>
         </div>
+        <div class="form-group">
+            <label>Workflows</label>
+            <input type="text" name="workflows" value='["CREATE", "UPDATE", "VIEW"]' placeholder='e.g. ["CREATE", "UPDATE", "VIEW"]'>
+            <span class="text-muted" style="font-size:0.75rem;">JSON array of workflow names for dropdown</span>
+        </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Add Domain Code</button>
         </div>
@@ -32,7 +37,7 @@
     <h2>Existing Domain Codes ({{ codes|length }})</h2>
     <table class="data-table">
         <thead>
-            <tr><th>Code</th><th>Label</th><th>Folder</th><th>Actions</th></tr>
+            <tr><th>Code</th><th>Label</th><th>Folder</th><th>Workflows</th><th>Actions</th></tr>
         </thead>
         <tbody>
             {% for c in codes %}
@@ -40,6 +45,7 @@
                 <td class="font-mono"><strong>{{ c.code }}</strong></td>
                 <td>{{ c.label }}</td>
                 <td class="font-mono">{{ c.folder_slug }}</td>
+                <td class="font-mono" style="font-size:0.75rem;">{{ c.workflows }}</td>
                 <td>
                     <button class="btn btn-ghost btn-sm" onclick="toggleEdit('{{ c.code }}')">Edit</button>
                     <form method="post" action="/admin/domain-codes/{{ c.code }}/delete" style="display:inline" onsubmit="return confirm('Delete {{ c.code }}?')">
@@ -48,13 +54,16 @@
                 </td>
             </tr>
             <tr id="edit-{{ c.code }}" style="display:none;">
-                <td colspan="4">
+                <td colspan="5">
                     <form method="post" action="/admin/domain-codes/{{ c.code }}/edit" class="form-grid form-inline">
                         <div class="form-group">
                             <input type="text" name="label" value="{{ c.label }}" required>
                         </div>
                         <div class="form-group">
                             <input type="text" name="folder_slug" value="{{ c.folder_slug }}" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" name="workflows" value='{{ c.workflows }}'>
                         </div>
                         <button type="submit" class="btn btn-primary btn-sm">Save</button>
                         <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEdit('{{ c.code }}')">Cancel</button>

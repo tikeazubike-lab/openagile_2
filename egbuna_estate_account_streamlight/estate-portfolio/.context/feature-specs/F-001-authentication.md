@@ -1,29 +1,19 @@
 ---
-
 id: F-001
-
 title: Authentication
-
 status: COMPLETE
-
-owner-backend: Owl Alpha | Nex N2
-
-owner-frontend: Nex N2
-
-Review/Architect role: DeepSeek 
-
+owner-backend: Deepseek:flash
+owner-frontend: Nemotron
+Review/Architect role: DeepSeek v4
 sprint: Phase 2A (complete)
-
-Sequence: Owl Alpha finishes backend first. Kimi K2.5 reads it then fixes frontend. DeepSeek reviews architecture and approves feature specs. Never both sides in the same session simultaneously.
+---
 
 # F-001 — Authentication
 
 ## Goal
 
 Admin user logs in once and stays logged in for 30 days via a secure
-
 httpOnly cookie. Session restores automatically on browser reopen.
-
 Logout clears the cookie and returns to the login page.
 
 ## What Is Built
@@ -55,7 +45,6 @@ Frontend:
 Cookie:
 
   key="epm_token", max_age=60*60*24*30, httponly=True,
-
   secure=True, samesite="strict"
 
   NEVER session-only (no max_age) — confirmed bug in HO-008
@@ -114,6 +103,4 @@ Logout sequence (Sidebar.tsx) — order is critical:
 
 - [ ] Back button after logout → stays on /login
 
-- [ ] Pasting /dashboard after logout → redirected to /log
-
-in
+- [ ] Pasting /dashboard after logout → redirected to /login

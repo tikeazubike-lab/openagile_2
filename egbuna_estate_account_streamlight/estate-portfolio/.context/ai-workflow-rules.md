@@ -1,6 +1,6 @@
 # ai-workflow-rules.md --- Multi-Agent EPM Workflow System
 
-Last verified: 2026-06-18. Update model names when configuration changes.
+Last verified: 2026-06-30. Update model names when configuration changes.
 
 ## Overview
 
@@ -10,8 +10,8 @@ system for EPM development.
 It separates responsibilities across specialized AI models:
 
 -   DeepSeek (openrouter/deepseek/deepseek-v4-flash) → Brain / Reviewer / Architect
--   OpenRouter (openrouter/owl-alpha) → Coding Agent / Backend Implementer
--   Nex N2 (openrouter/nex-agi/nex-n2-pro:free) → Frontend / UI Implementation Agent
+-   Deepseek:flash (openrouter/deepseek/deepseek-v4-flash) → Coding Agent / Backend Implementer
+-   Nemotron (openrouter/nemotron/nemotron-3-ultra-550b-a55b:free) → Frontend / UI Implementation Agent
 
 ------------------------------------------------------------------------
 
@@ -22,11 +22,11 @@ For every feature:
 1.  Read all context files (.context/\*.md)
 2.  Read feature spec (.context/feature-specs/F-XXX.md)
 3.  DeepSeek review (architecture + validation gate)
-4.  Write tests (coding agent: owl-alpha)
+4.  Write tests (coding agent: deepseek-flash)
 5.  Run tests → must FAIL (RED)
-6.  Implement minimal production code (owl-alpha)
+6.  Implement minimal production code (deepseek-flash)
 7.  Run tests → must PASS (GREEN)
-8.  Frontend implementation (nex-n2 if UI exists)
+8.  Frontend implementation (nemotron if UI exists)
 9.  DeepSeek final review (correctness + safety + consistency)
 10. Run acceptance tests (DB → API → UI)
 11. Update progress tracker (.context/progress-tracker.md)
@@ -51,9 +51,9 @@ reject.
 
 ------------------------------------------------------------------------
 
-### 2. OpenRouter Owl Alpha (Coding Agent)
+### 2. Deepseek:flash (Coding Agent)
 
-Model: openrouter/owl-alpha
+Model: openrouter/deepseek/deepseek-v4-flash
 
 Responsibilities: - Backend implementation - API development - Database
 logic - Test writing (unit + integration) - Bug fixing based on RCA
@@ -63,9 +63,9 @@ exist.
 
 ------------------------------------------------------------------------
 
-### 3. Nex N2 (Frontend Agent)
+### 3. Nemotron (Frontend Agent)
 
-Model: openrouter/nex-agi/nex-n2-pro:free
+Model: openrouter/nemotron/nemotron-3-ultra-550b-a55b:free
 
 Responsibilities: - UI implementation - Component design - Frontend
 state logic - API integration on UI layer - UI test validation
@@ -114,7 +114,7 @@ Proceed only after approval
 
 4.  DeepSeek review required
 
-5.  Implement fix (owl-alpha only after approval)
+5.  Implement fix (deepseek-flash only after approval)
 
 ------------------------------------------------------------------------
 
@@ -157,8 +157,8 @@ Rule: Each layer must validate previous one.
 ## Key Constraints
 
 -   DeepSeek = authority layer (no code execution)
--   Owl Alpha = backend executor
--   Kimi = frontend executor
+-   Deepseek:flash = backend executor
+-   Nemotron = frontend executor
 -   No cross-layer modification
 -   No guessing missing requirements
 -   No multi-feature sessions
@@ -174,4 +174,3 @@ This system ensures:
 -   strict separation of concerns
 -   AI role specialization
 -   zero architectural drift
-

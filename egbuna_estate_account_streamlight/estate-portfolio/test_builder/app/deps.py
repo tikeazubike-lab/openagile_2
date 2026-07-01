@@ -32,5 +32,5 @@ def validate_session(request: Request) -> bool:
 async def require_auth(request: Request):
     """FastAPI dependency: redirect to login if not authenticated."""
     if not validate_session(request):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     return True

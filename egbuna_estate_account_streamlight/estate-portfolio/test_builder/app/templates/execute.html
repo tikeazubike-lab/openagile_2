@@ -6,6 +6,13 @@
     <p class="text-secondary">Record execution results for submitted test cases.</p>
 </div>
 
+<div class="filter-bar">
+    <div class="form-group">
+        <label for="tags-filter">Filter by tags</label>
+        <input type="text" id="tags-filter" placeholder="e.g. regression, api" oninput="filterByTags()">
+    </div>
+</div>
+
 {% if test_cases %}
 {% for item in test_cases %}
 <div class="card test-case-card">
@@ -14,6 +21,10 @@
         <span class="badge {% if item.latest_run and item.latest_run.status == 'Passed' %}badge-success{% elif item.latest_run and item.latest_run.status == 'Failed' %}badge-danger{% else %}badge-muted{% endif %}">
             {% if item.latest_run %}{{ item.latest_run.status }}{% else %}Not Run{% endif %}
         </span>
+        <div class="test-case-actions">
+            <button class="btn btn-ghost btn-sm" onclick="editTestCase('{{ item.test_case.id }}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTestCase('{{ item.test_case.id }}')">Delete</button>
+        </div>
     </div>
     <p class="text-secondary">{{ item.test_case.title }}</p>
     <div class="test-meta">
@@ -21,6 +32,9 @@
         <span>{{ item.test_case.workflow }}</span>
         <span>{{ item.test_case.layer }}</span>
         <span>{{ item.test_case.test_type }}</span>
+        {% if item.test_case.tags %}
+        <span class="tags-badge">{{ item.test_case.tags }}</span>
+        {% endif %}
         <span>{{ item.total_runs }} run{{ 's' if item.total_runs != 1 else '' }}</span>
     </div>
 

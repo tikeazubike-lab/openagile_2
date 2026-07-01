@@ -1,16 +1,15 @@
 ---
-
 id: F-005
-
 title: Price History
 status: BUGS-OPEN
 ux-refinement-deferred: true
 ux-notes: >
-  Chart is functionally complete. Visual/UX refinement (axis styling, gridlines, 
+  Chart is functionally complete. Visual/UX refinement (axis styling, gridlines,
   date label spacing, tooltip design, dark theme contrast) deferred per user direction.
   Return after completing higher-priority features.
-owner-backend: Owl Alpha | Nex N2             owner-frontend: Nex N2       
-Review/Architect role: Deepseek
+owner-backend: Deepseek:flash
+owner-frontend: Nemotron
+Review/Architect role: DeepSeek v4
 
 sprint: Phase 3A (complete)
 
@@ -203,4 +202,5 @@ export function usePriceHistory(companyId: number | null, days: number) {
 ## Sign-Off
 
 - [ ] All checklist items verified
+
 - [ ] No open bugs

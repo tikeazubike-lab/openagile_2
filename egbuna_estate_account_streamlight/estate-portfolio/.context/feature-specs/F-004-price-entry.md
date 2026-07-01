@@ -1,14 +1,11 @@
 ---
-
 id: F-004
-
 title: Price Entry
-
+Price Entry
 status: COMPLETE
-
-owner-backend: Owl Alpha | Nex N2
-owner-frontend: Nex N2
-Review/Architect role: Deepseek
+owner-backend: Deepseek:flash
+owner-frontend: Nemotron
+Review/Architect role: DeepSeek v4
 
 sprint: Phase 3A (complete)
 
@@ -19,9 +16,7 @@ sprint: Phase 3A (complete)
 ## Goal
 
 Admin updates NGX stock prices daily via NGX Daily Official List PDF
-
 upload (primary) or manual quick entry (secondary). All price changes
-
 are logged to an audit trail with revert capability.
 
 ## What Is Built
@@ -48,7 +43,7 @@ Frontend:
 
   src/api/queries.ts → useQuickPriceUpdate(), useUploadNGXPdf(),
 
-                        useBulkCsvImport(), usePriceAudit(), useRevertPrice()
+                       useBulkCsvImport(), usePriceAudit(), useRevertPrice()
 
 ## NGX PDF Parser
 
@@ -205,5 +200,3 @@ Right panel (45%):
 - [ ] Revert button → confirmation → price reverts → audit log updates
 
 - [ ] Revert button disabled when old_price is null
-
-

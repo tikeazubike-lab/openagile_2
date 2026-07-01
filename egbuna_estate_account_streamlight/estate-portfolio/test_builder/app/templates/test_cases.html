@@ -20,7 +20,9 @@
         </div>
         <div class="form-group">
             <label for="workflow">Workflow</label>
-            <input type="text" id="workflow" name="workflow" placeholder="e.g. CREATE, LOGIN, UPDATE" required>
+            <select id="workflow" name="workflow" required>
+                <option value="">Select domain first...</option>
+            </select>
         </div>
         <div class="form-group">
             <label for="layer">Layer</label>
@@ -52,6 +54,11 @@
             <label for="requirement_ref">Requirement Reference (optional)</label>
             <input type="text" id="requirement_ref" name="requirement_ref" placeholder="e.g. REQ-HOLD-001">
         </div>
+        <div class="form-group form-group-full">
+            <label for="tags">Tags (comma-separated)</label>
+            <input type="text" id="tags" name="tags" placeholder="e.g. regression, api, critical, payment">
+            <span class="text-muted" style="font-size:0.75rem;">Press Enter or comma to separate tags</span>
+        </div>
         <div class="form-actions">
             <span id="test-id-preview" class="test-id-preview"></span>
             <button type="button" class="btn btn-ghost" onclick="previewTestId()">Preview ID</button>
@@ -76,4 +83,29 @@
     </div>
     <div id="submit-error" class="error-message" style="display:none;"></div>
 </div>
+
+<script>
+const DOMAIN_WORKFLOWS = {{ domains_json|safe }};
+document.addEventListener('DOMContentLoaded', () => {
+    const domainSelect = document.getElementById('domain');
+    const workflowSelect = document.getElementById('workflow');
+    if (domainSelect) {
+        domainSelect.addEventListener('change', () => {
+            const code = domainSelect.value;
+            workflowSelect.innerHTML = '<option value="">Select workflow...</option>';
+            if (code && DOMAIN_WORKFLOWS) {
+                const domain = DOMAIN_WORKFLOWS.find(d => d.code === code);
+                if (domain && domain.workflows) {
+                    domain.workflows.forEach(wf => {
+                        const opt = document.createElement('option');
+                        opt.value = wf;
+                        opt.textContent = wf;
+                        workflowSelect.appendChild(opt);
+                    });
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

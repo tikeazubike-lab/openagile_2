@@ -12,6 +12,7 @@ class DomainCode(Base):
     code = Column(String(4), primary_key=True)
     label = Column(Text, nullable=False)
     folder_slug = Column(String(20), nullable=False)
+    workflows = Column(Text, nullable=False, default="[]")  # JSON array of workflow names
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     test_cases = relationship("TestCase", back_populates="domain")
@@ -28,6 +29,7 @@ class TestCase(Base):
     sequence_no = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     requirement_ref = Column(Text, nullable=True)
+    tags = Column(Text, nullable=False, default="")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
@@ -35,7 +37,7 @@ class TestCase(Base):
     )
 
     domain = relationship("DomainCode", back_populates="test_cases")
-    runs = relationship("TestRun", back_populates="test_case", order_by="TestRun.run_number")
+    runs = relationship("TestRun", back_populates="test_case", order_by="TestRun.run_number", cascade="all, delete-orphan")
 
 
 class TestRun(Base):
@@ -56,7 +58,7 @@ class TestRun(Base):
     )
 
     test_case = relationship("TestCase", back_populates="runs")
-    bug_report = relationship("BugReport", uselist=False, back_populates="test_run")
+    bug_report = relationship("BugReport", back_populates="test_run", uselist=False, cascade="all, delete-orphan")
 
 
 class Report(Base):

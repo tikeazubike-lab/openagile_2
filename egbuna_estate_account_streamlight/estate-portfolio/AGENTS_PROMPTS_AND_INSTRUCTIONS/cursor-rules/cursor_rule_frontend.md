@@ -1,0 +1,218 @@
+---
+description: React frontend rules — apply when editing any file in estate-portfolio-manager/
+globs:
+  - "estate-portfolio-manager/src/**/*.tsx"
+  - "estate-portfolio-manager/src/**/*.ts"
+  - "estate-portfolio-manager/vite.config.ts"
+  - "estate-portfolio-manager/package.json"
+alwaysApply: false
+---
+
+# EPM Frontend Rules
+
+## Routing — TanStack File-Based (Not React Router)
+
+```typescript
+// ✅ CORRECT — TanStack Router file-based routing
+// Files live in src/routes/
+// Protected routes: src/routes/_app.{page}.tsx
+// Public routes:    src/routes/login.tsx
+
+export const Route = createFileRoute('/_app/holdings')({
+  beforeLoad: async () => { /* auth guard here */ },
+  component: HoldingsPage,
+})
+
+// ❌ WRONG — React Router v6 does not exist in this project
+import { BrowserRouter, Route } from 'react-router-dom'
+```
+
+## Auth Guard — beforeLoad Pattern
+
+```typescript
+// src/routes/_app.tsx — the root protected layout
+// MUST call GET /api/v1/auth/me on every mount to hydrate from cookie
+
+export const Route = createFileRoute('/_app')({
+  beforeLoad: async ({ location }) => {
+    const user = useAuthStore.getState().user
+
+    // Fast path: already hydrated in memory
+    if (user) return
+
+    // Slow path: fresh load / browser reopen — validate cookie with backend
+    try {
+      const res = await fetch('/api/v1/auth/me', { credentials: 'include' })
+      if (!res.ok) throw redirect({ to: '/login', search: { redirect: location.href } })
+      const data = await res.json()
+      useAuthStore.getState().setUser(data.data)
+    } catch (err) {
+      if (err instanceof Response) throw err
+      throw redirect({ to: '/login' })
+    }
+  },
+})
+```
+
+## Logout — Always API First, Then Store, Then Navigate
+
+```typescript
+// ✅ CORRECT — exact sequence, never deviate
+const handleLogout = async () => {
+  if (isLoggingOut) return
+  setIsLoggingOut(true)
+  try {
+    await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' })
+  } catch (_) {
+    // Network failure — still log out locally
+  } finally {
+    clearUser()                          // 1. clear store
+    navigate({ to: '/login' })           // 2. navigate AFTER clear
+  }
+}
+
+// ❌ WRONG — clearUser before API call causes "ghost dashboard" glitch
+clearUser()
+fetch('/api/v1/auth/logout', ...)
+```
+
+## Colour Tokens — oklch, Not Hex
+
+```typescript
+// ✅ CORRECT — Tailwind v4 uses CSS variable classes
+className="bg-canvas text-primary border-default"
+// or with arbitrary CSS var:
+className="bg-[var(--color-canvas)] text-[var(--color-primary)]"
+
+// ❌ WRONG — hardcoded hex breaks theme switching
+className="bg-[#FDFEFE] text-[#1A1A1A]"
+```
+
+## Null-Safety — Mandatory for All Data from API
+
+```typescript
+// ✅ CORRECT — monetary values
+fmtNaira(holding.current_value ?? null)
+
+// ✅ CORRECT — percentages
+holding.return_pct?.toFixed(2) ?? "-"
+
+// ✅ CORRECT — claim holdings have null return_pct
+{holding.holding_type === 'claim' ? "-" : fmtPct(holding.return_pct)}
+
+// ❌ WRONG — crashes when API returns null
+holding.current_value.toLocaleString()
+holding.return_pct.toFixed(2)
+```
+
+## TanStack Query — Invalidate After Mutations
+
+```typescript
+// ✅ CORRECT — after ANY price update, invalidate all dependent queries
+const qc = useQueryClient()
+onSuccess: () => {
+  qc.invalidateQueries({ queryKey: ['dashboard'] })
+  qc.invalidateQueries({ queryKey: ['holdings'] })
+  qc.invalidateQueries({ queryKey: ['companies'] })
+  qc.invalidateQueries({ queryKey: ['price-audit'] })
+}
+
+// ❌ WRONG — forgetting invalidation means stale data on other pages
+onSuccess: () => { /* nothing */ }
+```
+
+## API Calls — Always Include Credentials
+
+```typescript
+// ✅ CORRECT — httpOnly cookie must be sent with every request
+fetch('/api/v1/holdings', { credentials: 'include' })
+
+// ❌ WRONG — cookie not sent, 401 returned
+fetch('/api/v1/holdings')
+```
+
+## Column Header — Exact Text Required
+
+```typescript
+// ✅ CORRECT — the return percentage column header is exactly this string
+{ header: 'return[%]', ... }
+
+// ❌ WRONG — any variation breaks the spec
+{ header: 'Return %' }
+{ header: 'Return[%]' }
+{ header: 'return %' }
+```
+
+## Role-Conditional Rendering
+
+```typescript
+const { isAdmin } = useAuthStore()
+
+// Admin-only UI elements
+{isAdmin() && <EditModeToggle />}
+{isAdmin() && <button>Delete</button>}
+
+// Draft rows — admin sees them, readonly does not
+// API already filters for readonly, but double-check in component:
+{holding.status === 'draft' && !isAdmin() ? null : <HoldingRow />}
+```
+
+## Edit Mode — Zustand uiStore
+
+```typescript
+const { editMode, toggleEditMode } = useUIStore()
+
+// toggleEditMode() is a no-op for readonly role — enforced in store
+// Never bypass the store to set editMode directly
+```
+
+## Theme — useTheme Hook
+
+```typescript
+const { resolvedTheme, toggleTheme } = useTheme()
+// resolvedTheme: 'light' | 'dark'
+// toggleTheme(): system → dark → system cycle
+// Theme stored in localStorage('epm-theme')
+// Never call document.documentElement.classList directly in components
+```
+
+## DM Mono — Always for Numbers
+
+```typescript
+// ✅ CORRECT
+<span className="font-mono">₦12,345.00</span>  // DM Mono via font-mono class
+
+// Apply to: all ₦ amounts, percentages, share counts, ticker symbols,
+//           dates in table cells
+```
+
+## No Supabase — Ever
+
+```typescript
+// ❌ These imports must never appear in any file
+import { createClient } from '@supabase/supabase-js'
+import { supabase } from './supabase'
+// If you see these, delete them immediately
+```
+
+## No localStorage for Auth Tokens
+
+```typescript
+// ❌ WRONG — token must be in httpOnly cookie, not localStorage
+localStorage.setItem('token', jwt)
+
+// ✅ The cookie is set by the backend — frontend never touches it
+// Frontend only reads user metadata from authStore (Zustand)
+```
+
+## Deployment — Push, Don't Execute
+
+```
+# ✅ All you do locally
+git add . && git commit -m "fix: null safety in holdings table" && git push origin develop
+
+# ❌ Never
+npm run build
+npm install
+npx anything
+```

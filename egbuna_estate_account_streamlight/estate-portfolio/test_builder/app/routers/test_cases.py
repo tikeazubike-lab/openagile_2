@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Request, Depends, HTTPException, status
@@ -5,7 +6,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from app.database import get_session
-from app.models import TestCase, DomainCode
+from app.models import TestCase, DomainCode, TestRun
 from app.deps import require_auth
 from app.templates_module import templates
 
@@ -17,9 +18,21 @@ async def add_test_cases_page(request: Request, session: AsyncSession = Depends(
     """Render the Add Test Cases page with domain dropdown from DB."""
     result = await session.execute(select(DomainCode).order_by(DomainCode.code))
     domains = result.scalars().all()
-    domain_list = [{"code": d.code, "label": d.label, "folder_slug": d.folder_slug} for d in domains]
+    domain_list = []
+    for d in domains:
+        try:
+            workflows = json.loads(d.workflows) if d.workflows else []
+        except (json.JSONDecodeError, TypeError):
+            workflows = []
+        domain_list.append({
+            "code": d.code,
+            "label": d.label,
+            "folder_slug": d.folder_slug,
+            "workflows": workflows,
+        })
     return templates.TemplateResponse("test_cases.html", {
         "request": request,
+        "domains_json": json.dumps(domain_list),
         "domains": domain_list,
         "test_id_format": "DOMAIN-WORKFLOW-LAYER-TYPE-NNN",
     })
@@ -81,6 +94,7 @@ async def submit_test_cases(
             sequence_no=seq,
             title=case.get("title", ""),
             requirement_ref=case.get("requirement_ref"),
+            tags=",".join(case.get("tags", [])) if isinstance(case.get("tags"), list) else case.get("tags", ""),
         )
         session.add(tc)
         created.append(test_id)
@@ -109,3 +123,58 @@ async def get_next_sequence(
     )
     max_seq = result.scalar()
     return JSONResponse(content={"sequence_no": max_seq + 1})
+
+
+@router.get("/{test_id}")
+async def get_test_case(test_id: str, session: AsyncSession = Depends(get_session)):
+    """Get a single test case by ID."""
+    result = await session.execute(select(TestCase).where(TestCase.id == test_id))
+    tc = result.scalar_one_or_none()
+    if not tc:
+        raise HTTPException(status_code=404, detail="Test case not found")
+    return JSONResponse(content={
+        "id": tc.id,
+        "domain_code": tc.domain_code,
+        "workflow": tc.workflow,
+        "layer": tc.layer,
+        "test_type": tc.test_type,
+        "sequence_no": tc.sequence_no,
+        "title": tc.title,
+        "requirement_ref": tc.requirement_ref,
+    })
+
+
+@router.put("/{test_id}")
+async def update_test_case(
+    test_id: str,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+):
+    """Update an existing test case (title and requirement_ref only)."""
+    body = await request.json()
+    result = await session.execute(select(TestCase).where(TestCase.id == test_id))
+    tc = result.scalar_one_or_none()
+    if not tc:
+        raise HTTPException(status_code=404, detail="Test case not found")
+
+    # Only allow updating title and requirement_ref
+    if "title" in body:
+        tc.title = body["title"]
+    if "requirement_ref" in body:
+        tc.requirement_ref = body["requirement_ref"]
+
+    await session.commit()
+    return JSONResponse(content={"id": tc.id, "title": tc.title, "requirement_ref": tc.requirement_ref})
+
+
+@router.delete("/{test_id}")
+async def delete_test_case(test_id: str, session: AsyncSession = Depends(get_session)):
+    """Delete a test case — cascades to delete runs and bug reports."""
+    result = await session.execute(select(TestCase).where(TestCase.id == test_id))
+    tc = result.scalar_one_or_none()
+    if not tc:
+        raise HTTPException(status_code=404, detail="Test case not found")
+
+    await session.delete(tc)
+    await session.commit()
+    return JSONResponse(content={"message": "Test case and associated runs deleted"})

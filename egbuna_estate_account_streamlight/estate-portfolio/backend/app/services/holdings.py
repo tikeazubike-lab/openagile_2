@@ -13,8 +13,13 @@ def recalculate_holding_value(holding: Holding) -> None:
     if holding.company and holding.company.current_price is not None:
         price = Decimal(str(holding.company.current_price))
         shares = Decimal(str(holding.num_shares))
-        cost = Decimal(str(holding.total_cost))
-
+        
+        # For claims, use cost_basis_override if available, otherwise use total_cost
+        if holding.holding_type == "claim" and holding.cost_basis_override is not None:
+            cost = Decimal(str(holding.cost_basis_override))
+        else:
+            cost = Decimal(str(holding.total_cost))
+        
         holding.current_value = shares * price
         holding.unrealized_gain_loss = (shares * price) - cost
     else:

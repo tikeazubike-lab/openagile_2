@@ -37,13 +37,9 @@ const MAIN = [
 ] as const;
 
 const ADMIN = [
-  { to: "/admin/holdings", label: "Holdings", icon: Briefcase },
-  { to: "/admin/registrars", label: "Registrars", icon: ClipboardList },
-  { to: "/admin/price-entry", label: "Price Entry", icon: Zap, accent: true },
-  { to: "/admin/data-import", label: "Data Import", icon: Upload },
-  { to: "/admin/corporate-actions", label: "Corporate Actions", icon: Landmark },
-  { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/deleted-records", label: "Deleted Records", icon: Trash2 },
+  { to: "/settings/users", label: "User Management", icon: Users },
+  { to: "/settings/price-entry", label: "Price Entry", icon: Zap, accent: true },
+  { to: "/settings/data-import", label: "Data Import", icon: Upload },
 ] as const;
 
 export function Sidebar() {

@@ -13,19 +13,29 @@ services:
       - test_builder_data:/data
       - /home/zubbyik/openagile_2/egbuna_estate_account_streamlight/estate-portfolio/tests:/repo/tests
     networks:
-      - openagile_network
+      - openagile_openagile_network
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=openagile_openagile_network"
+
+      # HTTPS Router
       - "traefik.http.routers.test-builder.rule=Host(`testbuild.zubbystudio.shop`)"
       - "traefik.http.routers.test-builder.entrypoints=websecure"
       - "traefik.http.routers.test-builder.tls=true"
-      - "traefik.http.routers.test-builder.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.test-builder.tls.certresolver=cloudflare"
+
+      # HTTP → HTTPS Redirect
+      - "traefik.http.routers.test-builder-http.rule=Host(`testbuild.zubbystudio.shop`)"
+      - "traefik.http.routers.test-builder-http.entrypoints=web"
+      - "traefik.http.routers.test-builder-http.middlewares=test-builder-redirect"
+      - "traefik.http.middlewares.test-builder-redirect.redirectscheme.scheme=https"
+
+      # Service Port
       - "traefik.http.services.test-builder.loadbalancer.server.port=8000"
-      - "traefik.docker.network=openagile_network"
 
 volumes:
   test_builder_data:
 
 networks:
-  openagile_network:
+  openagile_openagile_network:
     external: true
