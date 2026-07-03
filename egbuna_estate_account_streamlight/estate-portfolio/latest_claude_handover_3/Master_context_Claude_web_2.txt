@@ -1,0 +1,127 @@
+# MASTER_CONTEXT_CLAUDE_WEB
+
+## Authority
+
+This file is the single source of truth for architecture, infrastructure, deployment, CI/CD, routing, constraints, and project decisions.
+
+If any conversation, instruction, memory, or previous output conflicts with this file, this file wins.
+
+## Execution Rules
+
+### Local Workstation
+
+Allowed:
+- git add/commit/push/pull
+- file editing
+- code review
+
+Forbidden:
+- Docker execution
+- Node execution
+- Python execution
+- local testing
+- local builds
+- local deployment
+
+Never suggest local execution unless explicitly requested.
+
+### Execution Path
+
+GitHub Actions → VPS
+
+All builds, tests, deployments, migrations, and runtime execution occur through GitHub Actions and/or VPS.
+
+## Model Routing
+
+### [opencode]DeepSeek Pro (OpenCode Go)
+
+Role: Architecture Lead & Orchestrator
+
+Responsibilities:
+- architecture
+- system design
+- tradeoffs
+- documentation
+- STLC
+- Gherkin
+- RCA
+- governance
+- handoffs
+- reviews
+- planning
+- orchestration
+- task decomposition
+- routing decisions
+
+Model:
+opencode-go/deepseek-pro
+
+### [opencode]DeepSeek Flash (OpenCode Go)
+
+Role: Primary Backend & Infrastructure Implementer
+
+Responsibilities:
+- FastAPI
+- PostgreSQL
+- Docker
+- Docker Compose
+- Linux administration
+- Systemd
+- Nginx
+- Traefik
+- VPS operations
+- infrastructure implementation
+- backend implementation
+- networking
+- monitoring
+- CI/CD
+- GitHub Actions
+- Ansible
+- automation
+- self-hosting
+- production troubleshooting
+
+Default implementation target.
+
+Model:
+opencode-go/deepseek-v4-flash
+
+### [hermes]Nemotron
+
+Role: Workflow Governance & Status Agent
+
+Responsibilities:
+- handover validation
+- workflow tracking
+- project state summaries
+- status reporting
+- context verification
+- architect completion checks
+- reviewer completion checks
+- implementer completion checks
+- spotter completion checks
+- missing-stage detection
+
+Nemotron MUST NOT perform technical implementation tasks.
+
+### [opencode] Kimi (OpenCode Go)
+
+Role: Frontend & Documentation Specialist
+
+Model:
+opencode-go/kimi-k2
+
+### [opencode] Qwen (OpenCode Go)
+
+Role: Reasoning Fallback
+
+Model:
+opencode-go/qwen3.7-plus 
+
+### [opencode] Minimax (OpenCode Go)
+
+Role: General Fallback
+
+Model:
+opencode-go/minimax-m2.7 
+

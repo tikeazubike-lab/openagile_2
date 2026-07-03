@@ -1,98 +1,102 @@
-# AGENTS.md — Essential Guidance for OpenCode Sessions
+# AGENTS.md — OpenAgile Workspace Rules
 
-## Critical Rules (Never Miss These)
+## First Contact
 
-### 0. First-Contact Context Discovery
-- Start at the workspace root `AGENTS.md` for global OpenAgile rules.
-- Then identify the target subproject before editing files.
-- Target project triggers, in priority order:
-  1. Explicit project name in the user prompt.
-  2. File paths mentioned in the user prompt.
-  3. Active/open IDE file path supplied in context.
-  4. A handover, acceptance test, or context file that names a project.
-- If no target project can be identified, ask the user to name the project.
-- Project-local context engines live under each subproject's `docs/context/`
-  directory when available.
-- For Estate Portfolio Manager, read:
-  - `egbuna_estate_account_streamlight/estate-portfolio/docs/context/MASTER_CONTEXT.md`
-  - `egbuna_estate_account_streamlight/estate-portfolio/docs/context/WORKFLOW.md`
-  - `egbuna_estate_account_streamlight/estate-portfolio/docs/context/DELEGATION_REGISTRY.md`
-  - `egbuna_estate_account_streamlight/estate-portfolio/docs/context/AGENT_STATE.yaml`
-- Once a target project is resolved, edits are limited to that project path and
-  explicitly authorized root coordination docs. Do not edit another subproject
-  unless the user explicitly expands the scope.
-- If project-local context conflicts with this file, this root `AGENTS.md`
-  controls global infrastructure rules, while the subproject context controls
-  local file ownership, current handovers, and implementation sequencing.
-- Documentation structure must follow `docs/DOCUMENTATION_STRUCTURE.md` at the
-  root and the matching structure inside each subproject `docs/` directory.
+1. **Consult @hermes** — Read `.hermes/references/AGENTS.md` (EPM project) or `hermes/` (root) for agent roles and delegation context. The Hermes AI agent (`hermes/docker-compose.yml`) is the primary entry point — ask it clarifying questions about roles, ownership, and current tasks before editing.
+2. **Check AGENT_LOG.md** — Read the last 5 entries in `.hermes/references/AGENT_LOG.md` for recent cross-agent handoffs. Append a dated entry after any non-trivial work (what changed, why, what's next, <150 words).
+3. Read root `MASTER_CONTEXT.md` for the full infrastructure contract, decisions, and deployment law.
+4. Read `docs/PROJECT_CONTEXT_INDEX.md` to resolve the target subproject.
+5. Read the subproject's `docs/context/` engine (MASTER_CONTEXT, WORKFLOW, DELEGATION_REGISTRY, AGENT_STATE).
+6. Lock edits to the resolved project path unless scope expanded.
 
-### 1. Branch Discipline
-- **Always work on `test` branch** — never commit directly to `main`
-- Create/switch to `test` before starting work: `git checkout test` or `git switch -c test`
-- Only approved maintainers merge `test` → `main`
+## Branch Discipline
 
-### 2. Docker Usage (GitHub Actions Only)
-- **NEVER run Docker commands locally** (on Fedora laptop)
-- All deployment must go through GitHub Actions:
-  - Push changes to GitHub → Actions deploys to Netcup VPS
-  - Local machine: Git ops, code editing, local testing only
+- Always work on `test` branch. Never commit to `main`.
+- `git checkout test` or `git switch -c test` before starting.
+- Only approved maintainers merge `test → main`.
 
-### 3. Frappe Development Conventions (Applies only to frappe_docker* folders)
-- Use bench venv Python: `/home/frappe/frappe-bench/env/bin/pip`
-- Install custom apps: `docker compose exec backend /home/frappe/frappe-bench/env/bin/pip install -e apps/<app>`
-- After pip install: Run `bench build` to generate assets
-- Assets use named volumes (NOT bind mounts) to avoid symlink issues
-- **Important**: These conventions ONLY apply to frappe_docker* directories. Do not use them in other project folders.
+## Deployment Law
 
-### 4. Testing Requirements
-- **Single test**: `pytest tests/test_frappe_docker.py::test_endpoints -s`
-- Follow BDD/TDD pipeline: Write pytest from Gherkin, see Red, then write production code to pass (Green)
-- Trace assertions back to spec: `# Spec: feature_name.feature | SC-001 | Then...`
-- **Verification format**: ALL solutions must include:
-  ```markdown
-  ## Verification Steps
-  
-  1. **Test Command**: [exact command to test]
-  2. **Expected Output**: [what success looks like]
-  3. **If It Fails**: [diagnostic steps]
-  4. **Rollback**: [how to undo if broken]
-  ```
+**This session runs on the Netcup VPS** — Docker commands are safe to run directly.
+When working from the Fedora laptop (local checkout), deploy via `git push → Actions`.
 
-### 5. Service-Specific Commands
+**On Fedora laptop (NON-NEGOTIABLE):**
+- NEVER run Docker commands locally
+- Git ops, editing, local testing only
+- No direct SSH, no scp, no manual file transfers
 
-#### Root Infrastructure
-```bash
-docker compose up -d          # Start stack (via GitHub Actions only)
-docker compose ps             # Check status
-docker compose logs -f [svc]  # View logs
+**On Netcup VPS (this environment):**
+- `docker compose up -d`, logs, exec, build — all permitted
+- Still prefer GitHub Actions for repeatable deploys
+
+## Infrastructure Constraints
+
+| Rule | Value |
+|---|---|
+| Network | `openagile_network` (external bridge); secondary stacks declare `external: true` |
+| | External stacks see it as `openagile_openagile_network` (Docker project-name prefix) |
+| Reverse proxy | Traefik v2.10 — certresolver **`cloudflare`** (not `letsencrypt`) |
+| Database | Shared PostgreSQL 15 (`openagile_postgres`) — **NEVER create a new Postgres container** |
+| Host ports 80/443 | Traefik only — no other service binds these |
+| Domain | `*.zubbystudio.shop` |
+| Volumes | Named volumes for data; bind mounts only for configs (`./configs/`), backups, scripts |
+| Server RAM | <4GB per service — avoid memory-heavy tools |
+
+### Traefik Label Template
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.SERVICE.rule=Host(`SUBDOMAIN.zubbystudio.shop`)"
+  - "traefik.http.routers.SERVICE.entrypoints=websecure"
+  - "traefik.http.routers.SERVICE.tls=true"
+  - "traefik.http.routers.SERVICE.tls.certresolver=cloudflare"
+  - "traefik.http.services.SERVICE.loadbalancer.server.port=PORT"
+  - "traefik.docker.network=openagile_network"
 ```
 
-#### frappe_docker (Main Frappe Setup)
-```bash
-./scripts/deploy.sh                              # Deploy multi-tenant
-docker compose exec backend bench new-site [name] --admin-password=admin
-```
+## Multi-Agent Workflow
 
-#### edu_theme Frontend (Vue.js + Vite)
-```bash
-cd frappe_docker/apps/edu_theme/frontend
-npm run dev       # Development server
-npm run build     # Build for production (outputs to ../edu_theme/public/frontend/)
-```
+The workspace uses a 3-agent pipeline (`agents/`):
+1. **Investigator** (Zone 2) → forensic analysis → `INFRASTRUCTURE_CONTRACT.md`
+2. **Orchestrator** (Zone 2) → cross-check, zone classification, plan → `RECOVERY_PLAN.md`
+3. **Builder** (Zone 1) → implement approved plan inside `<TARGET_PROJECT>/`
 
-#### Estate Portfolio (Streamlit)
-```bash
-cd egbuna_estate_account_streamlight/estate-portfolio
-pip install -r requirements.txt
-streamlit run app.py    # Or: docker compose up -d via GitHub Actions
-```
+Zone 2 tasks require human confirmation before Builder executes.
+See `AGENT_STATE.yaml` for live workflow state.
+See `agents/ORCHESTRATOR_AGENT.md`, `INVESTIGATOR_AGENT.md`, `BUILDER_AGENT.md`.
 
-### 6. Key Constraints to Remember
-- Shared PostgreSQL 15 — never create new container, reuse existing
-- All services on `openagile_network` with Traefik labels for routing
-- Low-resource server (<4GB RAM per service) — avoid memory-heavy tools
-- Documentation must use standard YAML headers in `docs/` directory
-- Pre-commit hooks: Install in `apps/edu_theme` for Python/JS formatting
-- **Traefik labels**: When adding services, use the standard label convention
-- **Volume strategy**: Use named volumes for Frappe assets (bind mounts cause symlink issues)
+## Subproject Delegation
+
+| Project | Agents | Write Scope |
+|---|---|---|
+| Estate Portfolio (EPM) | DeepSeek v4 (read-only reviewer), Owl Alpha (backend), Nex N2 (frontend) | `egbuna_estate_account_streamlight/estate-portfolio/` |
+| Frappe/ERPNext | (single agent) | `frappe_docker/` |
+
+EPM sub-agent rules: `egbuna_estate_account_streamlight/estate-portfolio/docs/context/DELEGATION_REGISTRY.md`
+
+## Frappe-Specific (directory: `frappe_docker*`)
+- Python: bench venv only — `/home/frappe/frappe-bench/env/bin/pip`
+- After pip install: run `bench build`
+- Assets: named volumes only (bind mounts break symlinks)
+- All apps in `sites/apps.txt` must be pip-installed in bench venv
+
+## Frontend Stack Priority
+React (preferred for complex UIs) → Vanilla JS → Vue.js (Frappe edu_theme only)
+
+## Documentation Conventions
+- All `docs/` files: YAML front matter with `type`, `id`, `title`, `status`, `version`, `updated`
+- Structure per `docs/DOCUMENTATION_STRUCTURE.md` — mirror same shape in subproject `docs/`
+- Archive superseded docs (don't delete)
+- Every solution must include a **Verification Steps** block (command, expected output, rollback)
+
+## Testing
+- BDD/TDD flow: Gherkin specs (`*.feature` / `.md`) → pytest from spec (Red) → production code (Green)
+- Trace assertions: `# Spec: feature_name.feature | SC-00X | Then...`
+- Single test: `pytest tests/test_file.py::test_function -s`
+
+## CI/CD & Infrastructure Gotchas
+
+- **GH Actions SSH heredoc**: Always use single-quoted `<< 'ENDSSH'` delimiter so variables resolve on the remote server, not the runner.
+- **Frontend builds**: Build React/SPA in GitHub Actions (`npm ci && npm run build`), copy into backend static dir, then build Docker image. Do not run npm on the VPS.
+- **Traefik certresolver**: Running config uses `cloudflare`. Some docs still say `letsencrypt` — trust the actual `docker-compose.yml`, not stale docs.
+- **DB init**: New databases are created by `scripts/init-databases.sh` via `POSTGRES_MULTIPLE_DATABASES` env var. Add new DBs there, not manually.

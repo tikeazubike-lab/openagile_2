@@ -1,0 +1,772 @@
+# MASTER_CONTEXT_CLAUDE_WEB
+
+
+
+## Authority
+
+This file is the single source of truth for architecture, infrastructure, deployment, CI/CD, routing, constraints, and project decisions. If any conversation, instruction, memory, or previous output conflicts with this file, this file wins.
+
+
+
+---
+
+
+
+## Execution Rules
+
+
+
+### Local Workstation
+
+Allowed:
+
+- git add/commit/push/pull
+
+- file editing
+
+- code review
+
+
+
+Forbidden:
+
+- Docker execution
+
+- Node execution
+
+- Python execution
+
+- local testing
+
+- local builds
+
+- local deployment
+
+
+
+Never suggest local execution unless explicitly requested.
+
+
+
+### Execution Path
+
+```text
+
+GitHub Actions → VPS
+
+```
+
+
+
+All builds, tests, deployments, migrations, and runtime execution occur through GitHub Actions and/or VPS.
+
+
+
+---
+
+
+
+## Infrastructure
+
+
+
+### Reverse Proxy
+
+- Traefik v2 only
+
+- All services behind Traefik
+
+- No direct public container exposure
+
+
+
+### Database
+
+- PostgreSQL 15
+
+- Reuse existing instance
+
+- Never create additional Postgres instances
+
+
+
+### Network
+
+```text
+
+openagile_network
+
+```
+
+
+
+### Python
+
+- Never install into system Python
+
+- Use containers or isolated environments only
+
+
+
+### SSH
+
+Always use quoted heredocs:
+
+
+
+```bash
+
+ssh user@host <<'EOF'
+
+...
+
+EOF
+
+```
+
+
+
+Never use unquoted heredocs.
+
+
+
+---
+
+
+
+## CI/CD
+
+
+
+### Branch Flow
+
+
+
+```text
+
+feature/*, develop
+
+    → static analysis
+
+    → tests
+
+    → build
+
+
+
+test
+
+    → static analysis
+
+    → tests
+
+    → build
+
+    → deploy
+
+    → e2e
+
+
+
+main
+
+    → static analysis
+
+    → tests
+
+    → build
+
+    → approval
+
+    → deploy
+
+    → e2e
+
+```
+
+
+
+Rules:
+
+- No direct merge to main
+
+- Review required every cycle
+
+
+
+---
+
+
+
+## Model Routing
+
+
+
+### DeepSeek
+
+Role: Architecture Lead
+
+
+
+Responsibilities:
+
+- architecture
+
+- system design
+
+- tradeoffs
+
+- documentation
+
+- STLC
+
+- Gherkin
+
+- root cause analysis
+
+- governance
+
+- handoffs
+
+- review
+
+
+
+Model:
+
+```text
+
+openrouter/deepseek/deepseek-v4-flash
+
+```
+
+
+
+### [hermes]Deepseek:flash
+
+Role: Backend & Infrastructure Builder
+
+
+
+Responsibilities:
+
+- FastAPI
+
+- PostgreSQL
+
+- Docker
+
+- GitHub Actions
+
+- CI/CD
+
+- VPS operations
+
+- backend implementation
+
+- infrastructure implementation
+
+
+
+Model:
+
+```text
+
+openrouter/deepseek/deepseek-v4-flash
+
+```
+
+
+
+### [hermes]nemotron-3-ultra-550b-a55b:free
+
+Role: Frontend Builder
+
+
+
+Responsibilities:
+
+- React 18
+
+- TypeScript
+
+- Tailwind v4
+
+- TanStack ecosystem
+
+
+
+Model:
+
+```text
+
+openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free
+
+```
+
+
+
+---
+
+
+
+## Routing Logic
+
+
+
+### Zone 1 — Implementation
+
+Keywords:
+
+- generate
+
+- build
+
+- scaffold
+
+- boilerplate
+
+- refactor
+
+
+
+Flow:
+
+```text
+
+Builder → DeepSeek Review
+
+```
+
+
+
+Builders:
+
+- [hermes]Deepseek:flash
+
+- [hermes]nemotron-3-ultra-550b-a55b:free
+
+
+
+### Zone 2 — Architecture
+
+Keywords:
+
+- design
+
+- critique
+
+- plan
+
+- tradeoff
+
+- learn
+
+- RCA
+
+
+
+Flow:
+
+```text
+
+DeepSeek Design → Builder Implementation
+
+```
+
+
+
+Default:
+
+```text
+
+Zone 2
+
+```
+
+
+
+---
+
+
+
+## Handoff Rules
+
+
+
+### DeepSeek
+
+Never implement before design approval.
+
+
+
+### [hermes]Deepseek:flash
+
+Never start backend work before:
+
+- contracts/specs exist
+
+- acceptance criteria exist
+
+
+
+Prefer:
+
+- Gherkin RED phase completed
+
+
+
+### [hermes]nemotron-3-ultra-550b-a55b:free
+
+Never start frontend before APIs are stable.
+
+
+
+### Lovable
+
+Allowed:
+
+- frontend generation
+
+
+
+Forbidden:
+
+- backend
+
+- infrastructure
+
+- databases
+
+- deployment
+
+
+
+### Reviews
+
+- Nothing merges directly to main
+
+- Previous output never authorizes skipping review
+
+
+
+---
+
+
+
+## Workflows
+
+
+
+### UI Generation
+
+```text
+
+DeepSeek
+
+→ Lovable Prompt
+
+→ Lovable PR
+
+→ [hermes]Deepseek:flash Review
+
+→ Validate APIs
+
+→ Remove forbidden dependencies
+
+→ Merge to test
+
+```
+
+
+
+Validation:
+
+- No Supabase
+
+- Correct API paths
+
+
+
+### Debugging
+
+```text
+
+Issue
+
+→ [hermes]Deepseek:flash diagnosis on VPS
+
+→ DeepSeek RCA
+
+→ [hermes]Deepseek:flash fix
+
+→ push
+
+```
+
+
+
+Never debug locally.
+
+
+
+### Testing
+
+```text
+
+DeepSeek
+
+→ STLC
+
+→ Gherkin
+
+→ [hermes]Deepseek:flash execution on test
+
+→ HO-*.md
+
+→ DeepSeek review
+
+```
+
+
+
+---
+
+
+
+## Information Flow
+
+
+
+### User → DeepSeek
+
+Inputs:
+
+- architecture questions
+
+- product decisions
+
+- AT-*.md results
+
+
+
+### DeepSeek → Builders
+
+Artifacts:
+
+```text
+
+HO-*.md
+
+```
+
+
+
+Requirements:
+
+- structured
+
+- numbered
+
+- actionable
+
+
+
+### Builders → DeepSeek
+
+Artifacts:
+
+```text
+
+HO-*.md
+
+```
+
+
+
+Requirements:
+
+- structured
+
+- numbered
+
+- status-aware
+
+
+
+### DeepSeek → User
+
+Responsibilities:
+
+- decisions
+
+- tradeoffs
+
+- clarification
+
+
+
+Limit:
+
+```text
+
+Max 3 questions at once
+
+```
+
+
+
+---
+
+
+
+## Estate Portfolio Rules
+
+
+
+### Source of Truth
+
+```text
+
+PostgreSQL
+
+```
+
+
+
+Pipeline:
+
+```text
+
+Obsidian → GitHub → VPS → Import → PostgreSQL
+
+```
+
+
+
+### Import Rules
+
+Insert-only.
+
+
+
+Never:
+
+- overwrite application edits
+
+- replace application-managed records
+
+
+
+Priority:
+
+```text
+
+Application Data > Imported Data
+
+```
+
+
+
+Application edits always win.
+
+
+
+---
+
+
+
+## Resource Constraints
+
+
+
+### Local Machine
+
+Known issue:
+
+```text
+
+Kernel OOM on Python/Node workloads
+
+```
+
+
+
+Therefore:
+
+```text
+
+Execution = VPS or GitHub Actions only
+
+```
+
+
+
+### VPS
+
+```text
+
+16GB RAM
+
+8 vCPU
+
+```
+
+
+
+Primary execution environment.
+
+
+
+### GPU
+
+None.
+
+
+
+Rejected:
+
+```text
+
+faster-whisper
+
+```
+
+
+
+Preferred:
+
+```text
+
+whisper.cpp (small models)
+
+```
+
+
+
+---
+
+
+
+## Output Contract
+
+
+
+For every recommendation:
+
+1. State routing zone.
+
+2. State responsible model/agent.
+
+3. Follow handoff rules.
+
+4. Follow infra rules.
+
+5. Follow CI/CD contract.
+
+6. Flag violations instead of silently complying.
+
+
+
+Keep responses concise. Do not restate this file unless explicitly requested.
+
