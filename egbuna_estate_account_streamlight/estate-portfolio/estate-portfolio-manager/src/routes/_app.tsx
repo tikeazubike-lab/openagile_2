@@ -19,23 +19,22 @@ export const Route = createFileRoute("/_app")({
 
     // Attempt to hydrate from the server-issued httpOnly cookie.
     // The cookie is sent automatically because credentials: "include" is set.
+    let res: Response;
     try {
-      const res = await fetch("/api/v1/auth/me", {
+      res = await fetch("/api/v1/auth/me", {
         credentials: "include",
         headers: { Accept: "application/json" },
       });
-
-      if (!res.ok) {
-        throw redirect({ to: "/login", search: { redirect: location.href } });
-      }
-
-      const { data }: { data: User } = await res.json();
-      useAuthStore.getState().setUser(data);
-    } catch (err) {
-      // Network error (e.g. dev without backend) or 401 → go to login.
-      if (err instanceof Response || (err as { isRedirect?: boolean })?.isRedirect) throw err;
+    } catch {
       throw redirect({ to: "/login", search: { redirect: location.href } });
     }
+
+    if (!res.ok) {
+      throw redirect({ to: "/login", search: { redirect: location.href } });
+    }
+
+    const { data }: { data: User } = await res.json();
+    useAuthStore.getState().setUser(data);
   },
   component: AppShell,
 });
