@@ -25,6 +25,7 @@ import { Route as AppCompaniesRouteImport } from './routes/_app.companies'
 import { Route as AppSettingsUsersRouteImport } from './routes/_app.settings.users'
 import { Route as AppSettingsPriceEntryRouteImport } from './routes/_app.settings.price-entry'
 import { Route as AppSettingsDeletedRecordsRouteImport } from './routes/_app.settings.deleted-records'
+import { Route as AppSettingsDataUploadRouteImport } from './routes/_app.settings.data-upload'
 import { Route as AppSettingsDataImportRouteImport } from './routes/_app.settings.data-import'
 import { Route as AppSettingsCorporateActionsRouteImport } from './routes/_app.settings.corporate-actions'
 
@@ -108,6 +109,11 @@ const AppSettingsDeletedRecordsRoute =
     path: '/settings/deleted-records',
     getParentRoute: () => AppRoute,
   } as any)
+const AppSettingsDataUploadRoute = AppSettingsDataUploadRouteImport.update({
+  id: '/settings/data-upload',
+  path: '/settings/data-upload',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsDataImportRoute = AppSettingsDataImportRouteImport.update({
   id: '/settings/data-import',
   path: '/settings/data-import',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/watchlist': typeof AppWatchlistRoute
   '/settings/corporate-actions': typeof AppSettingsCorporateActionsRoute
   '/settings/data-import': typeof AppSettingsDataImportRoute
+  '/settings/data-upload': typeof AppSettingsDataUploadRoute
   '/settings/deleted-records': typeof AppSettingsDeletedRecordsRoute
   '/settings/price-entry': typeof AppSettingsPriceEntryRoute
   '/settings/users': typeof AppSettingsUsersRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/settings/corporate-actions': typeof AppSettingsCorporateActionsRoute
   '/settings/data-import': typeof AppSettingsDataImportRoute
+  '/settings/data-upload': typeof AppSettingsDataUploadRoute
   '/settings/deleted-records': typeof AppSettingsDeletedRecordsRoute
   '/settings/price-entry': typeof AppSettingsPriceEntryRoute
   '/settings/users': typeof AppSettingsUsersRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/settings/corporate-actions': typeof AppSettingsCorporateActionsRoute
   '/_app/settings/data-import': typeof AppSettingsDataImportRoute
+  '/_app/settings/data-upload': typeof AppSettingsDataUploadRoute
   '/_app/settings/deleted-records': typeof AppSettingsDeletedRecordsRoute
   '/_app/settings/price-entry': typeof AppSettingsPriceEntryRoute
   '/_app/settings/users': typeof AppSettingsUsersRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/watchlist'
     | '/settings/corporate-actions'
     | '/settings/data-import'
+    | '/settings/data-upload'
     | '/settings/deleted-records'
     | '/settings/price-entry'
     | '/settings/users'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/corporate-actions'
     | '/settings/data-import'
+    | '/settings/data-upload'
     | '/settings/deleted-records'
     | '/settings/price-entry'
     | '/settings/users'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/settings/corporate-actions'
     | '/_app/settings/data-import'
+    | '/_app/settings/data-upload'
     | '/_app/settings/deleted-records'
     | '/_app/settings/price-entry'
     | '/_app/settings/users'
@@ -359,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsDeletedRecordsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/data-upload': {
+      id: '/_app/settings/data-upload'
+      path: '/settings/data-upload'
+      fullPath: '/settings/data-upload'
+      preLoaderRoute: typeof AppSettingsDataUploadRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/data-import': {
       id: '/_app/settings/data-import'
       path: '/settings/data-import'
@@ -390,6 +409,7 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppSettingsCorporateActionsRoute: typeof AppSettingsCorporateActionsRoute
   AppSettingsDataImportRoute: typeof AppSettingsDataImportRoute
+  AppSettingsDataUploadRoute: typeof AppSettingsDataUploadRoute
   AppSettingsDeletedRecordsRoute: typeof AppSettingsDeletedRecordsRoute
   AppSettingsPriceEntryRoute: typeof AppSettingsPriceEntryRoute
   AppSettingsUsersRoute: typeof AppSettingsUsersRoute
@@ -409,6 +429,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppSettingsCorporateActionsRoute: AppSettingsCorporateActionsRoute,
   AppSettingsDataImportRoute: AppSettingsDataImportRoute,
+  AppSettingsDataUploadRoute: AppSettingsDataUploadRoute,
   AppSettingsDeletedRecordsRoute: AppSettingsDeletedRecordsRoute,
   AppSettingsPriceEntryRoute: AppSettingsPriceEntryRoute,
   AppSettingsUsersRoute: AppSettingsUsersRoute,

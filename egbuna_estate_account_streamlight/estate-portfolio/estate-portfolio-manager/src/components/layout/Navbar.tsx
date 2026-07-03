@@ -20,6 +20,7 @@ const TITLES: Record<string, string> = {
   "/rebalancing": "Rebalancing",
   "/settings/price-entry": "Price Entry",
   "/settings/data-import": "Data Import",
+  "/settings/data-upload": "Data Upload",
   "/settings/corporate-actions": "Corporate Actions",
   "/settings/users": "User Management",
   "/settings/deleted-records": "Deleted Records",

@@ -328,6 +328,27 @@ export function useUploadNGXPdf() {
   });
 }
 
+// ─── Companies Upload (F-NGX-COMPANIES) ──────────────────────────────────────
+
+export function useUploadCompaniesPdf() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return fetchApiEnvelope<{
+        summary: { total: number; inserted: number; updated: number; errors: string[] };
+      }>("/api/v1/companies/upload-pdf", {
+        method: "POST",
+        body: form,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+    },
+  });
+}
+
 // ─── Registrars & Documents ──────────────────────────────────────────────────
 
 export function useRegistrars() {
