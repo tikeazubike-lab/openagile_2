@@ -32,22 +32,22 @@ async def get_dashboard(
     all_holdings = result.scalars().all()
     
     active_holdings = [h for h in all_holdings if h.holding_type == 'active']
-        claim_holdings = [h for h in all_holdings if h.holding_type == 'claim']
-        draft_holdings_list = [h for h in all_holdings if h.holding_type == 'draft']
+    claim_holdings = [h for h in all_holdings if h.holding_type == 'claim']
+    draft_holdings_list = [h for h in all_holdings if h.holding_type == 'draft']
+
+    # Collect all claims
+    claim_records = []
+    for h in claim_holdings:
+        claim_records.extend(h.claim_records)
     
-        # Collect all claims
-        claim_records = []
-        for h in claim_holdings:
-            claim_records.extend(h.claim_records)
-        
-        portfolio_totals = calculate_total_assets(active_holdings, claim_records)
+    portfolio_totals = calculate_total_assets(active_holdings, claim_records)
+
+    total_invested = Decimal("0.00")
+    total_holdings = len(all_holdings)
+    live_holdings = len(active_holdings)
+    draft_holdings = len(draft_holdings_list)
     
-        total_invested = Decimal("0.00")
-        total_holdings = len(all_holdings)
-        live_holdings = len(active_holdings)
-        draft_holdings = len(draft_holdings_list)
-    
-        for h in all_holdings:
+    for h in all_holdings:
             # Use total_cost if available and > 0, else compute from shares * avg_cost_basis
             if h.total_cost and h.total_cost > 0:
                 total_invested += h.total_cost
