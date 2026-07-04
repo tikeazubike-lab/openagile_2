@@ -328,6 +328,77 @@ export function useUploadNGXPdf() {
   });
 }
 
+// ─── Companies Upload (F-NGX-COMPANIES) ──────────────────────────────────────
+
+export function useUploadCompaniesPdf() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return fetchApiEnvelope<{
+        summary: { total: number; inserted: number; updated: number; errors: string[] };
+      }>("/api/v1/companies/upload-pdf", {
+        method: "POST",
+        body: form,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+    },
+  });
+}
+
+// ─── Cost Basis (F-COST-BASIS) ───────────────────────────────────────────────
+
+export function useCostBasisRecords() {
+  return useQuery({
+    queryKey: ["cost-basis"],
+    queryFn: () => apiFetch<Array<Record<string, unknown>>>("/api/v1/cost-basis"),
+  });
+}
+
+export function useQuickCostBasis() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Record<string, unknown>) => {
+      const form = new FormData();
+      Object.entries(payload).forEach(([k, v]) => form.append(k, String(v)));
+      return fetchApiEnvelope<Record<string, unknown>>("/api/v1/cost-basis/quick", {
+        method: "POST",
+        body: form,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cost-basis"] });
+      qc.invalidateQueries({ queryKey: ["holdings"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useBulkCsvCostBasis() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, commit }: { file: File; commit: boolean }) => {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("commit", String(commit));
+      return fetchApiEnvelope<Record<string, unknown>>("/api/v1/cost-basis/bulk-csv", {
+        method: "POST",
+        body: form,
+      });
+    },
+    onSuccess: (_data, variables) => {
+      if (variables.commit) {
+        qc.invalidateQueries({ queryKey: ["cost-basis"] });
+        qc.invalidateQueries({ queryKey: ["holdings"] });
+        qc.invalidateQueries({ queryKey: ["dashboard"] });
+      }
+    },
+  });
+}
+
 // ─── Registrars & Documents ──────────────────────────────────────────────────
 
 export function useRegistrars() {

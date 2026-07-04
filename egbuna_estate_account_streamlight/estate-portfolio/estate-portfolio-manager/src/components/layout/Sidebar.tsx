@@ -39,7 +39,7 @@ const MAIN = [
 const ADMIN = [
   { to: "/settings/users", label: "User Management", icon: Users },
   { to: "/settings/price-entry", label: "Price Entry", icon: Zap, accent: true },
-  { to: "/settings/data-import", label: "Data Import", icon: Upload },
+  { to: "/settings/data-upload", label: "Data Upload", icon: Upload },
 ] as const;
 
 export function Sidebar() {

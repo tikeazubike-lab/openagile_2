@@ -58,7 +58,7 @@ opencode-go/deepseek-pro
 
 ### [opencode]DeepSeek Flash (OpenCode Go)
 
-Role: Primary Backend & Infrastructure Implementer
+Role: Primary Implementer (Backend + Routine Frontend)
 
 Responsibilities:
 - FastAPI
@@ -80,8 +80,10 @@ Responsibilities:
 - automation
 - self-hosting
 - production troubleshooting
+- routine frontend work (standard React/TSX, shadcn/ui, route pages)
 
-Default implementation target.
+Default implementation target. Handles all backend work and routine frontend
+work. Complex frontend (escalation after 3 failures) → Kimi.
 
 Model:
 opencode-go/deepseek-v4-flash
@@ -106,10 +108,18 @@ Nemotron MUST NOT perform technical implementation tasks.
 
 ### [opencode] Kimi (OpenCode Go)
 
-Role: Frontend & Documentation Specialist
+Role: Complex Frontend Specialist (escalation only)
 
 Model:
 opencode-go/kimi-k2
+
+Escalation rule: DeepSeek Flash handles all routine frontend work (standard
+React/TSX components, shadcn/ui patterns, route pages). Delegate to Kimi only
+when DeepSeek Flash has failed the same frontend task 3+ times or the UI
+requires novel non-trivial interaction patterns (custom canvas, complex DnD,
+unusual animation systems).
+
+Budget note: Kimi consumes significant tokens — use sparingly.
 
 ### [opencode] Qwen (OpenCode Go)
 

@@ -137,6 +137,7 @@ class Holding(Base):
     # Phase 2B columns
     holding_type: Mapped[str] = mapped_column(String(20), server_default="active", nullable=False)
     cost_basis_override: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
+    purchase_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     obsidian_imported: Mapped[bool] = mapped_column(Boolean, server_default="false", nullable=False)
     obsidian_last_synced: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

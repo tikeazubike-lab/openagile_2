@@ -25,6 +25,7 @@ from app.routers import auth, dashboard, holdings, obsidian, claims, registrars
 from app.routers.admin_users import router as admin_users_router
 from app.routers.companies import router as companies_router
 from app.routers.prices import router as prices_router
+from app.routers.cost_basis import router as cost_basis_router
 
 
 @asynccontextmanager
@@ -63,6 +64,7 @@ app.include_router(obsidian.router)
 app.include_router(claims.router)
 app.include_router(registrars.router, prefix="/api/v1")
 app.include_router(admin_users_router)
+app.include_router(cost_basis_router)
 
 # ── Caching Middleware ────────────────────────────────────────────────────────
 @app.middleware("http")
