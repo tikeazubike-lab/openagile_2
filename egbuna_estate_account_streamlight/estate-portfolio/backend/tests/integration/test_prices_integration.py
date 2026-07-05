@@ -209,9 +209,9 @@ class TestPriceIntegration:
 
     @pytest.mark.asyncio
     async def test_price_quick_entry_blocked_for_readonly(
-        self, readonly_http_client: AsyncClient, test_company
+        self, user_http_client: AsyncClient, test_company
     ):
-        response = await readonly_http_client.post(
+        response = await user_http_client.post(
             "/api/v1/prices/quick",
             json={"company_id": test_company.id, "price": "100.00", "entry_date": str(date.today())},
         )
@@ -254,7 +254,7 @@ class TestNavHistoryIntegration:
 
     @pytest.mark.asyncio
     async def test_nav_snapshot_blocked_for_readonly(
-        self, readonly_http_client: AsyncClient
+        self, user_http_client: AsyncClient
     ):
-        response = await readonly_http_client.post("/api/v1/nav-history/snapshot")
+        response = await user_http_client.post("/api/v1/nav-history/snapshot")
         assert response.status_code == 403

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPM — Pre-Merge Test Checklist</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 24px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .section {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #334155;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #93c5fd;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #334155;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    cursor: pointer;
+    user-select: none;
+  }
+  .item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #22c55e;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .item label {
+    font-size: 13px;
+    cursor: pointer;
+    flex: 1;
+  }
+  .item .badge {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .badge.pass { background: #166534; color: #86efac; }
+  .badge.fail { background: #991b1b; color: #fca5a5; }
+  .badge.skip { background: #854d0e; color: #fde68a; }
+  .stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 12px 20px;
+    border: 1px solid #334155;
+    text-align: center;
+    flex: 1;
+    min-width: 80px;
+  }
+  .stat-card .num {
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .stat-card .label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-card.pass .num { color: #22c55e; }
+  .stat-card.fail .num { color: #ef4444; }
+  .stat-card.total .num { color: #93c5fd; }
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  button {
+    background: #334155;
+    color: #e2e8f0;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  button:hover { background: #475569; }
+  button.primary { background: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+  button.danger { background: #991b1b; }
+  button.danger:hover { background: #b91c1c; }
+  .signoff-area {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+    border: 1px solid #334155;
+    display: none;
+  }
+  .signoff-area.show { display: block; }
+  .signoff-area textarea {
+    width: 100%;
+    height: 80px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 12px;
+    font-family: monospace;
+    resize: vertical;
+  }
+  .signoff-area .copy-btn {
+    background: #1d4ed8;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+  .signoff-area .copy-btn:hover { background: #1e40af; }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #166534;
+    color: #86efac;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  @media (max-width: 480px) {
+    body { padding: 12px; }
+    .stats { gap: 8px; }
+    .stat-card { padding: 8px 12px; min-width: 60px; }
+    .stat-card .num { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>EPM — Pre-Merge Test Checklist</h1>
+<p class="subtitle">Test against <strong>testdrive.epm.zubbystudio.shop</strong>. Tick each item as verified.</p>
+
+<div class="stats" id="stats">
+  <div class="stat-card pass"><div class="num" id="passCount">0</div><div class="label">Passed</div></div>
+  <div class="stat-card fail"><div class="num" id="failCount">0</div><div class="label">Failed</div></div>
+  <div class="stat-card total"><div class="num" id="totalCount">20</div><div class="label">Total</div></div>
+</div>
+
+<div id="checklist"></div>
+
+<div class="actions">
+  <button onclick="resetAll()" class="danger">Reset All</button>
+  <button onclick="toggleAll(true)">Pass All</button>
+  <button onclick="generateSignoff()" class="primary" id="signoffBtn">Generate Sign-off</button>
+</div>
+
+<div class="signoff-area" id="signoffArea">
+  <h3 style="font-size:13px; color:#93c5fd; margin-bottom:8px;">Sign-off Summary</h3>
+  <textarea id="signoffText" readonly></textarea>
+  <button class="copy-btn" onclick="copySignoff()">Copy to Clipboard</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ITEMS = [
+  { section: "F-017 — Edit Toggle Removed", items: [
+    { id: "holds-no-toggle",    desc: "Holdings — no Viewing/Editing toggle in header" },
+    { id: "regs-no-toggle",     desc: "Registrars — no toggle in header" },
+    { id: "cos-no-toggle",      desc: "Companies — no toggle in header" },
+    { id: "users-no-toggle",    desc: "User Management — no toggle in header" },
+    { id: "price-no-toggle",    desc: "Price Entry — no toggle in header" },
+    { id: "upload-no-toggle",   desc: "Data Upload — no toggle in header" },
+    { id: "admin-actions",      desc: "Admin user — still sees edit/delete, Add Holding" },
+    { id: "readonly-actions",   desc: "Readonly user — no action buttons visible" },
+  ]},
+  { section: "F-016 — Admin Restructure", items: [
+    { id: "users-load",         desc: "User Management — list of users loads correctly" },
+    { id: "admin-menu",         desc: "Admin menu — shows Price Entry, Data Upload, Users" },
+    { id: "signout",            desc: "Sign out — redirects to login page" },
+  ]},
+  { section: "Data Integrity", items: [
+    { id: "holds-data",         desc: "Holdings — 77 positions, values look correct" },
+    { id: "price-history",      desc: "Price History — loads without errors" },
+    { id: "dashboard",          desc: "Dashboard — loads without errors" },
+    { id: "companies",          desc: "Companies — full list loads, filter/search works" },
+  ]},
+  { section: "Auth & Access Control", items: [
+    { id: "login",              desc: "Login — works with valid credentials" },
+    { id: "401",                desc: "401 — protected page while logged out → redirect" },
+    { id: "403-readonly",       desc: "403 — readonly user on admin-gated endpoints" },
+    { id: "uploads",            desc: "Data Upload page — loads and shows interface" },
+    { id: "notifications",      desc: "Admin user — notification bell visible in header" },
+  ]},
+];
+
+const state = {}; // id -> true=pass, false=fail, undefined=unticked
+
+function render() {
+  const container = document.getElementById('checklist');
+  container.innerHTML = '';
+  ITEMS.forEach(section => {
+    const div = document.createElement('div');
+    div.className = 'section';
+    let html = `<div class="section-title">${section.section}</div>`;
+    section.items.forEach(item => {
+      const val = state[item.id];
+      const badge = val === true ? '<span class="badge pass">PASS</span>'
+                  : val === false ? '<span class="badge fail">FAIL</span>'
+                  : '<span class="badge skip">—</span>';
+      html += `
+        <div class="item" onclick="toggle('${item.id}')">
+          <input type="checkbox" ${val === true ? 'checked' : ''} data-id="${item.id}">
+          <label>${item.desc}</label>
+          ${badge}
+        </div>`;
+    });
+    div.innerHTML = html;
+    container.appendChild(div);
+  });
+  updateStats();
+}
+
+function toggle(id) {
+  const current = state[id];
+  if (current === true) {
+    state[id] = false;
+  } else if (current === false) {
+    delete state[id];
+  } else {
+    state[id] = true;
+  }
+  render();
+}
+
+function updateStats() {
+  let pass = 0, fail = 0, total = 0;
+  ITEMS.forEach(s => s.items.forEach(i => {
+    const v = state[i.id];
+    if (v === true) pass++;
+    else if (v === false) fail++;
+    total++;
+  }));
+  document.getElementById('passCount').textContent = pass;
+  document.getElementById('failCount').textContent = fail;
+  document.getElementById('totalCount').textContent = total;
+}
+
+function resetAll() {
+  if (!confirm('Reset all checkboxes?')) return;
+  ITEMS.forEach(s => s.items.forEach(i => delete state[i.id]));
+  render();
+}
+
+function toggleAll(val) {
+  ITEMS.forEach(s => s.items.forEach(i => state[i.id] = val));
+  render();
+}
+
+function generateSignoff() {
+  const area = document.getElementById('signoffArea');
+  const text = document.getElementById('signoffText');
+  let pass = 0, fail = 0, total = 0;
+  let lines = ['## Pre-Merge Test Results', ''];
+
+  ITEMS.forEach(s => {
+    lines.push(`### ${s.section}`);
+    s.items.forEach(i => {
+      const v = state[i.id];
+      if (v === true) { pass++; lines.push(`- [x] ${i.desc} ✅`); }
+      else if (v === false) { fail++; lines.push(`- [ ] ${i.desc} ❌ FAIL`); }
+      else { lines.push(`- [ ] ${i.desc} ⏳`); }
+      total++;
+    });
+    lines.push('');
+  });
+
+  lines.push('---');
+  lines.push(`**Passed:** ${pass}/${total} — **Failed:** ${fail} — **Skipped:** ${total - pass - fail}`);
+  lines.push('');
+  lines.push('| Role | Name | Date |');
+  lines.push('|------|------|------|');
+  lines.push('| **QA (Human)** | | |');
+  lines.push('| **Merge** | | |');
+
+  text.value = lines.join('\n');
+  area.classList.add('show');
+  area.scrollIntoView({ behavior: 'smooth' });
+}
+
+function copySignoff() {
+  const text = document.getElementById('signoffText');
+  text.select();
+  navigator.clipboard.writeText(text.value);
+  showToast('Copied to clipboard!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+render();
+</script>
+</body>
+</html>

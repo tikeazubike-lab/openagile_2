@@ -32,9 +32,9 @@ class TestHoldingsIntegration:
 
     @pytest.mark.asyncio
     async def test_create_holding_blocked_for_readonly(
-        self, readonly_http_client: AsyncClient, test_company
+        self, user_http_client: AsyncClient, test_company
     ):
-        response = await readonly_http_client.post(
+        response = await user_http_client.post(
             "/api/v1/holdings",
             json={
                 "company_id": test_company.id,
@@ -77,9 +77,9 @@ class TestHoldingsIntegration:
 
     @pytest.mark.asyncio
     async def test_publish_holding_blocked_for_readonly(
-        self, readonly_http_client: AsyncClient, test_draft_holding
+        self, user_http_client: AsyncClient, test_draft_holding
     ):
-        response = await readonly_http_client.put(
+        response = await user_http_client.put(
             f"/api/v1/holdings/{test_draft_holding.id}/publish"
         )
         assert response.status_code == 403
@@ -141,9 +141,9 @@ class TestHoldingsIntegration:
 
     @pytest.mark.asyncio
     async def test_readonly_role_cannot_see_draft_holdings_from_api(
-        self, readonly_http_client: AsyncClient, test_draft_holding
+        self, user_http_client: AsyncClient, test_draft_holding
     ):
-        response = await readonly_http_client.get("/api/v1/holdings")
+        response = await user_http_client.get("/api/v1/holdings")
         assert response.status_code == 200
         ids = [h["id"] for h in response.json()["data"]]
         assert test_draft_holding.id not in ids

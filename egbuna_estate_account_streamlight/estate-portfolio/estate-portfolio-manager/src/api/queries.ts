@@ -216,6 +216,22 @@ export function useCompanies() {
   });
 }
 
+export function useCompany(id: number | null) {
+  return useQuery({
+    queryKey: ["company", id],
+    queryFn: () => apiFetch<import("@/types").CompanyDetail>(`/api/v1/companies/${id}`),
+    enabled: id !== null,
+  });
+}
+
+export function useHoldingsByCompany(companyId: number | null) {
+  return useQuery({
+    queryKey: ["holdings", "by-company", companyId],
+    queryFn: () => apiFetch<Holding[]>(`/api/v1/holdings?company_id=${companyId}`),
+    enabled: companyId !== null,
+  });
+}
+
 export function usePriceAudit() {
   return useQuery({
     queryKey: ["price-audit"],

@@ -373,3 +373,17 @@ class RegistrarDocument(Base):
     company: Mapped["Company | None"] = relationship("Company", back_populates="registrar_documents")
     uploader: Mapped["User | None"] = relationship("User")
 
+
+# ─── Checklist Runs (Phase 3C — F-TD-001) ──────────────────────────────────────
+
+class ChecklistRun(Base):
+    __tablename__ = "checklist_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    results_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    signoff_markdown: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    admin: Mapped["User"] = relationship("User")
+

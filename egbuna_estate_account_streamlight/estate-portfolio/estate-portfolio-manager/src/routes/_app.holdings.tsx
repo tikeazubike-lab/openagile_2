@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect, Fragment, useCallback } from "react";
+import { useMemo, useState, Fragment, useCallback } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -22,7 +22,6 @@ import type { Holding, Sector } from "@/types";
 import { fmtNaira } from "@/lib/format";
 import { SectorBadge, StatusBadge, ReturnText } from "@/components/shared/Badges";
 import { useAuthStore } from "@/store/authStore";
-import { useUIStore } from "@/store/uiStore";
 import { cn } from "@/lib/utils";
 import { AddHoldingDrawer } from "@/components/holdings/AddHoldingDrawer";
 import { InlineEditRow } from "@/components/holdings/InlineEditRow";
@@ -37,7 +36,6 @@ function HoldingsPage() {
   const { data, isLoading } = useHoldings();
   const { data: companies } = useCompanies();
   const isAdmin = useAuthStore((s) => s.isAdmin)();
-  const editMode = useUIStore((s) => s.editMode);
 
   const addHolding = useAddHolding();
   const updateHolding = useUpdateHolding();
@@ -52,15 +50,6 @@ function HoldingsPage() {
   const [editingRowId, setEditingRowId] = useState<number | null>(null);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  // BUG-002 fix: clear editing row immediately when edit mode is toggled off
-  useEffect(() => {
-    if (!editMode) {
-      setEditingRowId(null);
-      setAddDrawerOpen(false);
-      setErrorMsg("");
-    }
-  }, [editMode]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -167,7 +156,7 @@ function HoldingsPage() {
             }),
           ]
         : []),
-      ...(isAdmin && editMode
+      ...(isAdmin
         ? [
             ch.display({
               id: "actions",
@@ -201,7 +190,7 @@ function HoldingsPage() {
           ]
         : []),
     ],
-    [isAdmin, editMode, editingRowId, handleEditClick, handleDelete, publishHolding]
+    [isAdmin, editingRowId, handleEditClick, handleDelete, publishHolding]
   );
 
   const table = useReactTable({
@@ -222,7 +211,7 @@ function HoldingsPage() {
           ({data?.length ?? 0} positions)
         </h2>
         <div className="ml-auto flex items-center gap-2">
-          {isAdmin && editMode && (
+          {isAdmin && (
             <button
               onClick={() => {
                 setAddDrawerOpen(true);

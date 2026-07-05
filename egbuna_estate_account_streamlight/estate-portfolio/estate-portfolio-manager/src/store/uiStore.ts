@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { useAuthStore } from "./authStore";
 
 export interface Toast {
   id: string;
@@ -11,8 +10,6 @@ export interface Toast {
 }
 
 interface UIStore {
-  editMode: boolean;
-  toggleEditMode: () => void;
   sidebarOpen: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (v: boolean) => void;
@@ -26,11 +23,6 @@ interface UIStore {
 }
 
 export const useUIStore = create<UIStore>((set) => ({
-  editMode: false,
-  toggleEditMode: () => {
-    if (!useAuthStore.getState().isAdmin()) return;
-    set((s) => ({ editMode: !s.editMode }));
-  },
   sidebarOpen: false,
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),

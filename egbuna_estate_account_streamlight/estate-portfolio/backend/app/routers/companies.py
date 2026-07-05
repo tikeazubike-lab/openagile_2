@@ -5,9 +5,10 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.deps import get_session, get_current_user, require_admin
-from app.models import Company, User
+from app.models import Company, User, Registrar
 from app.services.pdf_parser import parse_ngx_companies_pdf
 
 router = APIRouter(prefix="/api/v1/companies", tags=["companies"])
@@ -24,7 +25,11 @@ async def list_companies(
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    query = select(Company).where(Company.deleted_at.is_(None))
+    query = (
+        select(Company)
+        .options(selectinload(Company.registrar))
+        .where(Company.deleted_at.is_(None))
+    )
 
     if status:
         query = query.where(Company.status == status)
@@ -53,6 +58,7 @@ async def list_companies(
                 "current_price": str(c.current_price) if c.current_price else None,
                 "last_price_update": c.last_price_update.isoformat()
                     if c.last_price_update else None,
+                "registrar_name": c.registrar.name if c.registrar else None,
             }
             for c in companies
         ],
@@ -159,4 +165,41 @@ async def download_companies_template(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=companies_template.csv"},
+    )
+
+
+@router.get("/{company_id}")
+async def get_company(
+    company_id: int,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    query = (
+        select(Company)
+        .options(selectinload(Company.registrar))
+        .where(Company.id == company_id, Company.deleted_at.is_(None))
+    )
+    result = await db.execute(query)
+    c = result.scalar_one_or_none()
+
+    if not c:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    return _envelope(
+        {
+            "id": c.id,
+            "ticker": c.ticker,
+            "name": c.name,
+            "sector": c.sector,
+            "status": c.status,
+            "current_price": str(c.current_price) if c.current_price else None,
+            "last_price_update": c.last_price_update.isoformat()
+                if c.last_price_update else None,
+            "isin": c.isin,
+            "market_cap": str(c.market_cap) if c.market_cap else None,
+            "outstanding_shares": c.outstanding_shares,
+            "date_listed": c.date_listed.isoformat() if c.date_listed else None,
+            "registrar": {"id": c.registrar.id, "name": c.registrar.name}
+                if c.registrar else None,
+        }
     )

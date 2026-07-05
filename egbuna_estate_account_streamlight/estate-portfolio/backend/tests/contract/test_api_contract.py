@@ -207,8 +207,8 @@ class TestAPIContract:
 
     @pytest.mark.asyncio
     async def test_draft_records_absent_from_readonly_role_responses(
-        self, readonly_http_client: AsyncClient, test_draft_holding
+        self, user_http_client: AsyncClient, test_draft_holding
     ):
-        response = await readonly_http_client.get("/api/v1/holdings")
+        response = await user_http_client.get("/api/v1/holdings")
         ids = [h["id"] for h in response.json()["data"]]
         assert test_draft_holding.id not in ids

@@ -21,6 +21,7 @@ def _envelope(data: object) -> dict:
 @router.get("/holdings")
 async def list_holdings(
     holding_type: str = Query("all"),
+    company_id: int | None = Query(None, description="Filter by company ID"),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
@@ -28,8 +29,12 @@ async def list_holdings(
     Returns all holdings. Readonly users see only LIVE records.
     Admin users see all (LIVE + DRAFT).
     Phase 2B added active vs claim views.
+    Phase 3C added company_id filter.
     """
     stmt = select(Holding).options(selectinload(Holding.company), selectinload(Holding.claim_records)).where(Holding.deleted_at.is_(None))
+    
+    if company_id is not None:
+        stmt = stmt.where(Holding.company_id == company_id)
     
     if holding_type in ["active", "claim"]:
         stmt = stmt.where(Holding.holding_type == holding_type)

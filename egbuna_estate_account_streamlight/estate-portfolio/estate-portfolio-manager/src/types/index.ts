@@ -113,11 +113,18 @@ export interface Company {
   sector: Sector;
   isin?: string;
   status: "listed" | "merged" | "defunct" | "delisted";
-  current_price?: number;
-  last_price_update?: string;
+  current_price: string | null;
+  last_price_update?: string | null;
   registrar_id?: number;
   registrar_name?: string;
   deleted_at?: string | null;
+}
+
+export interface CompanyDetail extends Company {
+  market_cap: string | null;
+  outstanding_shares: number | null;
+  date_listed: string | null;
+  registrar: { id: number; name: string } | null;
 }
 
 // ─── Transactions ──────────────────────────────────────────────────────────────

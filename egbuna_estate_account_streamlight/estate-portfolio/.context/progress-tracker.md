@@ -1,6 +1,6 @@
 # progress-tracker.md — EPM Progress Tracker
 
-**Last updated**: 2026-06-23
+**Last updated**: 2026-07-04
 
 ---
 
@@ -24,7 +24,7 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 | ID    | Feature         | Status        | Last HO  | Notes                             |
 |-------|-----------------|---------------|----------|-----------------------------------|
 | F-001 | Authentication  | ✅ Complete   | HO-008   | 30-day cookie, logout fixed       |
-| F-002 | Dashboard       | ⚠️ Bugs open  | AT-003-1 | Charts blank (BUG-001 fixed), bell (BUG-005 fixed) |
+|| F-002 | Dashboard       | ⚠️ Bugs open  | AT-003-1 | Charts blank (BUG-001 fixed), bell (BUG-005 deferred)|
 | F-003 | Holdings        | ⚠️ Bugs open  | AT-003-1 | Inline edit cursor (BUG-002 fixed), Add 500 (BUG-003 fixed) |
 | F-004 | Price Entry     | ✅ Complete   | AT-001   | PDF parser, CSV, audit log        |
 | F-005 | Price History   | ✅ Complete   | AT-003-1 | Chart, table, date filter         |
@@ -34,6 +34,8 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 
 | ID     | Feature                    | Status   | Notes                                              |
 |--------|----------------------------|----------|----------------------------------------------------|
+| F-NGX-COMPANIES | NGX Listed Companies PDF Upload | ✅ Complete | Backend + frontend deployed. PDF parse, upsert    |
+| F-COST-BASIS    | Historical Cost Basis Upload   | ✅ Complete | Quick form + CSV. 3-step ticker matching, claim auto-create |
 | F-003b | Holdings Admin Edit View   | PLANNED  | /admin/holdings replaces inline edit toggle        |
 | F-006b | Registrars Admin Edit View | PLANNED  | /admin/registrars replaces inline edit toggle      |
 | F-017  | Remove editMode toggle     | PLANNED  | Delete uiStore.editMode, role guards replace it    |
@@ -42,7 +44,7 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 
 | ID    | Feature         | Status   | Notes                                              |
 |-------|-----------------|----------|----------------------------------------------------|
-| F-016 | User Management | PLANNED  | BUILD FIRST — roles used by all other features     |
+| F-016 | User Management | ✅ Complete | HO-026   | Backend CRUD + frontend deployed. Reports/hidden for deactivated users (SUPERADMIN only). Admin-only creation.
 | F-007 | NAV History     | PLANNED  | Gherkin SC-025-031 written. Needs scipy, APScheduler |
 | F-008 | Dividends       | PLANNED  | WHT, annual summary, DRIP                          |
 | F-009 | Transactions    | PLANNED  | CRUD + auto-generate from holdings                 |
@@ -88,7 +90,7 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 | BUG-002 | Holdings  | Inline edit cursor jumps          | ✅ Fixed   |
 | BUG-003 | Holdings  | POST /api/v1/holdings 500 error   | ✅ Fixed   |
 | BUG-004 | Dashboard | Theme toggle icon static          | ✅ Fixed   |
-| BUG-005 | Dashboard | Bell not showing action items     | ✅ Fixed   |
+|| BUG-005 | Dashboard | Bell not showing action items     | ⏳ Deferred |
 
 ---
 
@@ -110,7 +112,7 @@ praw==7.7.1            needed for F-018 Reddit API
 |-------|---------|
 | /admin/holdings | All Holdings CRUD (replaces inline edit toggle) |
 | /admin/registrars | All Registrar CRUD (replaces inline edit toggle) |
-| /admin/price-entry | Already exists |
+|| /admin/data-upload | Renamed from price-entry. Prices, Companies + Cost Basis tabs |
 | /admin/corporate-actions | Planned (F-014) |
 | /admin/data-import | Already exists |
 | /admin/users | F-016 |
@@ -128,12 +130,13 @@ praw==7.7.1            needed for F-018 Reddit API
 
 ## Priority Order (Next Sprint)
 
-1. F-016 User Management (defines roles used everywhere else)
-2. F-017 Remove editMode toggle
-3. F-003b + F-006b Admin edit views for Holdings + Registrars
-4. F-007 NAV History
-5. F-012 Watchlist
-6. F-013 Companies + Company Profile
-7. F-008 Dividends
-8. F-009 Transactions
-9. F-010 Claims
+1. ~~F-016 User Management~~ ✅ Done
+2. Run BUG-AT-001 + BUG-AT-002 acceptance (F-NGX-COMPANIES + F-COST-BASIS)
+3. F-017 Remove editMode toggle — spec needed (Claude writes after F-016 ships)
+4. F-003b + F-006b Admin edit views for Holdings + Registrars
+5. F-007 NAV History (needs scipy dep added first)
+6. F-012 Watchlist
+7. F-013 Companies + Company Profile
+8. F-008 Dividends
+9. F-009 Transactions
+10. F-010 Claims

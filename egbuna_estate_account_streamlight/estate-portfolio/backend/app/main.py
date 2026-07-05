@@ -26,6 +26,7 @@ from app.routers.admin_users import router as admin_users_router
 from app.routers.companies import router as companies_router
 from app.routers.prices import router as prices_router
 from app.routers.cost_basis import router as cost_basis_router
+from app.routers.checklist import router as checklist_router
 
 
 @asynccontextmanager
@@ -65,6 +66,7 @@ app.include_router(claims.router)
 app.include_router(registrars.router, prefix="/api/v1")
 app.include_router(admin_users_router)
 app.include_router(cost_basis_router)
+app.include_router(checklist_router)
 
 # ── Caching Middleware ────────────────────────────────────────────────────────
 @app.middleware("http")
@@ -75,14 +77,6 @@ async def add_cache_headers(request: Request, call_next):
         # Vite hashed assets can be cached securely for a year
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
-
-# ── Pre-merge test checklist ───────────────────────────────────────────────────
-from fastapi.responses import FileResponse
-import os
-@app.get("/test-checklist", include_in_schema=False)
-async def test_checklist():
-    path = os.path.join(os.path.dirname(__file__), "checklist.html")
-    return FileResponse(path)
 
 # ── Static files (React SPA) ──────────────────────────────────────────────────
 # Strategy:
