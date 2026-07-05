@@ -13,7 +13,9 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 
 ## Active Work
 
-[Agent fills this in at session start]
+**Current priority shift:** Build all pages minimally first (working data + UI), then cycle back for details/bugs/drill-downs.
+
+**New order:** Start with F-010 Claims (which = Dividends in EPM's domain model — see HO-031). F-008 merged into F-010.
 
 ---
 
@@ -46,9 +48,9 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 |-------|-----------------|----------|----------------------------------------------------|
 | F-016 | User Management | ✅ Complete | HO-026   | Backend CRUD + frontend deployed. Reports/hidden for deactivated users (SUPERADMIN only). Admin-only creation.
 | F-007 | NAV History     | PLANNED  | Gherkin SC-025-031 written. Needs scipy, APScheduler |
-| F-008 | Dividends       | PLANNED  | WHT, annual summary, DRIP                          |
+| F-008 | Dividends       | MERGED INTO F-010 | Claim = Dividend in EPM domain. F-010 replaces both |
 | F-009 | Transactions    | PLANNED  | CRUD + auto-generate from holdings                 |
-| F-010 | Claims          | PLANNED  | AMCON/CAC tracking, ClaimRecord table              |
+| F-010 | Claims          | ✅ BUILT | HO-031 | Dividend tracking dashboard. ClaimRecord = dividend record. Deployed to testdrive. |
 | F-011 | Rebalancing     | PLANNED  | Sector targets + gap analysis                      |
 | F-012 | Watchlist       | PLANNED  | Track stocks, target price, gap-to-target          |
 
@@ -121,22 +123,20 @@ praw==7.7.1            needed for F-018 Reddit API
 | /admin/companies-refresh | F-019 NGX data refresh trigger |
 
 **Read-only for all users** (no edit controls anywhere):
-/dashboard /holdings /companies /dividends /price-history /transactions /registrars /watchlist
+/dashboard /holdings /companies /claims /price-history /transactions /registrars /watchlist
 
 **Hidden from read-only users entirely:**
 /nav-history /rebalancing /admin/*
 
 ---
 
-## Priority Order (Next Sprint)
+## Priority Order (Active Sprint)
 
 1. ~~F-016 User Management~~ ✅ Done
-2. Run BUG-AT-001 + BUG-AT-002 acceptance (F-NGX-COMPANIES + F-COST-BASIS)
-3. F-017 Remove editMode toggle — spec needed (Claude writes after F-016 ships)
-4. F-003b + F-006b Admin edit views for Holdings + Registrars
-5. F-007 NAV History (needs scipy dep added first)
+2. ~~F-010 Claims (Dividend Tracking)~~ ✅ Done — HO-031
+3. Run BUG-AT-001 + BUG-AT-002 acceptance (F-NGX-COMPANIES + F-COST-BASIS)
+4. F-017 Remove editMode toggle — spec needed
+5. F-009 Transactions
 6. F-012 Watchlist
 7. F-013 Companies + Company Profile
-8. F-008 Dividends
-9. F-009 Transactions
-10. F-010 Claims
+8. F-007 NAV History (needs scipy dep added first)

@@ -49,7 +49,7 @@ async function fetchApiEnvelope<T>(path: string, init?: RequestInit): Promise<Ap
 }
 
 /** Fetch wrapper that unwraps the { data, meta, error } envelope. */
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { credentials: "include", ...init });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);

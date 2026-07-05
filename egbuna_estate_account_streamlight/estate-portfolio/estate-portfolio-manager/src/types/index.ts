@@ -168,6 +168,27 @@ export interface Dividend {
   deleted_at?: string | null;
 }
 
+// ─── Claims (F-010) ────────────────────────────────────────────────────────────
+
+export interface ClaimHolding {
+  id: number;
+  company_ticker: string;
+  registrar_name: string;
+  num_shares: number;
+}
+
+export interface Claim {
+  id: number;
+  claim_reference: string;
+  holding: ClaimHolding | null;
+  claim_status: string;
+  actual_payout: number | null;
+  expected_payout: number | null;
+  payout_date: string | null;
+  date_filed: string | null;
+  notes: string | null;
+}
+
 // ─── Registrars ────────────────────────────────────────────────────────────────
 
 export interface Registrar {
