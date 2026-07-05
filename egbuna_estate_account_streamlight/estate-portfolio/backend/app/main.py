@@ -76,11 +76,20 @@ async def add_cache_headers(request: Request, call_next):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
 
-# ── React SPA Serving ──────────────────────────────────────────────────────────
+# ── Pre-merge test checklist ───────────────────────────────────────────────────
+from fastapi.responses import FileResponse
+import os
+@app.get("/test-checklist", include_in_schema=False)
+async def test_checklist():
+    path = os.path.join(os.path.dirname(__file__), "checklist.html")
+    return FileResponse(path)
+
+# ── Static files (React SPA) ──────────────────────────────────────────────────
 # Strategy:
 #   1. Mount /assets as StaticFiles → serves Vite-hashed JS/CSS bundles
-#   2. Catch-all route → returns index.html for any non-API path
-#      This allows TanStack Router to handle client-side routing.
+#   2. Root route "/" + catch-all → returns index.html for any SPA route
+# NOTE: Do NOT mount StaticFiles at "/" with html=True — it intercepts all paths
+#       and returns 404 for client-side routes like /login, /holdings, /price-history.
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
 _index_html = os.path.join(_static_dir, "index.html")
 
@@ -90,9 +99,10 @@ if os.path.isdir(_static_dir):
     if os.path.isdir(_assets_dir):
         app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
 
-    # SPA catch-all: any path not matched by API routers or /assets returns index.html
+    # SPA catch-all: root "/" + any non-API path returns index.html
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     @app.get("/{full_path:path}", response_class=HTMLResponse, include_in_schema=False)
-    async def spa_fallback(request: Request, full_path: str):
+    async def spa_fallback(request: Request, full_path: str = ""):
         response = FileResponse(_index_html)
         # Prevent caching of index.html so clients always get the latest Vite asset hashes
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
