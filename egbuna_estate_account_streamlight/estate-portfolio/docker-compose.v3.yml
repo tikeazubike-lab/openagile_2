@@ -33,6 +33,13 @@ services:
       - "traefik.http.routers.epm-v3.tls=true"
       - "traefik.http.routers.epm-v3.tls.certresolver=cloudflare"
 
+      # ── API Router (shared from testbuild) ──────────────────────────────────
+      - "traefik.http.routers.epm-v3-testbuild-api.rule=Host(`testbuild.zubbystudio.shop`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.epm-v3-testbuild-api.entrypoints=websecure"
+      - "traefik.http.routers.epm-v3-testbuild-api.tls=true"
+      - "traefik.http.routers.epm-v3-testbuild-api.tls.certresolver=cloudflare"
+      # NOTE: Reuses existing epm-v3 service (port 8000) — no new service label needed.
+
       # ── HTTP → HTTPS Redirect ─────────────────────────────────────────────────
       - "traefik.http.routers.epm-v3-http.rule=Host(`testdrive.epm.zubbystudio.shop`)"
       - "traefik.http.routers.epm-v3-http.entrypoints=web"

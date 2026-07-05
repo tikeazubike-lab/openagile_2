@@ -1,0 +1,50 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# F-TD-001 — Standalone Test Checklist Tool
+#
+# Serves static checklist HTML at testbuild.zubbystudio.shop.
+# API calls (/api/v1/checklist/runs, /api/v1/auth/login) are routed via Traefik
+# path-matching to the EPM backend container on the same network.
+#
+# Architecture:
+#   testbuild.zubbystudio.shop/
+#     /  → nginx:alpine → index.html (standalone checklist page)
+#     /api/* → Traefik (PathPrefix) → estate_portfolio_v3:8000 (EPM backend)
+#
+# Single source of truth for the checklist HTML:
+#   The live file is at backend/app/static/checklist/index.html
+#   The nginx container mounts this path read-only so edits to the HTML
+#   are reflected without rebuilding the container (just restart).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: testbuild-checklist
+    volumes:
+      - ./backend/app/static/checklist:/usr/share/nginx/html:ro
+    networks:
+      - openagile_openagile_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=openagile_openagile_network"
+
+      # ── Main Router: serve static checklist (exclude /api/* paths) ──────────
+      - "traefik.http.routers.testbuild.rule=Host(`testbuild.zubbystudio.shop`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.testbuild.entrypoints=websecure"
+      - "traefik.http.routers.testbuild.tls=true"
+      - "traefik.http.routers.testbuild.tls.certresolver=cloudflare"
+      - "traefik.http.routers.testbuild.priority=10"
+
+      # ── HTTP → HTTPS Redirect ──────────────────────────────────────────────
+      - "traefik.http.routers.testbuild-http.rule=Host(`testbuild.zubbystudio.shop`)"
+      - "traefik.http.routers.testbuild-http.entrypoints=web"
+      - "traefik.http.routers.testbuild-http.middlewares=testbuild-redirect"
+      - "traefik.http.middlewares.testbuild-redirect.redirectscheme.scheme=https"
+
+      # ── Service Port ────────────────────────────────────────────────────────
+      - "traefik.http.services.testbuild.loadbalancer.server.port=80"
+
+networks:
+  openagile_openagile_network:
+    external: true
