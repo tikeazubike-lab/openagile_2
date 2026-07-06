@@ -6,7 +6,7 @@
 **Priority:** P0 — must pass before F-016 admin routes are integrated  
 **Created:** 2026-06-30  
 **Author:** Claude (Architect)  
-**Executed by:** Codex (tester agent)
+**Executed by:** Codex (tester agent) / Hermes deepseek-flash (fallback)
 
 ---
 
