@@ -15,7 +15,7 @@ interface AuthStore {
 export const useAuthStore = create<AuthStore>((set, get) => ({
   // Phase 2: null on startup — _app.tsx beforeLoad hydrates from cookie via /api/v1/auth/me
   user: null,
-  isAdmin: () => get().user?.role === "admin",
+  isAdmin: () => ["admin", "superadmin"].includes(get().user?.role ?? ""),
   setUser: (user) => set({ user }),
   clearUser: () => set({ user: null }),
 }));

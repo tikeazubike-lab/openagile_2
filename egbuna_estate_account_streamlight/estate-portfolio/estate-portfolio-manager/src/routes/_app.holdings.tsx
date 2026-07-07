@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, Fragment, useCallback } from "react";
+import { useMemo, useState, Fragment } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -9,11 +9,10 @@ import {
   createColumnHelper,
   type SortingState,
 } from "@tanstack/react-table";
-import { Search, Plus, Download, Pencil, Trash2, Check, X } from "lucide-react";
+import { Search, Plus, Download, Pencil, Trash2, Check } from "lucide-react";
 import {
   useHoldings,
   useAddHolding,
-  useUpdateHolding,
   useDeleteHolding,
   usePublishHolding,
   useCompanies,
@@ -24,7 +23,7 @@ import { SectorBadge, StatusBadge, ReturnText } from "@/components/shared/Badges
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { AddHoldingDrawer } from "@/components/holdings/AddHoldingDrawer";
-import { InlineEditRow } from "@/components/holdings/InlineEditRow";
+import { EditHoldingModal } from "@/components/holdings/EditHoldingModal";
 
 export const Route = createFileRoute("/_app/holdings")({
   component: HoldingsPage,
@@ -38,7 +37,6 @@ function HoldingsPage() {
   const isAdmin = useAuthStore((s) => s.isAdmin)();
 
   const addHolding = useAddHolding();
-  const updateHolding = useUpdateHolding();
   const deleteHolding = useDeleteHolding();
   const publishHolding = usePublishHolding();
 
@@ -47,9 +45,8 @@ function HoldingsPage() {
   const [statusFilter, setStatusFilter] = useState<"All" | "LIVE" | "DRAFT">("All");
   const [sorting, setSorting] = useState<SortingState>([{ id: "curr_value", desc: true }]);
 
-  const [editingRowId, setEditingRowId] = useState<number | null>(null);
+  const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -61,29 +58,6 @@ function HoldingsPage() {
       return h.ticker.toLowerCase().includes(q) || h.company.toLowerCase().includes(q);
     });
   }, [data, globalFilter, sectorFilter, statusFilter]);
-
-  const handleEditClick = (holding: Holding) => {
-    setEditingRowId(holding.id);
-    setErrorMsg("");
-  };
-
-  // BUG-002 fix: save callback passed to InlineEditRow child component
-  const handleSaveInline = useCallback(async (
-    id: number,
-    saveData: { num_shares: number; avg_purchase_price: string }
-  ) => {
-    try {
-      await updateHolding.mutateAsync({
-        id,
-        num_shares: saveData.num_shares,
-        avg_purchase_price: saveData.avg_purchase_price,
-      });
-      setEditingRowId(null);
-      setErrorMsg("");
-    } catch (e: any) {
-      setErrorMsg(e.message || "Failed to update holding.");
-    }
-  }, [updateHolding]);
 
   const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this holding?")) {
@@ -107,17 +81,15 @@ function HoldingsPage() {
       }),
       ch.accessor("shares", {
         header: () => <div className="text-right">Shares</div>,
-        cell: (i) => {
-          // When editing, shares cell is handled by InlineEditRow (rendered below)
-          return <div className="text-right font-mono">{i.getValue().toLocaleString()}</div>;
-        },
+        cell: (i) => (
+          <div className="text-right font-mono">{i.getValue().toLocaleString()}</div>
+        ),
       }),
       ch.accessor("avg_cost", {
         header: () => <div className="text-right">Avg Cost</div>,
-        cell: (i) => {
-          // When editing, avg_cost cell is handled by InlineEditRow (rendered below)
-          return <div className="text-right font-mono">{fmtNaira(i.getValue())}</div>;
-        },
+        cell: (i) => (
+          <div className="text-right font-mono">{fmtNaira(i.getValue())}</div>
+        ),
       }),
       ch.accessor("curr_price", {
         header: () => <div className="text-right">Curr Price</div>,
@@ -162,27 +134,31 @@ function HoldingsPage() {
               id: "actions",
               header: () => <div className="text-right">Actions</div>,
               cell: (i) => {
-                const id = i.row.original.id;
-                if (editingRowId === id) {
-                  // Save/Cancel buttons are handled by InlineEditRow
-                  return null;
-                }
+                const holding = i.row.original;
                 return (
                   <div className="flex items-center gap-1 justify-end">
-                    <IconBtn onClick={() => handleEditClick(i.row.original)}>
+                    <button
+                      onClick={() => setEditingHolding(holding)}
+                      className="w-7 h-7 rounded hover:bg-[var(--bg-subtle)] flex items-center justify-center text-[var(--text-secondary)]"
+                      title="Edit holding"
+                    >
                       <Pencil className="w-3.5 h-3.5" />
-                    </IconBtn>
-                    {i.row.original.status === "DRAFT" && (
+                    </button>
+                    {holding.status === "DRAFT" && (
                       <button
-                        onClick={() => publishHolding.mutate(id)}
+                        onClick={() => publishHolding.mutate(holding.id)}
                         className="h-7 px-2 rounded-full bg-[var(--accent-lavender)] text-[#1A1A1A] text-[11px] font-semibold flex items-center gap-1"
                       >
                         <Check className="w-3 h-3" /> Publish
                       </button>
                     )}
-                    <IconBtn onClick={() => handleDelete(id)}>
+                    <button
+                      onClick={() => handleDelete(holding.id)}
+                      className="w-7 h-7 rounded hover:bg-[var(--bg-subtle)] flex items-center justify-center text-[var(--text-secondary)]"
+                      title="Delete holding"
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
-                    </IconBtn>
+                    </button>
                   </div>
                 );
               },
@@ -190,7 +166,7 @@ function HoldingsPage() {
           ]
         : []),
     ],
-    [isAdmin, editingRowId, handleEditClick, handleDelete, publishHolding]
+    [isAdmin, handleDelete, publishHolding]
   );
 
   const table = useReactTable({
@@ -213,10 +189,7 @@ function HoldingsPage() {
         <div className="ml-auto flex items-center gap-2">
           {isAdmin && (
             <button
-              onClick={() => {
-                setAddDrawerOpen(true);
-                setErrorMsg("");
-              }}
+              onClick={() => setAddDrawerOpen(true)}
               className="h-9 px-3 rounded-md bg-[var(--accent-lavender)] text-[#1A1A1A] text-[13px] font-semibold flex items-center gap-1.5 hover:opacity-90"
             >
               <Plus className="w-4 h-4" /> Add Holding
@@ -227,12 +200,6 @@ function HoldingsPage() {
           </button>
         </div>
       </div>
-
-      {errorMsg && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm font-medium">
-          {errorMsg}
-        </div>
-      )}
 
       {/* Filter row */}
       <div className="bg-[var(--bg-surface)] rounded-xl shadow-card px-4 py-3 flex items-center gap-2 flex-wrap">
@@ -304,30 +271,6 @@ function HoldingsPage() {
                 {table.getRowModel().rows.map((row, idx) => {
                   const holding = row.original;
                   const draft = holding.status === "DRAFT";
-                  const isEditing = editingRowId === holding.id;
-
-                  // BUG-002 fix: render InlineEditRow as child component with its own state
-                  if (isEditing) {
-                    return (
-                      <Fragment key={row.id}>
-                        <InlineEditRow
-                          holding={holding}
-                          onSave={handleSaveInline}
-                          onCancel={() => setEditingRowId(null)}
-                          onValidationError={setErrorMsg}
-                        />
-                        {errorMsg && (
-                          <tr>
-                            <td colSpan={columns.length}>
-                              <p className="text-xs text-[var(--accent-red)] px-3 py-1 bg-red-50/50 rounded-b-md mb-2">
-                                {errorMsg}
-                              </p>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  }
 
                   return (
                     <Fragment key={row.id}>
@@ -377,6 +320,13 @@ function HoldingsPage() {
         isOpen={addDrawerOpen}
         onClose={() => setAddDrawerOpen(false)}
       />
+
+      {editingHolding && (
+        <EditHoldingModal
+          holding={editingHolding}
+          onClose={() => setEditingHolding(null)}
+        />
+      )}
     </div>
   );
 }
@@ -398,19 +348,5 @@ function Select({
     >
       {children}
     </select>
-  );
-}
-
-function IconBtn({ children, onClick, className }: { children: React.ReactNode; onClick?: () => void; className?: string }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "w-7 h-7 rounded hover:bg-[var(--bg-subtle)] flex items-center justify-center text-[var(--text-secondary)]",
-        className
-      )}
-    >
-      {children}
-    </button>
   );
 }
