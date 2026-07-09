@@ -41,24 +41,15 @@ export const Route = createFileRoute("/_app/claims")({
   component: ClaimsPage,
 });
 
-// ─── Status mapping: 6 DB statuses → 3 UI statuses ──────────────────────────
+// ─── Status mapping: lifecycle_status → UI status ─────────────────────────
 
-const statusMap: Record<string, "Pending" | "Claimed" | "Unclaimed"> = {
-  pending: "Pending",
-  partially_paid: "Pending",
-  approved: "Claimed",
-  paid: "Claimed",
-  rejected: "Unclaimed",
-  lapsed: "Unclaimed",
-};
-
-type UiStatus = "Pending" | "Claimed" | "Unclaimed";
+type UiStatus = "Unresolved" | "Unclaimed" | "Claimed";
 type MandateStatus = "Active" | "None";
 
 const statusBadge: Record<UiStatus, string> = {
+  Unresolved: "bg-primary/15 text-primary border-primary/30",
   Unclaimed: "bg-warning/15 text-warning border-warning/30",
   Claimed: "bg-success/15 text-success border-success/30",
-  Pending: "bg-primary/15 text-primary border-primary/30",
 };
 
 const mandateBadge: Record<MandateStatus, string> = {
@@ -102,7 +93,8 @@ function ClaimsPage() {
   const enriched = useMemo(() => {
     if (!claims) return [];
     return claims.map((c) => {
-      const uiStatus: UiStatus = statusMap[c.claim_status] ?? "Unclaimed";
+      const ls = c.lifecycle_status ?? "unresolved";
+      const uiStatus: UiStatus = (ls.charAt(0).toUpperCase() + ls.slice(1)) as UiStatus;
       const mandate: MandateStatus = uiStatus === "Claimed" ? "Active" : "None";
       const ref = c.claim_reference || (c.holding ? `${c.holding.company_ticker}-${c.id}` : `C-${c.id}`);
       const amount = c.actual_payout ?? c.expected_payout ?? 0;
@@ -562,7 +554,7 @@ function ClaimsPage() {
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="Unclaimed">Unclaimed</SelectItem>
                 <SelectItem value="Claimed">Claimed</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Unresolved">Unresolved</SelectItem>
               </SelectContent>
             </Select>
           </div>
