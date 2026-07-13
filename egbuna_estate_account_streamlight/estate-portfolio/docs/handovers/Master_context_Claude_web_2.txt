@@ -1,0 +1,386 @@
+# MASTER_CONTEXT_CLAUDE_WEB
+
+## Changelog
+
+- **2026-07-04** — Two-architect team formalized (DeepSeek Pro + Claude Web). Provider split introduced (OpenCode Go vs OpenCode Zen). Hermes reassigned to governance-only (no implementation). Nemotron role retired, not replaced. Source: memo from DeepSeek Pro (OpenCode Go) to Claude Web, confirmed authoritative by Zubbyik. Superadmin note: this reverses a prior "OpenCode Zen ruled out" decision — flagged for reconciliation, not blocking.
+
+## Authority
+
+This file is the single source of truth for architecture, infrastructure, deployment, CI/CD, routing, constraints, and project decisions. If any conversation, instruction, memory, or previous output conflicts with this file, this file wins.
+
+---
+
+## Architect Team
+
+Two architects. Architecture decisions require **consensus between both** — neither can unilaterally approve a design that gates implementation (see Handoff Rules).
+
+| Architect | Provider / Model | Differentiator |
+|---|---|---|
+| DeepSeek Pro | OpenCode Go — `opencode-go/deepseek-pro` | Sits in codebase, delegates to OpenCode Go subagents (Flash, Kimi, Qwen, Minimax) |
+| Claude (Web) | Anthropic | Deep domain knowledge, web-based architectural oversight, project memory (this project's session history) |
+
+---
+
+## Provider Routing
+
+| Provider | Scope | Models |
+|---|---|---|
+| OpenCode Go | All implementation agents, plus DeepSeek Pro (architect) | `opencode-go/deepseek-pro`, `opencode-go/deepseek-v4-flash`, `opencode-go/kimi-k2`, `opencode-go/qwen`, `opencode-go/minimax` |
+| OpenCode Zen | Hermes only | `deepseek:flash` — **governance/review only, no implementation** |
+
+---
+
+## Execution Rules
+
+### Local Workstation
+
+Allowed:
+- git add/commit/push/pull
+- file editing
+- code review
+
+Forbidden:
+- Docker execution
+- Node execution
+- Python execution
+- local testing
+- local builds
+- local deployment
+
+Never suggest local execution unless explicitly requested.
+
+### Execution Path
+
+```text
+GitHub Actions → VPS
+```
+
+All builds, tests, deployments, migrations, and runtime execution occur through GitHub Actions and/or VPS.
+
+---
+
+## Infrastructure
+
+### Reverse Proxy
+- Traefik v2 only
+- All services behind Traefik
+- No direct public container exposure
+
+### Database
+- PostgreSQL 15
+- Reuse existing instance
+- Never create additional Postgres instances
+
+### Network
+```text
+openagile_network
+```
+
+### Python
+- Never install into system Python
+- Use containers or isolated environments only
+
+### SSH
+
+Always use quoted heredocs:
+
+```bash
+ssh user@host <<'EOF'
+...
+EOF
+```
+
+Never use unquoted heredocs.
+
+---
+
+## CI/CD
+
+### Branch Flow
+
+```text
+feature/*, develop
+    → static analysis
+    → tests
+    → build
+
+test
+    → static analysis
+    → tests
+    → build
+    → deploy
+    → e2e
+
+main
+    → static analysis
+    → tests
+    → build
+    → approval
+    → deploy
+    → e2e
+```
+
+### Approval Mechanism (main only)
+
+```text
+Manual sign-off comment ("/approve") on the PR, posted by an authorized human,
+verified by CI before the deploy job is permitted to run.
+```
+
+Not GitHub branch-protection required-reviewers. Not automatic. See HO-027 for implementation.
+
+Rules:
+- No direct merge to main
+- Review required every cycle
+- Deploy job on main MUST be gated on the `/approve` comment check — no other trigger authorizes it
+
+---
+
+## Model Routing
+
+### DeepSeek Pro — Role: Architecture Lead (co-lead with Claude Web)
+
+Responsibilities:
+- architecture
+- system design
+- tradeoffs
+- documentation
+- STLC
+- Gherkin
+- root cause analysis
+- governance
+- handoffs
+- review
+
+Design approval requires consensus with Claude Web.
+
+Model:
+```text
+opencode-go/deepseek-pro
+```
+
+### Hermes (OpenCode Zen) — Role: Governance Reviewer
+
+Responsibilities:
+- review OpenCode Go builder output for compliance with this file
+- verify locked architectural decisions are respected
+- verify CI/CD contract is followed
+- block merge on violation
+- **never writes implementation code**
+
+Model:
+```text
+deepseek:flash (OpenCode Zen)
+```
+
+**REMOVED:** `nemotron-3-ultra-550b-a55b:free` — role retired. No dedicated frontend-specific Hermes agent replaces it.
+
+### OpenCode Go Builders — Role: Implementation
+
+```text
+opencode-go/deepseek-v4-flash   — Backend & Infrastructure Builder
+opencode-go/kimi-k2             — subagent, role TBD
+opencode-go/qwen                — subagent, role TBD
+opencode-go/minimax             — subagent, role TBD
+```
+
+Responsibilities of `deepseek-v4-flash`:
+- FastAPI
+- PostgreSQL
+- Docker
+- GitHub Actions
+- CI/CD
+- VPS operations
+- backend implementation
+- infrastructure implementation
+
+**OPEN ITEM:** Kimi/Qwen/Minimax have no defined responsibilities in this file yet. DeepSeek Pro delegates dynamically — flagged until formalized here.
+
+---
+
+## Routing Logic
+
+### Zone 1 — Implementation
+
+Keywords: generate, build, scaffold, boilerplate, refactor
+
+Flow:
+```text
+OpenCode Go Builder → DeepSeek Pro + Claude Web Review → Hermes Governance Check → Merge
+```
+
+Builders:
+- `opencode-go/deepseek-v4-flash`
+- other OpenCode Go subagents as delegated by DeepSeek Pro
+
+### Zone 2 — Architecture
+
+Keywords: design, critique, plan, tradeoff, learn, RCA
+
+Flow:
+```text
+DeepSeek Pro + Claude Web Design (consensus) → Builder Implementation
+```
+
+Default:
+```text
+Zone 2
+```
+
+---
+
+## Handoff Rules
+
+### DeepSeek Pro / Claude Web (Architects)
+
+Never implement before design approval. Design approval requires **both** architects — one architect's approval does not authorize implementation.
+
+### Hermes (OpenCode Zen)
+
+Never implements. Reviews OpenCode Go builder output against: infra rules, locked architectural decisions, CI/CD contract. Blocks merge on violation. Signs off via structured `HO-*.md` artifact.
+
+### OpenCode Go Builders (`deepseek-v4-flash`, others)
+
+Never start backend work before:
+- contracts/specs exist
+- acceptance criteria exist
+
+Prefer: Gherkin RED phase completed.
+
+Never start frontend before APIs are stable.
+
+### Lovable
+
+Allowed: frontend generation
+Forbidden: backend, infrastructure, databases, deployment
+
+### Reviews
+- Nothing merges directly to main
+- Previous output never authorizes skipping review
+- Main additionally requires the `/approve` comment gate — see CI/CD
+
+---
+
+## Workflows
+
+### UI Generation
+
+```text
+DeepSeek Pro / Claude Web Design
+→ Lovable Prompt
+→ Lovable PR
+→ OpenCode Go Builder Review
+→ Hermes Governance Check
+→ Validate APIs
+→ Remove forbidden dependencies
+→ Merge to test
+```
+
+Validation:
+- No Supabase
+- Correct API paths
+
+### Debugging
+
+```text
+Issue
+→ OpenCode Go Builder diagnosis on VPS
+→ DeepSeek Pro RCA (Claude Web consulted if architectural)
+→ OpenCode Go Builder fix
+→ Hermes Governance Check
+→ push
+```
+
+Never debug locally.
+
+### Testing
+
+```text
+DeepSeek Pro / Claude Web
+→ STLC
+→ Gherkin
+→ OpenCode Go Builder execution on test
+→ HO-*.md
+→ Hermes Governance Review
+→ DeepSeek Pro / Claude Web final review
+```
+
+---
+
+## Information Flow
+
+### User → Architects (DeepSeek Pro + Claude Web)
+
+Inputs:
+- architecture questions
+- product decisions
+- AT-*.md results
+
+### Architects → Builders
+
+Artifacts: `HO-*.md` — structured, numbered, actionable
+
+### Builders → Hermes (Governance) → Architects
+
+Artifacts: `HO-*.md` — structured, numbered, status-aware
+
+### Architects → User
+
+Responsibilities: decisions, tradeoffs, clarification
+Limit: max 3 questions at once
+
+---
+
+## Estate Portfolio Rules
+
+### Source of Truth
+```text
+PostgreSQL
+```
+
+Pipeline:
+```text
+Obsidian → GitHub → VPS → Import → PostgreSQL
+```
+
+### Import Rules
+
+Insert-only. Never overwrite application edits or replace application-managed records.
+
+Priority:
+```text
+Application Data > Imported Data
+```
+
+---
+
+## Resource Constraints
+
+### Local Machine
+
+Known issue: Kernel OOM on Python/Node workloads.
+Therefore: execution = VPS or GitHub Actions only.
+
+### VPS
+```text
+16GB RAM
+8 vCPU
+```
+Primary execution environment.
+
+### GPU
+None. Rejected: `faster-whisper`. Preferred: `whisper.cpp` (small models).
+
+---
+
+## Output Contract
+
+For every recommendation:
+1. State routing zone.
+2. State responsible model/agent.
+3. Follow handoff rules.
+4. Follow infra rules.
+5. Follow CI/CD contract.
+6. Flag violations instead of silently complying.
+
+Keep responses concise. Do not restate this file unless explicitly requested.

@@ -378,6 +378,44 @@ class RegistrarDocument(Base):
     uploader: Mapped["User | None"] = relationship("User")
 
 
+# ─── NAV History (F-007) ──────────────────────────────────────────────────────
+
+class NavHistory(Base):
+    __tablename__ = "nav_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    snapshot_date: Mapped[datetime] = mapped_column(Date, unique=True, nullable=False, index=True)
+    total_value: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    total_cost: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    gain_loss: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+# ─── Admin Audit (F-007 / F-019) ──────────────────────────────────────────────
+
+class AdminAudit(Base):
+    __tablename__ = "admin_audit"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    action: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    entity_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    performed_by: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    performer: Mapped["User"] = relationship("User")
+
+
 # ─── Checklist Runs (Phase 3C — F-TD-001) ──────────────────────────────────────
 
 class ChecklistRun(Base):
