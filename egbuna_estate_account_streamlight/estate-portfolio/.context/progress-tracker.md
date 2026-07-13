@@ -80,6 +80,7 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 | F-P4-02  | Multi-portfolio           | Separate portfolios per user                 |
 | F-P4-03  | Eurobonds / Real Estate   | Asset abstraction layer                      |
 || F-P4-04  | Export to Excel           | Tax filing aid                               |
+|| F-P4-05  | Dividend Yield Calculation | Blocked on dividend history data model, see BUG-HOLD-DIVYIELD-001 |
 || F-022    | AI Assisted Interactive ChatBot | Blocked on F-007–F-016 |
 
 ---

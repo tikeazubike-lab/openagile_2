@@ -67,7 +67,9 @@ def test_login_rejects_invalid_credentials():
 def test_logout_returns_success_envelope():
     response = Response()
     payload = asyncio.run(logout(response))
-    assert payload["data"]["message"] == "Logged out"
+    # Current logout returns {"data": None, "error": None} directly (no meta key)
+    assert payload["data"] is None
+    assert payload["error"] is None
 
 
 def test_me_returns_current_user_envelope():

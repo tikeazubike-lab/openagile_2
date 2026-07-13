@@ -2,7 +2,9 @@
 EPM — Dashboard router.
 Phase 2B: DB queries and claims integration
 """
+from typing import Optional
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
@@ -14,6 +16,64 @@ from app.models import User, Holding, Transaction
 from app.services.portfolio import calculate_total_assets
 
 router = APIRouter(tags=["Dashboard"])
+
+
+class TopHoldingItem(BaseModel):
+    ticker: str
+    company: str
+    value: str
+    num_shares: str
+    return_pct: str
+
+
+class SectorAllocationItem(BaseModel):
+    name: str
+    sector: str
+    value: str
+    pct: str
+
+
+class TransactionItem(BaseModel):
+    date: str
+    ticker: Optional[str] = None
+    type: str
+    shares: float
+    amount: float
+
+
+class ActionItem(BaseModel):
+    id: str
+    label: str
+    count: int
+    severity: str
+    href: str
+
+
+class ClaimsSummary(BaseModel):
+    total_claims: int
+    pending: int
+    approved: int
+    paid: int
+    total_expected: str
+    total_received: str
+
+
+class DashboardResponse(BaseModel):
+    total_portfolio_value: str
+    active_portfolio_value: str
+    claims_portfolio_value: str
+    total_invested: str
+    unrealised_gain_loss: str
+    unrealised_gain_pct: str
+    total_holdings: str
+    live_holdings: str
+    draft_holdings: str
+    sector_allocation: list[SectorAllocationItem]
+    top_holdings: list[TopHoldingItem]
+    recent_transactions: list[TransactionItem]
+    action_items: list[ActionItem]
+    claims_summary: ClaimsSummary
+    last_updated: str
 
 def _envelope(data: object) -> dict:
     return {"data": data, "meta": {}, "error": None}
