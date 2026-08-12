@@ -158,7 +158,7 @@ class ClaimRecord(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    holding_id: Mapped[int] = mapped_column(Integer, ForeignKey("holdings.id", ondelete="CASCADE"), nullable=False, index=True)
+    holding_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("holdings.id", ondelete="CASCADE"), nullable=True, index=True)
 
     claim_reference: Mapped[str | None] = mapped_column(String(100))
     claim_authority: Mapped[str | None] = mapped_column(String(100))
@@ -169,6 +169,10 @@ class ClaimRecord(Base):
     deadline_date: Mapped[datetime | None] = mapped_column(Date)
 
     claim_status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", index=True)
+    lifecycle_status: Mapped[str] = mapped_column(String(12), nullable=False, default="unresolved", index=True)
+
+    raw_company_name: Mapped[str | None] = mapped_column(String(255))
+
     expected_payout: Mapped[Decimal | None] = mapped_column(Numeric(15, 2))
     actual_payout: Mapped[Decimal | None] = mapped_column(Numeric(15, 2))
     payout_date: Mapped[datetime | None] = mapped_column(Date)
@@ -372,4 +376,18 @@ class RegistrarDocument(Base):
     requirement: Mapped["RegistrarRequirement"] = relationship("RegistrarRequirement", back_populates="documents")
     company: Mapped["Company | None"] = relationship("Company", back_populates="registrar_documents")
     uploader: Mapped["User | None"] = relationship("User")
+
+
+# ─── Checklist Runs (Phase 3C — F-TD-001) ──────────────────────────────────────
+
+class ChecklistRun(Base):
+    __tablename__ = "checklist_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    results_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    signoff_markdown: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    admin: Mapped["User"] = relationship("User")
 

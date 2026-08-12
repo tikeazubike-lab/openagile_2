@@ -126,7 +126,7 @@ async def admin_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest_asyncio.fixture
-async def readonly_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
+async def user_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
     token = create_access_token(data={"sub": "test_viewer", "role": "readonly"})
     async with AsyncClient(
         app=test_app,

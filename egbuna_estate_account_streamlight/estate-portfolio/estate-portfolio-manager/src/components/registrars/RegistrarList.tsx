@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRegistrars } from "@/api/queries";
-import { useUIStore } from "@/store/uiStore";
+import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Plus, Building2, FileWarning, Star } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,7 +15,7 @@ interface RegistrarListProps {
 
 export function RegistrarList({ selectedId, onSelect }: RegistrarListProps) {
   const { data: registrars, isLoading, error } = useRegistrars();
-  const editMode = useUIStore((s) => s.editMode);
+  const isAdmin = useAuthStore((s) => s.isAdmin)();
   
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -31,7 +31,7 @@ export function RegistrarList({ selectedId, onSelect }: RegistrarListProps) {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b p-4">
         <h2 className="text-lg font-semibold tracking-tight">Registrars</h2>
-        {editMode && (
+        {isAdmin && (
           <Button variant="outline" size="sm" className="h-8" onClick={() => setIsAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add
           </Button>

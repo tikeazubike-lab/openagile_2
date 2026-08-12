@@ -347,10 +347,10 @@ class TestPriceDataEntry:
 
     @pytest.mark.asyncio
     async def test_sc014_readonly_cannot_update_prices(
-        self, readonly_http_client: AsyncClient, test_company
+        self, user_http_client: AsyncClient, test_company
     ):
         """Spec: price_entry.feature | SC-014"""
-        response = await readonly_http_client.post(
+        response = await user_http_client.post(
             "/api/v1/prices/quick",
             json={"company_id": test_company.id, "price": "32.50", "entry_date": str(date.today())}
         )
@@ -518,15 +518,15 @@ class TestDividendTracking:
 
     @pytest.mark.asyncio
     async def test_sc023_readonly_can_view_dividends_but_not_create(
-        self, readonly_http_client: AsyncClient, test_live_holding
+        self, user_http_client: AsyncClient, test_live_holding
     ):
         """Spec: dividend_tracking.feature | SC-023"""
         # Spec: SC-023 | When GET /api/v1/dividends → 200
-        get_response = await readonly_http_client.get("/api/v1/dividends")
+        get_response = await user_http_client.get("/api/v1/dividends")
         assert get_response.status_code == 200
 
         # Spec: SC-023 | When POST /api/v1/dividends → 403
-        post_response = await readonly_http_client.post(
+        post_response = await user_http_client.post(
             "/api/v1/dividends",
             json={
                 "holding_id": test_live_holding.id,

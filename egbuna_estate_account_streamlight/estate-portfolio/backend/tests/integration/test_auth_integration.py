@@ -74,9 +74,9 @@ class TestAuthIntegration:
 
     @pytest.mark.asyncio
     async def test_auth_me_readonly_user_returns_readonly_role(
-        self, readonly_http_client: AsyncClient, test_readonly_user
+        self, user_http_client: AsyncClient, test_readonly_user
     ):
-        response = await readonly_http_client.get("/api/v1/auth/me")
+        response = await user_http_client.get("/api/v1/auth/me")
         assert response.status_code == 200
         assert response.json()["data"]["role"] == "readonly"
 
@@ -114,10 +114,10 @@ class TestAuthIntegration:
 
     @pytest.mark.asyncio
     async def test_change_password_blocked_for_readonly_role(
-        self, readonly_http_client: AsyncClient, test_readonly_user
+        self, user_http_client: AsyncClient, test_readonly_user
     ):
         """Readonly users cannot change their password via API."""
-        response = await readonly_http_client.put(
+        response = await user_http_client.put(
             "/api/v1/auth/change-password",
             json={
                 "current_password": "viewpass123",

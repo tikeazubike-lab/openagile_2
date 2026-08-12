@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useRegistrars, useUnlinkCompany, useDeleteRegistrar } from "@/api/queries";
-import { useUIStore } from "@/store/uiStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit, Mail, Phone, MapPin, Globe, Plus, X, Info } from "lucide-react";
@@ -26,7 +25,6 @@ export function RegistrarDetails({ registrarId }: { registrarId: number }) {
   const { data: registrars } = useRegistrars();
   const { mutate: unlinkCompany } = useUnlinkCompany();
   const deleteRegistrarMutation = useDeleteRegistrar();
-  const editMode = useUIStore((s) => s.editMode);
   const { user } = useAuthStore();
   const isAdmin = user?.role === "admin";
   const navigate = useNavigate();
@@ -94,7 +92,7 @@ export function RegistrarDetails({ registrarId }: { registrarId: number }) {
       <Card>
         <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
           <CardTitle className="text-2xl font-bold flex-1">{registrar.name}</CardTitle>
-          {editMode && isAdmin && (
+          {isAdmin && (
             <>
               <Button variant="ghost" size="icon" onClick={() => setIsEditOpen(true)}>
                 <Edit className="h-4 w-4" />
@@ -132,11 +130,11 @@ export function RegistrarDetails({ registrarId }: { registrarId: number }) {
       </Card>
 
       {/* Linked Companies */}
-      {(registrar.linked_companies?.length > 0 || editMode) && (
+      {(registrar.linked_companies?.length > 0 || isAdmin) && (
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Linked Companies</CardTitle>
-            {editMode && (
+            {isAdmin && (
               <Button variant="outline" size="sm" onClick={() => setIsLinkOpen(true)}>
                 <Plus className="mr-2 h-3 w-3" /> Link
               </Button>
@@ -148,11 +146,11 @@ export function RegistrarDetails({ registrarId }: { registrarId: number }) {
                 {registrar.linked_companies.map((c: any) => (
                   <div key={c.id} className="relative inline-block">
                     <Link to="/companies" className="transition-transform hover:scale-105 inline-block">
-                      <Badge variant="secondary" className={`bg-primary/10 text-primary hover:bg-primary/20 ${editMode ? 'pr-6' : ''}`}>
+                      <Badge variant="secondary" className={`bg-primary/10 text-primary hover:bg-primary/20 ${isAdmin ? 'pr-6' : ''}`}>
                         {c.ticker}
                       </Badge>
                     </Link>
-                    {editMode && (
+                    {isAdmin && (
                       <button
                         onClick={(e) => { 
                           e.preventDefault(); 

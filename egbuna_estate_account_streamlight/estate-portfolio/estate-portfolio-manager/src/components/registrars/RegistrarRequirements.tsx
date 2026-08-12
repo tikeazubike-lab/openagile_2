@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useRegistrarRequirements, useDeleteDocument, useDeleteRequirement, useUpdateDocumentStatus } from "@/api/queries";
+import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 export function RegistrarRequirements({ registrarId }: { registrarId: number }) {
   const { data: requirements, isLoading } = useRegistrarRequirements(registrarId);
-  const editMode = useUIStore((s) => s.editMode);
+  const isAdmin = useAuthStore((s) => s.isAdmin)();
   const deleteDocument = useDeleteDocument();
   const deleteRequirement = useDeleteRequirement();
   const updateStatusMutation = useUpdateDocumentStatus();
@@ -74,7 +75,7 @@ export function RegistrarRequirements({ registrarId }: { registrarId: number }) 
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-lg">Requirements & Documents</CardTitle>
-        {editMode && (
+        {isAdmin && (
           <Button size="sm" onClick={() => setIsAddReqOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add Requirement
           </Button>
@@ -94,7 +95,7 @@ export function RegistrarRequirements({ registrarId }: { registrarId: number }) 
                 </button>
                 <div className="flex items-center gap-3">
                   <Badge variant="outline">{reqs.length} items</Badge>
-                  {editMode && (
+                  {isAdmin && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -128,7 +129,7 @@ export function RegistrarRequirements({ registrarId }: { registrarId: number }) 
                         <span className="font-medium flex items-center gap-2">
                           {req.document_title}
                           {req.is_required && <span className="text-red-500 text-xs font-bold" title="Required">*</span>}
-                          {editMode && (
+                          {isAdmin && (
                             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity ml-1">
                               <button onClick={() => setEditReqData(req)} className="p-1 text-muted-foreground hover:text-primary hover:bg-muted rounded">
                                 <Edit className="h-3.5 w-3.5" />
@@ -152,7 +153,7 @@ export function RegistrarRequirements({ registrarId }: { registrarId: number }) 
                       <div className="col-span-2 flex items-center gap-1 group/status">
                         {!req.latest_document ? (
                           <Badge variant="outline" className="text-muted-foreground border-dashed">Missing</Badge>
-                        ) : editMode ? (
+                        ) : isAdmin ? (
                           <select
                             className="text-xs bg-background border rounded px-1 py-0.5 h-7 w-full"
                             value={req.latest_document.status}
@@ -202,7 +203,7 @@ export function RegistrarRequirements({ registrarId }: { registrarId: number }) 
                       <div className="col-span-2 flex items-center justify-end gap-2">
                         {req.latest_document ? (
                           <>
-                            {editMode && (
+                            {isAdmin && (
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -222,7 +223,7 @@ export function RegistrarRequirements({ registrarId }: { registrarId: number }) 
                             >
                               <Download className="h-3.5 w-3.5" />
                             </Button>
-                            {editMode && (
+                            {isAdmin && (
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -235,7 +236,7 @@ export function RegistrarRequirements({ registrarId }: { registrarId: number }) 
                             )}
                           </>
                         ) : (
-                          editMode && (
+                          isAdmin && (
                             <Button 
                               variant="outline" 
                               size="sm" 

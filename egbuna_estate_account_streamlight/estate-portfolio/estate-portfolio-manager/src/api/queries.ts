@@ -49,7 +49,7 @@ async function fetchApiEnvelope<T>(path: string, init?: RequestInit): Promise<Ap
 }
 
 /** Fetch wrapper that unwraps the { data, meta, error } envelope. */
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { credentials: "include", ...init });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
@@ -213,6 +213,22 @@ export function useCompanies() {
   return useQuery({
     queryKey: ["companies"],
     queryFn: () => apiFetch<Company[]>("/api/v1/companies"),
+  });
+}
+
+export function useCompany(id: number | null) {
+  return useQuery({
+    queryKey: ["company", id],
+    queryFn: () => apiFetch<import("@/types").CompanyDetail>(`/api/v1/companies/${id}`),
+    enabled: id !== null,
+  });
+}
+
+export function useHoldingsByCompany(companyId: number | null) {
+  return useQuery({
+    queryKey: ["holdings", "by-company", companyId],
+    queryFn: () => apiFetch<Holding[]>(`/api/v1/holdings?company_id=${companyId}`),
+    enabled: companyId !== null,
   });
 }
 

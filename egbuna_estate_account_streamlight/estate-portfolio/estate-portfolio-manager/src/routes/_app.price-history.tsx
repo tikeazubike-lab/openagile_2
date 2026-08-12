@@ -117,7 +117,7 @@ function CompanyCombobox({
 function PriceHistoryPage() {
   const { user } = useAuthStore();
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
-  const [daysFilter, setDaysFilter] = useState<number>(30); // 7, 30, 90, 365, 0 (All)
+  const [daysFilter, setDaysFilter] = useState<number>(365); // 7, 30, 90, 365, 0 (All)
 
   const { data: companies, isLoading: isLoadingCompanies } = useCompanies();
   const { data: history, isLoading: isLoadingHistory } = usePriceHistory(

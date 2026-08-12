@@ -1,5 +1,5 @@
 import { useLocation, Link } from "@tanstack/react-router";
-import { Bell, Menu, Moon, Pencil, Sun } from "lucide-react";
+import { Bell, ClipboardCheck, Menu, Moon, Sun } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { useTheme } from "@/hooks/useTheme";
@@ -31,7 +31,7 @@ export function Navbar() {
   const pathname = location.pathname;
   const title = TITLES[pathname] ?? "Estate Portfolio";
   const { isAdmin, user } = useAuthStore();
-  const { editMode, toggleEditMode, toggleSidebar } = useUIStore();
+  const { toggleSidebar } = useUIStore();
   const { resolvedTheme, toggleTheme } = useTheme();
 
   const { data: actionItemsData } = useActionItems();
@@ -74,38 +74,6 @@ export function Navbar() {
       <h1 className="text-[18px] font-semibold text-[var(--text-primary)]">{title}</h1>
 
       <div className="ml-auto flex items-center gap-3">
-        {isAdmin() && !isDashboard && (
-          <button
-            onClick={toggleEditMode}
-            className={cn(
-              "relative h-8 w-[130px] rounded-full border border-[var(--border)] text-[12px] font-medium flex items-center transition-colors",
-              editMode
-                ? "bg-[var(--accent-lavender)] text-[#1A1A1A]"
-                : "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
-            )}
-            title={editMode ? "Editing" : "Viewing"}
-          >
-            <span
-              className={cn(
-                "absolute top-1 bottom-1 w-[60px] rounded-full transition-all duration-200",
-                editMode ? "left-[66px] bg-white/30" : "left-1 bg-[var(--accent-lavender)]/30",
-              )}
-            />
-            <span className="relative flex-1 flex items-center justify-center gap-1.5">
-              {editMode ? (
-                <>
-                  <Pencil className="w-3.5 h-3.5" /> Editing
-                </>
-              ) : (
-                <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-lavender)]" />
-                  Viewing
-                </>
-              )}
-            </span>
-          </button>
-        )}
-
         <button
           onClick={toggleTheme}
           className="w-8 h-8 rounded-md hover:bg-[var(--bg-subtle)] flex items-center justify-center transition-colors"
@@ -119,6 +87,16 @@ export function Navbar() {
         </button>
 
         {isAdmin() && (
+          <>
+          <a
+            href="/test-checklist"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-8 h-8 rounded-md hover:bg-[var(--bg-subtle)] flex items-center justify-center"
+            title="Pre-Merge Checklist"
+          >
+            <ClipboardCheck className="w-[18px] h-[18px] text-[var(--text-muted)]" />
+          </a>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
@@ -160,7 +138,7 @@ export function Navbar() {
               </div>
             )}
           </div>
-        )}
+            </> )}
 
         <div className="w-8 h-8 rounded-full bg-[var(--accent-lavender)] text-[#1A1A1A] font-mono text-[12px] font-semibold flex items-center justify-center">
           {initials}

@@ -16,6 +16,11 @@ from app.database import AsyncSessionLocal
 from app.models import User
 
 
+# ─── Admin Roles ───────────────────────────────────────────────────────────────
+
+ADMIN_ROLES = {"admin", "superadmin"}
+
+
 # ─── Database Session ──────────────────────────────────────────────────────────
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -88,8 +93,8 @@ async def get_current_user(
 
 
 async def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    """Guard: raises 403 if the authenticated user is not an admin."""
-    if current_user.role != "admin":
+    """Guard: raises 403 if the authenticated user is not an admin or superadmin."""
+    if current_user.role not in ADMIN_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
