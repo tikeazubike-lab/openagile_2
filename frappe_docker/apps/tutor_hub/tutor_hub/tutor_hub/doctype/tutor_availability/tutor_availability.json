@@ -1,0 +1,42 @@
+{
+ "name": "Tutor Availability",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "istable": 1,
+ "fields": [
+  {
+   "fieldname": "day_of_week",
+   "fieldtype": "Select",
+   "label": "Day",
+   "options": "Monday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "is_available",
+   "fieldtype": "Check",
+   "label": "Available",
+   "default": 1
+  },
+  {
+   "fieldname": "timezone",
+   "fieldtype": "Data",
+   "label": "Timezone",
+   "default": "Africa/Lagos"
+  }
+ ],
+ "permissions": []
+}

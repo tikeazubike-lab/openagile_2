@@ -1,0 +1,202 @@
+{
+ "name": "Payment Transaction",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "is_submittable": 0,
+ "autoname": "format:PAY-.YYYY.-.#####",
+ "title_field": "internal_transaction_id",
+ "search_fields": "student_name,tutor_name",
+ "fields": [
+  {
+   "fieldname": "internal_transaction_id",
+   "fieldtype": "Data",
+   "label": "Transaction ID",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "session",
+   "fieldtype": "Link",
+   "label": "Session",
+   "options": "Session Schedule",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "student",
+   "fieldtype": "Link",
+   "label": "Student",
+   "options": "Student Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "student_name",
+   "fieldtype": "Data",
+   "label": "Student Name",
+   "fetch_from": "student.student_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tutor",
+   "fieldtype": "Link",
+   "label": "Tutor",
+   "options": "Tutor Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tutor_name",
+   "fieldtype": "Data",
+   "label": "Tutor Name",
+   "fetch_from": "tutor.tutor_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "default": "NGN"
+  },
+  {
+   "fieldname": "section_break_amounts",
+   "fieldtype": "Section Break",
+   "label": "Amounts"
+  },
+  {
+   "fieldname": "gross_amount",
+   "fieldtype": "Currency",
+   "label": "Gross Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "stripe_fee",
+   "fieldtype": "Currency",
+   "label": "Stripe Fee",
+   "default": 0
+  },
+  {
+   "fieldname": "platform_fee",
+   "fieldtype": "Currency",
+   "label": "Platform Fee",
+   "default": 0
+  },
+  {
+   "fieldname": "tutor_amount",
+   "fieldtype": "Currency",
+   "label": "Tutor Amount",
+   "default": 0
+  },
+  {
+   "fieldname": "section_break_payment",
+   "fieldtype": "Section Break",
+   "label": "Payment Status"
+  },
+  {
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "Created\nPending\nSucceeded\nFailed",
+   "default": "Created",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "payment_intent_id",
+   "fieldtype": "Data",
+   "label": "Stripe Payment Intent"
+  },
+  {
+   "fieldname": "charge_id",
+   "fieldtype": "Data",
+   "label": "Stripe Charge ID"
+  },
+  {
+   "fieldname": "column_break_payment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payout_status",
+   "fieldtype": "Select",
+   "label": "Payout Status",
+   "options": "Not Eligible\nEligible\nTransfer Pending\nTransferred\nPaid Out\nPayout Failed",
+   "default": "Not Eligible",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "transfer_id",
+   "fieldtype": "Data",
+   "label": "Stripe Transfer ID"
+  },
+  {
+   "fieldname": "payout_id",
+   "fieldtype": "Data",
+   "label": "Payout ID"
+  },
+  {
+   "fieldname": "section_break_refund",
+   "fieldtype": "Section Break",
+   "label": "Refund / Dispute"
+  },
+  {
+   "fieldname": "refund_status",
+   "fieldtype": "Select",
+   "label": "Refund Status",
+   "options": "None\nRequested\nSucceeded\nFailed"
+  },
+  {
+   "fieldname": "refunded_amount",
+   "fieldtype": "Currency",
+   "label": "Refunded Amount",
+   "default": 0
+  },
+  {
+   "fieldname": "dispute_status",
+   "fieldtype": "Select",
+   "label": "Dispute Status",
+   "options": "None\nOpened\nResolved"
+  },
+  {
+   "fieldname": "section_break_meta",
+   "fieldtype": "Section Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "created_at",
+   "fieldtype": "Datetime",
+   "label": "Created At",
+   "default": "Now",
+   "read_only": 1
+  },
+  {
+   "fieldname": "updated_at",
+   "fieldtype": "Datetime",
+   "label": "Updated At",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Tutor",
+   "read": 1
+  },
+  {
+   "role": "Student",
+   "read": 1
+  }
+ ]
+}

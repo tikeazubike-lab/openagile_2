@@ -1,0 +1,133 @@
+{
+ "name": "Course Package",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "is_submittable": 0,
+ "autoname": "format:PKG-.#####",
+ "title_field": "package_name",
+ "search_fields": "package_name,tutor_name",
+ "fields": [
+  {
+   "fieldname": "package_name",
+   "fieldtype": "Data",
+   "label": "Package Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tutor",
+   "fieldtype": "Link",
+   "label": "Tutor",
+   "options": "Tutor Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tutor_name",
+   "fieldtype": "Data",
+   "label": "Tutor Name",
+   "fetch_from": "tutor.tutor_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Link",
+   "label": "Subject",
+   "options": "Subject"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nInactive\nSold Out",
+   "default": "Active",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_break_pricing",
+   "fieldtype": "Section Break",
+   "label": "Pricing"
+  },
+  {
+   "fieldname": "total_sessions",
+   "fieldtype": "Int",
+   "label": "Total Sessions",
+   "reqd": 1
+  },
+  {
+   "fieldname": "original_price",
+   "fieldtype": "Currency",
+   "label": "Original Price"
+  },
+  {
+   "fieldname": "discounted_price",
+   "fieldtype": "Currency",
+   "label": "Discounted Price",
+   "reqd": 1
+  },
+  {
+   "fieldname": "discount_percentage",
+   "fieldtype": "Percent",
+   "label": "Discount %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_validity",
+   "fieldtype": "Section Break",
+   "label": "Validity"
+  },
+  {
+   "fieldname": "validity_days",
+   "fieldtype": "Int",
+   "label": "Valid For (days)",
+   "default": 90
+  },
+  {
+   "fieldname": "max_students",
+   "fieldtype": "Int",
+   "label": "Max Students (0=unlimited)",
+   "default": 0
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": 1
+  },
+  {
+   "fieldname": "section_break_description",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "what_included",
+   "fieldtype": "Small Text",
+   "label": "What's Included"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Tutor",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  }
+ ]
+}

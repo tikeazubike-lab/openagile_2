@@ -1,0 +1,212 @@
+{
+ "name": "Session Schedule",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "is_submittable": 0,
+ "autoname": "format:SESS-.YYYY.-.#####",
+ "title_field": "session_title",
+ "search_fields": "tutor_name,student_name,subject",
+ "fields": [
+  {
+   "fieldname": "session_title",
+   "fieldtype": "Data",
+   "label": "Session Title",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tutor",
+   "fieldtype": "Link",
+   "label": "Tutor",
+   "options": "Tutor Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tutor_name",
+   "fieldtype": "Data",
+   "label": "Tutor Name",
+   "fetch_from": "tutor.tutor_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "student",
+   "fieldtype": "Link",
+   "label": "Student",
+   "options": "Student Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "student_name",
+   "fieldtype": "Data",
+   "label": "Student Name",
+   "fetch_from": "student.student_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Link",
+   "label": "Subject",
+   "options": "Subject",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "session_type",
+   "fieldtype": "Select",
+   "label": "Session Type",
+   "options": "1-on-1\nGroup\nOnline",
+   "default": "1-on-1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_break_schedule",
+   "fieldtype": "Section Break",
+   "label": "Schedule"
+  },
+  {
+   "fieldname": "scheduled_start_at_utc",
+   "fieldtype": "Datetime",
+   "label": "Start (UTC)",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "scheduled_end_at_utc",
+   "fieldtype": "Datetime",
+   "label": "End (UTC)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "duration_minutes",
+   "fieldtype": "Int",
+   "label": "Duration (minutes)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_schedule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tutor_timezone",
+   "fieldtype": "Data",
+   "label": "Tutor Timezone",
+   "default": "Africa/Lagos"
+  },
+  {
+   "fieldname": "student_timezone",
+   "fieldtype": "Data",
+   "label": "Student Timezone",
+   "default": "Africa/Lagos"
+  },
+  {
+   "fieldname": "section_break_status",
+   "fieldtype": "Section Break",
+   "label": "Status & Meeting"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Session Status",
+   "options": "Scheduled\nIn Progress\nAttendance Review\nCompleted\nCancelled\nDisputed\nNo Show\nPayout Eligible",
+   "default": "Scheduled",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "meeting_link",
+   "fieldtype": "Data",
+   "label": "Meeting Link",
+   "options": "URL"
+  },
+  {
+   "fieldname": "meeting_id",
+   "fieldtype": "Data",
+   "label": "Meeting ID"
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Session Price",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "default": "NGN"
+  },
+  {
+   "fieldname": "package_purchase",
+   "fieldtype": "Link",
+   "label": "Package Purchase",
+   "options": "Package Purchase"
+  },
+  {
+   "fieldname": "section_break_attendance",
+   "fieldtype": "Section Break",
+   "label": "Attendance"
+  },
+  {
+   "fieldname": "student_attendance_minutes",
+   "fieldtype": "Int",
+   "label": "Student Attendance (minutes)",
+   "read_only": 1,
+   "default": 0
+  },
+  {
+   "fieldname": "tutor_attendance_minutes",
+   "fieldtype": "Int",
+   "label": "Tutor Attendance (minutes)",
+   "read_only": 1,
+   "default": 0
+  },
+  {
+   "fieldname": "attendance_eligible",
+   "fieldtype": "Check",
+   "label": "Auto-Completion Eligible",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Session Notes"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Tutor",
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Student",
+   "read": 1
+  }
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "name": "Tutor Qualification",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "istable": 1,
+ "fields": [
+  {
+   "fieldname": "qualification_type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Degree\nCertificate\nLicense",
+   "reqd": 1
+  },
+  {
+   "fieldname": "institution",
+   "fieldtype": "Data",
+   "label": "Institution"
+  },
+  {
+   "fieldname": "degree_name",
+   "fieldtype": "Data",
+   "label": "Qualification Name"
+  },
+  {
+   "fieldname": "year_obtained",
+   "fieldtype": "Year",
+   "label": "Year Obtained"
+  },
+  {
+   "fieldname": "document",
+   "fieldtype": "Attach",
+   "label": "Proof Document"
+  }
+ ],
+ "permissions": []
+}

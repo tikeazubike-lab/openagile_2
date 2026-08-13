@@ -1,0 +1,91 @@
+{
+ "name": "Marketplace Settings",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "issingle": 1,
+ "fields": [
+  {
+   "fieldname": "section_break_fees",
+   "fieldtype": "Section Break",
+   "label": "Fee Configuration"
+  },
+  {
+   "fieldname": "platform_fee_percentage",
+   "fieldtype": "Percent",
+   "label": "Platform Fee %",
+   "default": 15,
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "default": "NGN"
+  },
+  {
+   "fieldname": "section_break_payout",
+   "fieldtype": "Section Break",
+   "label": "Payout Configuration"
+  },
+  {
+   "fieldname": "minimum_payout_amount",
+   "fieldtype": "Currency",
+   "label": "Minimum Payout Amount",
+   "default": 5000
+  },
+  {
+   "fieldname": "payout_frequency",
+   "fieldtype": "Select",
+   "label": "Payout Frequency",
+   "options": "Weekly\nBi-weekly\nMonthly",
+   "default": "Weekly"
+  },
+  {
+   "fieldname": "section_break_session",
+   "fieldtype": "Section Break",
+   "label": "Session Configuration"
+  },
+  {
+   "fieldname": "auto_complete_threshold",
+   "fieldtype": "Int",
+   "label": "Auto-Complete Threshold (%)",
+   "default": 80,
+   "description": "Student must attend this % of session duration for auto-completion eligibility"
+  },
+  {
+   "fieldname": "tutor_attendance_minimum",
+   "fieldtype": "Int",
+   "label": "Tutor Minimum Attendance (%)",
+   "default": 50,
+   "description": "Tutor must attend at least this % for auto-completion eligibility"
+  },
+  {
+   "fieldname": "section_break_moderation",
+   "fieldtype": "Section Break",
+   "label": "Moderation"
+  },
+  {
+   "fieldname": "require_tutor_verification",
+   "fieldtype": "Check",
+   "label": "Require Admin Verification for Tutors",
+   "default": 1
+  },
+  {
+   "fieldname": "allow_student_self_registration",
+   "fieldtype": "Check",
+   "label": "Allow Student Self-Registration",
+   "default": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  }
+ ]
+}

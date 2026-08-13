@@ -2,10 +2,11 @@
 type: FR
 id: F-027
 title: Tutor Marketplace Platform (EduHub)
-status: DRAFT
-version: 1.0
+status: REVIEWED
+version: 2.0
 updated: 2026-08-12
-author: Claude Web (Architect)
+author: OpenCode (Builder)
+reviewer: ChatGPT (Architecture Reviewer)
 ---
 
 # F-027 — Tutor Marketplace Platform
@@ -234,12 +235,299 @@ DELETE /api/resource/Tutor Profile/{name}
 | Jitsi Meet | External/Hosted | Video calls (free tier first) |
 | MariaDB | Database | Shared via Frappe |
 
-## 8. Open Questions
+## 8. Domain State Machines (ChatGPT Review — HO-108)
+
+### 8.1 Session State Machine
+
+Session status is NOT a simple string field. It follows an explicit state machine:
+
+```
+SCHEDULED
+    │
+    ▼
+IN_PROGRESS
+    │
+    ├──────────────► CANCELLED
+    │
+    ▼
+ATTENDANCE_REVIEW
+    │
+    ├──────────────► DISPUTED
+    │
+    ▼
+COMPLETED
+    │
+    ▼
+PAYOUT_ELIGIBLE
+```
+
+**Transition rules:**
+- `SCHEDULED → IN_PROGRESS`: Session start time reached OR tutor starts session
+- `IN_PROGRESS → CANCELLED`: Either party cancels before completion
+- `IN_PROGRESS → ATTENDANCE_REVIEW`: Session end time reached
+- `ATTENDANCE_REVIEW → COMPLETED`: Auto-completion criteria met (see 8.3)
+- `ATTENDANCE_REVIEW → DISPUTED`: Manual override by admin or either party
+- `COMPLETED → PAYOUT_ELIGIBLE`: Payment confirmed + no active dispute
+
+**Do NOT** collapse all business states into one `status` field without documented transition rules.
+
+### 8.2 Payment State Machine
+
+Payment state is INDEPENDENT from session state. Session completion does NOT automatically equal payment completion.
+
+```
+CREATED
+   │
+   ▼
+PAYMENT_PENDING
+   │
+   ├────────────► PAYMENT_FAILED
+   │
+   ▼
+PAID
+   │
+   ▼
+PAYOUT_ELIGIBLE
+   │
+   ▼
+TRANSFER_PENDING
+   │
+   ├────────────► PAYOUT_FAILED
+   │
+   ▼
+TRANSFERRED
+   │
+   ▼
+PAID_OUT
+```
+
+**Exceptional paths:**
+```
+PAID → REFUND_PENDING → REFUNDED
+PAID → DISPUTED
+```
+
+### 8.3 Session Completion — 80% Rule (with Tutor Attendance)
+
+The 80% threshold is an **automatic completion eligibility criterion**, NOT an unconditional payout trigger.
+
+**Auto-completion requires ALL of:**
+```
+student_attendance_duration >= 80% of scheduled
+    AND
+tutor_attendance_duration >= minimum threshold
+    AND
+Session was not cancelled
+    AND
+Payment is confirmed
+    AND
+No active dispute
+    ↓
+AUTO_COMPLETION_ELIGIBLE
+    ↓
+COMPLETED
+    ↓
+PAYOUT_ELIGIBLE
+```
+
+**Attendance calculation:** Aggregate intervals, NOT `last_seen - first_seen` (participants may disconnect/reconnect).
+
+```
+10:00 → 10:20
+10:22 → 10:48
+= 20 + 26 = 46 minutes
+```
+
+### 8.4 Atomic Booking — Double-Booking Prevention
+
+Booking operations MUST be atomic to prevent two students booking the same tutor slot:
+
+```sql
+BEGIN TRANSACTION
+    verify tutor availability
+    lock/recheck relevant booking state
+    verify no conflicting session
+    create Session Schedule
+    reserve slot
+COMMIT
+```
+
+The frontend availability check is NOT sufficient — backend must enforce atomically.
+
+### 8.5 Timezone Handling
+
+Store canonical UTC timestamps + user timezones:
+
+```
+scheduled_start_at_utc
+scheduled_end_at_utc
+tutor_timezone
+student_timezone
+```
+
+Frontend renders sessions in the current user's timezone. Never use server/local timezone as marketplace truth.
+
+### 8.6 Authenticated Meeting Identity
+
+Do NOT use guessable meeting URLs as sole access mechanism. Meeting authorization must bind:
+
+```
+session_id
+user_id
+role
+expiry
+```
+
+### 8.7 Manual Dispute Override — Required
+
+Owner/Admin MUST be able to resolve exceptional sessions. Possible decisions:
+
+```
+Complete
+Partial payout
+Full refund
+Partial refund
+No payout
+Reschedule
+Cancel
+```
+
+Any manual override must record: actor, timestamp, previous state, new state, reason.
+
+## 9. Financial Flow (ChatGPT Review — HO-108)
+
+### 9.1 Stripe Connect — Separate Charges and Transfers
+
+```
+Student
+   │
+   ▼
+Stripe charge
+   │
+   ▼
+Platform Stripe balance
+   │
+   ├── platform commission
+   │
+   └── tutor amount
+           │
+           │ session becomes payout eligible
+           ▼
+      Stripe transfer
+           │
+           ▼
+         Tutor
+```
+
+Do NOT use destination charges if funds must remain under platform control until session completion.
+
+### 9.2 Stripe Webhooks Are Authoritative
+
+The browser must NEVER be the authoritative source for payment success.
+
+```
+React → "Payment successful" → Frappe marks Completed  ❌ WRONG
+
+Student → Stripe → Stripe webhook → Verify signature → Idempotency check → Persist event → Update Payment  ✅ CORRECT
+```
+
+Every processed Stripe event must have:
+- `stripe_event_id`
+- `event_type`
+- `received_at`
+- `processed_at`
+- `processing_status`
+
+### 9.3 Payment Idempotency
+
+Must tolerate: duplicate webhooks, worker retries, HTTP retries, browser refreshes, network failures, Stripe event replay.
+
+```
+Stripe Event → Already processed? → YES: ignore → NO: process → persist → update
+```
+
+### 9.4 Enhanced Payment Transaction Model
+
+Extend the base model with production financial fields:
+
+```
+internal_transaction_id
+session, student, tutor, currency
+gross_amount, stripe_fee, platform_fee, tutor_amount
+payment_status, payment_intent_id, charge_id
+payout_status, transfer_id, payout_id
+refund_status, refunded_amount
+dispute_status
+created_at, updated_at
+```
+
+### 9.5 Immutable Financial Audit Trail
+
+Every financial state transition recorded as append-only events:
+
+```
+PAYMENT_CREATED, PAYMENT_SUCCEEDED, PAYMENT_FAILED
+SESSION_COMPLETED, PAYOUT_ELIGIBLE
+TRANSFER_CREATED, TRANSFER_SUCCEEDED, TRANSFER_FAILED
+REFUND_REQUESTED, REFUND_SUCCEEDED, REFUND_FAILED
+DISPUTE_OPENED, DISPUTE_RESOLVED
+TRANSFER_REVERSED
+```
+
+Each event: `event_id, payment_transaction, event_type, previous_state, new_state, amount, currency, stripe_event_id, actor_type, actor_id, reason, metadata, created_at`
+
+### 9.6 Refund Architecture
+
+Required scenarios with explicit policies:
+
+| Scenario | Student Refund | Tutor Compensation | Platform Fee |
+|----------|---------------|-------------------|--------------|
+| Student cancels | Configurable % | None | Retained |
+| Tutor cancels | Full refund | None | Waived |
+| Student no-show | Partial refund | Full payout | Retained |
+| Tutor no-show | Full refund | None | Waived |
+| Technical failure | Full refund | None | Waived |
+| Mutual cancellation | Configurable | Configurable | Waived |
+| Admin cancellation | Configurable | Configurable | Configurable |
+
+**Policy fields are configurable in Marketplace Settings. Do NOT hardcode.**
+
+## 10. Security Rules (ChatGPT Review — HO-108)
+
+The following values must NEVER be trusted from the browser:
+
+```
+session status
+attendance percentage
+payment status
+platform fee
+tutor payout
+refund amount
+Stripe transaction state
+payout status
+```
+
+The server calculates/authorizes all of them.
+
+- **Price**: Determine from server-side tutor/package/rate configuration
+- **Platform fee**: Calculate server-side
+- **Tutor payout**: Calculate server-side
+- **Completion**: Calculate server-side
+- **Attendance**: Derive from meeting events
+- **Payment**: Derive from verified Stripe events
+
+## 11. Cancellation/Refund Policy
+
+(To be defined in collaboration with Zubbyik — leave as configurable policy fields in Marketplace Settings)
+
+## 12. Open Questions
 
 | ID | Question | Default | Owner |
 |----|----------|---------|-------|
-| OQ-F027-1 | Stripe Connect or Stripe standard for split payments? | Stripe Connect (better for marketplace) | Zubbyik |
+| OQ-F027-1 | Stripe Connect or Stripe standard for split payments? | **Stripe Connect — separate charges/transfers** | RESOLVED (HO-108) |
 | OQ-F027-2 | Should students be able to rate tutors after session? | Yes — 1-5 stars + comment | Zubbyik |
-| OQ-F027-3 | What happens if student doesn't show up? | Status → No Show, partial refund | Zubbyik |
+| OQ-F027-3 | What happens if student doesn't show up? | Partial refund, tutor gets full payout | Zubbyik |
 | OQ-F027-4 | Should tutor set their own rates or use platform default? | Both — tutor rate overrides platform default | Zubbyik |
 | OQ-F027-5 | Group sessions — how many students max? | Configurable per session (default 10) | Zubbyik |
+| OQ-F027-6 | Cancellation policy percentages? | Configurable in Marketplace Settings | Zubbyik |
+| OQ-F027-7 | Stripe country/currency support? | Nigeria (NGN) primary | Zubbyik |

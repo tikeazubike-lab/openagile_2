@@ -1,0 +1,169 @@
+{
+ "name": "Tutor Profile",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "is_submittable": 0,
+ "is_tree": 0,
+ "autoname": "field:tutor_name",
+ "title_field": "tutor_name",
+ "search_fields": "tutor_name,bio",
+ "fields": [
+  {
+   "fieldname": "tutor_name",
+   "fieldtype": "Data",
+   "label": "Tutor Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "instructor",
+   "fieldtype": "Link",
+   "label": "Instructor",
+   "options": "Instructor"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nSuspended\nPending",
+   "default": "Pending"
+  },
+  {
+   "fieldname": "is_verified",
+   "fieldtype": "Check",
+   "label": "Verified",
+   "default": 0
+  },
+  {
+   "fieldname": "section_break_bio",
+   "fieldtype": "Section Break",
+   "label": "Profile"
+  },
+  {
+   "fieldname": "bio",
+   "fieldtype": "Small Text",
+   "label": "Bio"
+  },
+  {
+   "fieldname": "profile_image",
+   "fieldtype": "Attach Image",
+   "label": "Profile Image"
+  },
+  {
+   "fieldname": "section_break_rates",
+   "fieldtype": "Section Break",
+   "label": "Rates & Payment"
+  },
+  {
+   "fieldname": "hourly_rate",
+   "fieldtype": "Currency",
+   "label": "Hourly Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "default": "NGN"
+  },
+  {
+   "fieldname": "column_break_rates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_method",
+   "fieldtype": "Select",
+   "label": "Payment Method",
+   "options": "Stripe\nBank Transfer",
+   "default": "Stripe"
+  },
+  {
+   "fieldname": "stripe_account_id",
+   "fieldtype": "Data",
+   "label": "Stripe Account ID",
+   "depends_on": "eval:doc.payment_method == 'Stripe'"
+  },
+  {
+   "fieldname": "section_break_stats",
+   "fieldtype": "Section Break",
+   "label": "Statistics"
+  },
+  {
+   "fieldname": "rating",
+   "fieldtype": "Float",
+   "label": "Rating",
+   "read_only": 1,
+   "default": 0
+  },
+  {
+   "fieldname": "total_reviews",
+   "fieldtype": "Int",
+   "label": "Total Reviews",
+   "read_only": 1,
+   "default": 0
+  },
+  {
+   "fieldname": "section_break_subjects",
+   "fieldtype": "Section Break",
+   "label": "Subjects"
+  },
+  {
+   "fieldname": "subjects",
+   "fieldtype": "Table",
+   "label": "Subjects",
+   "options": "Tutor Subject"
+  },
+  {
+   "fieldname": "section_break_availability",
+   "fieldtype": "Section Break",
+   "label": "Availability"
+  },
+  {
+   "fieldname": "availability",
+   "fieldtype": "Table",
+   "label": "Availability",
+   "options": "Tutor Availability"
+  },
+  {
+   "fieldname": "section_break_qualifications",
+   "fieldtype": "Section Break",
+   "label": "Qualifications"
+  },
+  {
+   "fieldname": "qualifications",
+   "fieldtype": "Table",
+   "label": "Qualifications",
+   "options": "Tutor Qualification"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Tutor",
+   "read": 1,
+   "write": 1,
+   "create": 0
+  }
+ ]
+}

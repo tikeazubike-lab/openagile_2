@@ -1,0 +1,95 @@
+{
+ "name": "Payment Audit Event",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "is_submittable": 0,
+ "autoname": "format:AUDIT-.YYYY.-.#####",
+ "fields": [
+  {
+   "fieldname": "payment_transaction",
+   "fieldtype": "Link",
+   "label": "Payment Transaction",
+   "options": "Payment Transaction",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Select",
+   "label": "Event Type",
+   "options": "PAYMENT_CREATED\nPAYMENT_SUCCEEDED\nPAYMENT_FAILED\nSESSION_COMPLETED\nPAYOUT_ELIGIBLE\nTRANSFER_CREATED\nTRANSFER_SUCCEEDED\nTRANSFER_FAILED\nREFUND_REQUESTED\nREFUND_SUCCEEDED\nREFUND_FAILED\nDISPUTE_OPENED\nDISPUTE_RESOLVED\nTRANSFER_REVERSED",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "previous_state",
+   "fieldtype": "Data",
+   "label": "Previous State"
+  },
+  {
+   "fieldname": "new_state",
+   "fieldtype": "Data",
+   "label": "New State"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "stripe_event_id",
+   "fieldtype": "Data",
+   "label": "Stripe Event ID"
+  },
+  {
+   "fieldname": "actor_type",
+   "fieldtype": "Select",
+   "label": "Actor Type",
+   "options": "System\nStudent\nTutor\nAdmin\nWebhook"
+  },
+  {
+   "fieldname": "actor_id",
+   "fieldtype": "Data",
+   "label": "Actor ID"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason"
+  },
+  {
+   "fieldname": "metadata",
+   "fieldtype": "Code",
+   "label": "Metadata (JSON)",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "created_at",
+   "fieldtype": "Datetime",
+   "label": "Created At",
+   "default": "Now",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 0,
+   "create": 1,
+   "delete": 0
+  }
+ ]
+}

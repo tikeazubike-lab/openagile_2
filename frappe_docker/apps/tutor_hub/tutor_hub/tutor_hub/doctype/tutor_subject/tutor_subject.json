@@ -1,0 +1,37 @@
+{
+ "name": "Tutor Subject",
+ "module": "Tutor Hub",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "istable": 1,
+ "fields": [
+  {
+   "fieldname": "subject",
+   "fieldtype": "Link",
+   "label": "Subject",
+   "options": "Subject",
+   "reqd": 1
+  },
+  {
+   "fieldname": "level",
+   "fieldtype": "Select",
+   "label": "Level",
+   "options": "Beginner\nIntermediate\nAdvanced",
+   "default": "Beginner"
+  },
+  {
+   "fieldname": "experience_years",
+   "fieldtype": "Int",
+   "label": "Years of Experience",
+   "default": 0
+  },
+  {
+   "fieldname": "rate_adjustment",
+   "fieldtype": "Currency",
+   "label": "Rate Adjustment",
+   "default": 0
+  }
+ ],
+ "permissions": []
+}
