@@ -26,7 +26,7 @@ The existing frontend (`tutor-connect-hub/`) includes:
 ### Backend Status
 The Frappe backend needs to be created:
 - ❌ New Frappe app `tutor_marketplace` - NOT CREATED
-- ❌ New site `tuts.erpnext.zubbystudio.shop` - NOT CREATED
+- ❌ New site `tuts.erpnext.zubbystudio.site` - NOT CREATED
 - ❌ DocTypes for Tutor Marketplace - NOT CREATED
 - ❌ API endpoints - NOT CREATED
 - ❌ Payment gateway integrations - NOT CREATED
@@ -46,14 +46,14 @@ The implementation will follow a phased approach, with the frontend and backend 
    - Create app icon and metadata
 
 2. **Create New Site**
-   - Create new site `tuts.erpnext.zubbystudio.shop`
+   - Create new site `tuts.erpnext.zubbystudio.site`
    - Configure site settings
    - Install `tutor_marketplace` app on the site
    - Configure site for multi-tenancy
 
 3. **Set Up Docker Configuration**
    - Update `docker-compose.yml` to include new site
-   - Configure Traefik routing for `tuts.erpnext.zubbystudio.shop`
+   - Configure Traefik routing for `tuts.erpnext.zubbystudio.site`
    - Set up volume mounts for new site
    - Test container startup
 
@@ -88,7 +88,7 @@ The implementation will follow a phased approach, with the frontend and backend 
 3. **Create Environment Variables**
    - Create `.env` file with:
      ```
-     VITE_FRAPPE_URL=https://tuts.erpnext.zubbystudio.shop
+     VITE_FRAPPE_URL=https://tuts.erpnext.zubbystudio.site
      VITE_STRIPE_PUBLIC_KEY=your_stripe_public_key
      VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
      ```
@@ -764,7 +764,7 @@ The implementation is considered complete when:
 - [ ] All API methods are implemented and whitelisted
 - [ ] Payment gateways are integrated and tested
 - [ ] Email notifications are working
-- [ ] Site is accessible at `tuts.erpnext.zubbystudio.shop`
+- [ ] Site is accessible at `tuts.erpnext.zubbystudio.site`
 - [ ] All tests pass
 - [ ] Security audit is complete
 

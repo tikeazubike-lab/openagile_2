@@ -1,12 +1,12 @@
 # backend/tests/performance/locustfile.py
 """
 Stage 5A — Performance Tests (Locust)
-Runs against staging: testdrive.epm.zubbystudio.shop
+Runs against staging: testdrive.epm.zubbystudio.site
 
 Usage (from GitHub Actions or manually on server):
   locust -f backend/tests/performance/locustfile.py \
          --headless \
-         --host=https://testdrive.epm.zubbystudio.shop \
+         --host=https://testdrive.epm.zubbystudio.site \
          --users=50 \
          --spawn-rate=5 \
          --run-time=60s \

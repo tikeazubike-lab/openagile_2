@@ -37,7 +37,7 @@ testbuild.zubbystudio.shop
 | Checklist HTML location | `backend/app/static/checklist/index.html` (384 lines) |
 | Checklist JS API calls | Relative `/api/v1/checklist/runs` (POST on save, GET on load) |
 | EPM API router | `backend/app/routers/checklist.py` with `require_admin` guard |
-| EPM CORS | `ALLOWED_ORIGINS=https://testdrive.epm.zubbystudio.shop` |
+| EPM CORS | `ALLOWED_ORIGINS=https://testdrive.epm.zubbystudio.site` |
 | EPM compose file | `docker-compose.v3.yml` using `cloudflare` certresolver |
 | DNS | `testbuild.zubbystudio.shop` A record resolves to VPS IP |
 | Traefik network | `openagile_openagile_network` (external) |

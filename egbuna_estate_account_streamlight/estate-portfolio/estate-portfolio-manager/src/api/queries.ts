@@ -189,11 +189,22 @@ export function usePublishHolding() {
 
 // ─── NAV History ───────────────────────────────────────────────────────────────
 
-export function useNavHistory() {
-  return useQuery({
-    queryKey: ["nav-history"],
-    queryFn: () => apiFetch("/api/v1/nav-history"),
-    enabled: false,
+import type { NavHistoryResponse } from "@/types";
+
+export function useNavHistory(start_date?: string, end_date?: string) {
+  const params = new URLSearchParams();
+  if (start_date) params.set("start_date", start_date);
+  if (end_date) params.set("end_date", end_date);
+  const qs = params.toString();
+
+  return useQuery<NavHistoryResponse>({
+    queryKey: ["nav-history", start_date, end_date],
+    queryFn: async () => {
+      const res = await apiFetch<{ data_points: any[]; summary: any; coverage: any }>(
+        `/api/v1/nav-history${qs ? `?${qs}` : ""}`
+      );
+      return res as unknown as NavHistoryResponse;
+    },
   });
 }
 
@@ -415,6 +426,66 @@ export function useBulkCsvCostBasis() {
   });
 }
 
+// ─── Claims Upload (F-011) ───────────────────────────────────────────────────
+
+export function useClaimsUploadPreview() {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return fetchApiEnvelope<{
+        rows: Array<Record<string, unknown>>;
+        summary: { total_rows: number; matched: number; unmatched: number; duplicates_skipped: number };
+      }>("/api/v1/claims/upload/preview", {
+        method: "POST",
+        body: form,
+      });
+    },
+  });
+}
+
+export function useClaimsUploadCommit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { rows: Array<Record<string, unknown>>; confirm_unmatched: boolean }) =>
+      fetchApiEnvelope<{
+        created: number;
+        skipped: number;
+        errors: string[];
+        total: number;
+      }>("/api/v1/claims/upload/commit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["holdings"] });
+      qc.invalidateQueries({ queryKey: ["claims"] });
+    },
+  });
+}
+
+export function downloadClaimsTemplate() {
+  const url = "/api/v1/claims/upload/template";
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "claims_upload_template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function useClaimsByRegistrar(registrarId: number | null) {
+  return useQuery({
+    queryKey: ["claims", "registrar", registrarId],
+    queryFn: () =>
+      apiFetch<Array<Record<string, unknown>>>(
+        `/api/v1/claims?registrar_id=${registrarId}`,
+      ),
+    enabled: !!registrarId,
+  });
+}
+
 // ─── Registrars & Documents ──────────────────────────────────────────────────
 
 export function useRegistrars() {
@@ -615,6 +686,23 @@ export function useDocumentHistory(reqId: number | null) {
     queryKey: ["document-history", reqId],
     queryFn: () => apiFetch<any[]>(`/api/v1/registrar-requirements/${reqId}/history`),
     enabled: !!reqId,
+  });
+}
+
+// ─── F-026 Registrar Dashboard ──────────────────────────────────────────────
+
+export function useRegistrarDashboardSummary() {
+  return useQuery({
+    queryKey: ["registrar-dashboard-summary"],
+    queryFn: () => apiFetch<any>("/api/v1/registrars/dashboard-summary"),
+  });
+}
+
+export function useGlobalTracker(page = 1, pageSize = 20) {
+  return useQuery({
+    queryKey: ["registrar-global-tracker", page, pageSize],
+    queryFn: () =>
+      apiFetch<any>(`/api/v1/registrar-requirements/global-tracker?page=${page}&page_size=${pageSize}`),
   });
 }
 

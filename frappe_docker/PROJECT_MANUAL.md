@@ -16,10 +16,10 @@
 - **Infrastructure**: Integrated with OpenAgile Traefik stack
 
 **Live Sites**:
-- Main ERPNext: `https://erpnext.zubbystudio.shop`
-- Library Management: `https://library.erpnext.zubbystudio.shop`
-- Education Portal: `https://edu.erpnext.zubbystudio.shop`
-- Landing Page (Vue.js): `https://edu.erpnext.zubbystudio.shop/landing`
+- Main ERPNext: `https://erpnext.zubbystudio.site`
+- Library Management: `https://library.erpnext.zubbystudio.site`
+- Education Portal: `https://edu.erpnext.zubbystudio.site`
+- Landing Page (Vue.js): `https://edu.erpnext.zubbystudio.site/landing`
 
 ---
 
@@ -154,7 +154,7 @@ This project MUST follow patterns from [`../INFRASTRUCTURE_CONTRACT.md`](file://
 labels:
   - \"traefik.enable=true\"
   - \"traefik.docker.network=openagile_openagile_network\"  # CRITICAL
-  - \"traefik.http.routers.erpnext.rule=Host(`erpnext.zubbystudio.shop`)\"
+  - \"traefik.http.routers.erpnext.rule=Host(`erpnext.zubbystudio.site`)\"
   - \"traefik.http.routers.erpnext.entrypoints=websecure\"
   - \"traefik.http.routers.erpnext.tls.certresolver=cloudflare\"
   - \"traefik.http.services.erpnext-frontend.loadbalancer.server.port=8080\"
@@ -185,9 +185,9 @@ frappe_docker/
 │   └── library_management/              # Library app
 ├── sites/
 │   ├── apps.txt                         # List of installed apps
-│   ├── erpnext.zubbystudio.shop/        # Site 1
-│   ├── library.erpnext.zubbystudio.shop/ # Site 2
-│   └── edu.erpnext.zubbystudio.shop/    # Site 3 (with Vue landing page)
+│   ├── erpnext.zubbystudio.site/        # Site 1
+│   ├── library.erpnext.zubbystudio.site/ # Site 2
+│   └── edu.erpnext.zubbystudio.site/    # Site 3 (with Vue landing page)
 ├── docs/
 │   └── custom_app_deployment_troubleshooting.md
 └── .github/workflows/                   # Docker image builds only

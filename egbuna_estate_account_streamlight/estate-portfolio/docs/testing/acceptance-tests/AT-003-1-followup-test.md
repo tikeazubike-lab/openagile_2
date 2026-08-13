@@ -6,7 +6,7 @@ status: PENDING
 version: 1.0
 created: 2026-05-19
 tester: [fill in]
-environment: testdrive.epm.zubbystudio.shop
+environment: testdrive.epm.zubbystudio.site
 branch: test
 parent: AT-003
 fixes_from: HO-011 through HO-016
@@ -80,9 +80,9 @@ reason: The feature above has not been built
 ### Add Holding Drawer (was inline row, redesigned in HO-011)
 - [x] SC-UI-027: Clicking [+ Add Holding] opens a slide-out drawer from the right; holdings table remains visible
 - [x] SC-UI-027b: Pressing Escape or clicking × closes the drawer; no API call; form resets
-- [fail] SC-UI-028: Filling Company, Shares, Avg Cost and clicking Save as Draft creates holding with status "draft"; DRAFT badge appears. Reason: "queries-eMM2o_QQ.js:1  POST https://testdrive.epm.zubbystudio.shop/api/v1/holdings 500 (Internal Server Error)"
+- [fail] SC-UI-028: Filling Company, Shares, Avg Cost and clicking Save as Draft creates holding with status "draft"; DRAFT badge appears. Reason: "queries-eMM2o_QQ.js:1  POST https://testdrive.epm.zubbystudio.site/api/v1/holdings 500 (Internal Server Error)"
 
-- [fail] SC-UI-028b: Clicking Save & Publish creates holding with status "live"; LIVE badge appears. Reason: queries-eMM2o_QQ.js:1  POST https://testdrive.epm.zubbystudio.shop/api/v1/holdings 500 (Internal Server Error)
+- [fail] SC-UI-028b: Clicking Save & Publish creates holding with status "live"; LIVE badge appears. Reason: queries-eMM2o_QQ.js:1  POST https://testdrive.epm.zubbystudio.site/api/v1/holdings 500 (Internal Server Error)
 ...
 
 - [skipped] SC-UI-029: Adding a holding for a company that already exists shows error in drawer; no API call. Reason: This test builds on the previous tests, which are not working.
@@ -91,7 +91,7 @@ reason: The feature above has not been built
 - [x] SC-UI-022b: Toggling edit mode OFF while a row is being edited clears the inline inputs immediately; no stale form visible
 
 ### Delete Holding (was not persisting in AT-003 — fixed in HO-012)
-- [fail] SC-UI-031: Clicking Delete shows confirmation dialog; confirming removes row from table; refresh confirms row is gone from database. Reason: This test builds on the previous tests, which are not working. Reason: confirm but fails to save the changes. Error: queries-eMM2o_QQ.js:1  DELETE https://testdrive.epm.zubbystudio.shop/api/v1/holdings/2 500 (Internal Server Error)
+- [fail] SC-UI-031: Clicking Delete shows confirmation dialog; confirming removes row from table; refresh confirms row is gone from database. Reason: This test builds on the previous tests, which are not working. Reason: confirm but fails to save the changes. Error: queries-eMM2o_QQ.js:1  DELETE https://testdrive.epm.zubbystudio.site/api/v1/holdings/2 500 (Internal Server Error)
 S @ queries-eMM2o_QQ.js:1
 ...
 $v @ index-F2uLzylf.js:10
@@ -130,7 +130,7 @@ $v @ index-F2uLzylf.js:10
 ### Delete Registrar (button was missing in AT-003 — fixed in HO-014)
 - [x] SC-UI-038: [Delete] button (red/danger) is visible next to [Edit Registrar] in detail panel when edit mode ON
 - [x] SC-UI-039: Clicking Delete shows confirmation; confirming removes registrar from left panel
-- [fail] SC-UI-039b: Delete of the registrar has failed on confirming delete. Reason: queries-eMM2o_QQ.js:1  DELETE https://testdrive.epm.zubbystudio.shop/api/v1/registrars/5 500 (Internal Server Error)
+- [fail] SC-UI-039b: Delete of the registrar has failed on confirming delete. Reason: queries-eMM2o_QQ.js:1  DELETE https://testdrive.epm.zubbystudio.site/api/v1/registrars/5 500 (Internal Server Error)
 - [x] SC-UI-040: Confirmation mentions number of linked companies if any exist
 
 ---

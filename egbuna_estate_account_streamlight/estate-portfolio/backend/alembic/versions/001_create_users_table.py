@@ -14,25 +14,28 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "001"
-down_revision: Union[str, None] = None
+down_revision: Union[str, None] = "000"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "users",
-        sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("username", sa.String(50), nullable=False, unique=True),
-        sa.Column("name", sa.String(255), nullable=False),
-        sa.Column("hashed_password", sa.String(255), nullable=False),
-        sa.Column("role", sa.String(20), nullable=False, server_default="readonly"),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
-        sa.Column("deleted_at", sa.DateTime(), nullable=True),
-    )
-    op.create_index("ix_users_username", "users", ["username"], unique=True)
+    # Idempotent: baseline 000 already creates this table; skip if it exists.
+    conn = op.get_bind()
+    if not conn.dialect.has_table(conn, "users"):
+        op.create_table(
+            "users",
+            sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
+            sa.Column("username", sa.String(50), nullable=False, unique=True),
+            sa.Column("name", sa.String(255), nullable=False),
+            sa.Column("hashed_password", sa.String(255), nullable=False),
+            sa.Column("role", sa.String(20), nullable=False, server_default="readonly"),
+            sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
+            sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
+            sa.Column("updated_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
+            sa.Column("deleted_at", sa.DateTime(), nullable=True),
+        )
+        op.create_index("ix_users_username", "users", ["username"], unique=True)
 
 
 def downgrade() -> None:

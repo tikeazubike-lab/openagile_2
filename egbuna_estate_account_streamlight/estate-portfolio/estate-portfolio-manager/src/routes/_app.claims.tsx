@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
   Search,
@@ -87,6 +87,26 @@ function ClaimsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [openRow, setOpenRow] = useState<Claim | null>(null);
   const [profileReg, setProfileReg] = useState<Registrar | null>(null);
+
+  // ─── Resolve claim state ─────────────────────────────────────────────────
+  const queryClient = useQueryClient();
+  const [resolveSearch, setResolveSearch] = useState("");
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
+
+  const resolveMutation = useMutation({
+    mutationFn: async ({ claimId, companyId }: { claimId: number; companyId: number }) => {
+      return apiFetch(`/api/v1/claims/${claimId}/resolve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_id: companyId }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["claims"] });
+      setResolvingId(null);
+      setResolveSearch("");
+    },
+  });
 
   // ─── Derived / memoised ──────────────────────────────────────────────────
 
@@ -718,6 +738,63 @@ function ClaimsPage() {
                     View Registrar Holdings
                   </Button>
                 </div>
+
+                {/* Resolve section — only for unresolved claims with no holding */}
+                {r.claim.lifecycle_status === "unresolved" && !r.claim.holding && (
+                  <div className="mt-6 p-4 rounded-lg border border-[var(--accent-amber)]/30 bg-[var(--accent-amber)]/5">
+                    <div className="text-[10px] font-semibold tracking-widest text-[var(--accent-amber)] mb-2">
+                      UNRESOLVED CLAIM
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] mb-3">
+                      No company match found. Raw name: <strong>{r.claim.raw_company_name || "—"}</strong>
+                    </p>
+                    {resolvingId === r.claim.id ? (
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Search company by name..."
+                          value={resolveSearch}
+                          onChange={(e) => setResolveSearch(e.target.value)}
+                          className="text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { setResolvingId(null); setResolveSearch(""); }}
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={!resolveSearch || isNaN(Number(resolveSearch))}
+                            onClick={() => {
+                              const cid = Number(resolveSearch);
+                              if (!isNaN(cid)) {
+                                resolveMutation.mutate({ claimId: r.claim.id, companyId: cid });
+                              }
+                            }}
+                            className="flex-1 bg-[var(--accent-lavender)] text-[var(--bg-canvas)]"
+                          >
+                            {resolveMutation.isPending ? "Resolving..." : "Resolve"}
+                          </Button>
+                        </div>
+                        <p className="text-[10px] text-[var(--text-muted)]">
+                          Enter the company ID and confirm. Check the Companies page for IDs.
+                        </p>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setResolvingId(r.claim.id)}
+                      >
+                        Link to Company
+                      </Button>
+                    )}
+                  </div>
+                )}
               </>
             );
           })()}

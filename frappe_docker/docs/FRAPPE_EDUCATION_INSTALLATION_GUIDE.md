@@ -111,7 +111,7 @@ ls apps/education/education
 #### Step B.1: Add DNS Record
 
 1. Log into **Cloudflare Dashboard**: https://dash.cloudflare.com
-2. Select domain: `zubbystudio.shop`
+2. Select domain: `zubbystudio.site`
 3. Navigate to **DNS → Records**
 4. Click **Add record**:
 
@@ -119,7 +119,7 @@ ls apps/education/education
 |---------|-------|
 | **Type** | A |
 | **Name** | edu.erpnext |
-| **IPv4 Address** | `185.216.177.250` (same as erpnext.zubbystudio.shop) |
+| **IPv4 Address** | `185.216.177.250` (same as erpnext.zubbystudio.site) |
 | **Proxy status** | ☁️ Proxied (orange cloud) |
 | **TTL** | Auto |
 
@@ -129,10 +129,10 @@ ls apps/education/education
 
 ```bash
 # Can run from anywhere (local or server)
-dig edu.erpnext.zubbystudio.shop +short
+dig edu.erpnext.zubbystudio.site +short
 # Should return: 185.216.177.250 (or Cloudflare proxy IP)
 
-nslookup edu.erpnext.zubbystudio.shop
+nslookup edu.erpnext.zubbystudio.site
 ```
 
 ---
@@ -156,7 +156,7 @@ Add these labels for the education site in the `frontend` service section:
 
 ```yaml
       # Education site - ADD THIS BLOCK
-      - "traefik.http.routers.erpnext-education.rule=Host(`edu.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-education.rule=Host(`edu.erpnext.zubbystudio.site`)"
       - "traefik.http.routers.erpnext-education.entrypoints=websecure"
       - "traefik.http.routers.erpnext-education.tls=true"
       - "traefik.http.routers.erpnext-education.tls.certresolver=cloudflare"
@@ -166,7 +166,7 @@ Add these labels for the education site in the `frontend` service section:
 Update the HTTP redirect rule to include the new site:
 
 ```yaml
-      - "traefik.http.routers.erpnext-http.rule=Host(`erpnext.zubbystudio.shop`) || Host(`library.erpnext.zubbystudio.shop`) || Host(`edu.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-http.rule=Host(`erpnext.zubbystudio.site`) || Host(`library.erpnext.zubbystudio.site`) || Host(`edu.erpnext.zubbystudio.site`)"
 ```
 
 Add security headers middleware:
@@ -275,7 +275,7 @@ cat sites/common_site_config.json | grep dns_multitenant
 
 ```bash
 # Inside backend container:
-bench new-site edu.erpnext.zubbystudio.shop \
+bench new-site edu.erpnext.zubbystudio.site \
   --db-name education_db \
   --mariadb-root-password admin \
   --admin-password YourSecurePassword123! \
@@ -287,8 +287,8 @@ bench new-site edu.erpnext.zubbystudio.shop \
 
 ```bash
 # Inside backend container:
-bench --site edu.erpnext.zubbystudio.shop enable-scheduler
-bench --site edu.erpnext.zubbystudio.shop clear-cache
+bench --site edu.erpnext.zubbystudio.site enable-scheduler
+bench --site edu.erpnext.zubbystudio.site clear-cache
 bench --site all list
 
 # Exit container
@@ -315,7 +315,7 @@ exit
 
 #### Step F.1: Browser Testing
 
-1. Open: https://edu.erpnext.zubbystudio.shop
+1. Open: https://edu.erpnext.zubbystudio.site
 2. Verify SSL certificate is valid (no warnings)
 3. Login with:
    - **Username**: `Administrator`
@@ -360,8 +360,8 @@ docker compose exec backend bench --site all list
 
 ```bash
 # ON SERVER
-docker compose exec backend bench --site edu.erpnext.zubbystudio.shop install-app education
-docker compose exec backend bench --site edu.erpnext.zubbystudio.shop migrate
+docker compose exec backend bench --site edu.erpnext.zubbystudio.site install-app education
+docker compose exec backend bench --site edu.erpnext.zubbystudio.site migrate
 docker compose exec backend bench build --app education
 ```
 
@@ -381,7 +381,7 @@ docker compose restart frontend
 |-------------|-------------|---------|
 | Edit code files | Local workstation | `nano apps/education/...` |
 | Git operations | Local workstation | `git add`, `git commit`, `git push` |
-| Check DNS | Anywhere | `dig edu.erpnext.zubbystudio.shop` |
+| Check DNS | Anywhere | `dig edu.erpnext.zubbystudio.site` |
 | docker compose | **Server SSH only** | `ssh server` then `docker compose ps` |
 | bench commands | **Server SSH only** | Inside container via `docker compose exec` |
 | View logs | **Server SSH only** | `docker compose logs backend` |
@@ -396,7 +396,7 @@ docker compose restart frontend
 3. PUSH (Local)      →  git push origin main
 4. WAIT (GitHub)     →  Watch Actions for green checkmark
 5. SSH (Server)      →  Create site, run migrations (one-time setup)
-6. VERIFY (Browser)  →  Test at https://edu.erpnext.zubbystudio.shop
+6. VERIFY (Browser)  →  Test at https://edu.erpnext.zubbystudio.site
 ```
 
 ---

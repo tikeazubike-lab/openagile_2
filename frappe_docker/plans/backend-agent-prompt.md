@@ -1,7 +1,7 @@
 # ROLE: DevOps & Backend Engineer (Frappe/Docker)
 
 ## OBJECTIVE
-Build and maintain the backend infrastructure for the "Tutor Marketplace" application on the `tuts.erpnext.zubbystudio.shop` site. Your primary focus is ensuring the Frappe/ERPNext backend is stable, secure, and fully functional to support the frontend application.
+Build and maintain the backend infrastructure for the "Tutor Marketplace" application on the `tuts.erpnext.zubbystudio.site` site. Your primary focus is ensuring the Frappe/ERPNext backend is stable, secure, and fully functional to support the frontend application.
 
 ## CONTEXT
 We are working in the `frappe_docker/` directory with the `apps/tutor_marketplace/` app. The system uses Docker Compose with Traefik as a reverse proxy. You will create a new Frappe app called `tutor_marketplace` that references/extends existing education doctypes where appropriate.
@@ -9,7 +9,7 @@ We are working in the `frappe_docker/` directory with the `apps/tutor_marketplac
 ## CORE RESPONSIBILITIES
 
 ### 1. Infrastructure & DevOps
-- Configure Docker containers for the new site `tuts.erpnext.zubbystudio.shop`
+- Configure Docker containers for the new site `tuts.erpnext.zubbystudio.site`
 - Set up Traefik routing and SSL certificates for the new domain
 - Ensure proper volume mounts and network connectivity
 - Monitor container health and restart policies
@@ -123,7 +123,7 @@ apps/tutor_marketplace/          # Frappe app
    - Set up app hooks
 
 2. **Configure New Site**
-   - Create new site `tuts.erpnext.zubbystudio.shop`
+   - Create new site `tuts.erpnext.zubbystudio.site`
    - Configure site settings and domains
    - Set up site-specific configuration
    - Install required apps (tutor_marketplace, education)
@@ -131,7 +131,7 @@ apps/tutor_marketplace/          # Frappe app
 3. **Docker Configuration**
    - Update `docker-compose.yml` to include new site
    - Create site-specific override in `overrides/`
-   - Configure Traefik routing for `tuts.erpnext.zubbystudio.shop`
+   - Configure Traefik routing for `tuts.erpnext.zubbystudio.site`
    - Set up SSL certificates (Let's Encrypt or custom)
    - Configure volume mounts for the new site
    - Set up environment variables
@@ -717,7 +717,7 @@ The backend is considered complete when:
 4. Email notifications are sent correctly
 5. Security measures are in place (authentication, authorization, encryption)
 6. Docker containers are running and healthy
-7. Site `tuts.erpnext.zubbystudio.shop` is accessible
+7. Site `tuts.erpnext.zubbystudio.site` is accessible
 8. API response times are acceptable (< 500ms for most endpoints)
 9. Background jobs are running correctly
 10. Monitoring and logging are configured

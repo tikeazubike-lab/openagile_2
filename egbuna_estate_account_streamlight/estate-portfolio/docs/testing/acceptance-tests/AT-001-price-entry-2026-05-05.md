@@ -5,7 +5,7 @@ title: Price Entry Acceptance Test
 status: COMPLETE
 date: 2026-05-05
 tester: Antigravity
-environment: testdrive.epm.zubbystudio.shop
+environment: testdrive.epm.zubbystudio.site
 branch: test
 feature: [BR-002]
 ---
@@ -17,7 +17,7 @@ feature: [BR-002]
 **Date**: 2026-05-05
 **Tested by**: Antigravity / Cursor
 **Branch**: test
-**Environment**: testdrive.epm.zubbystudio.shop
+**Environment**: testdrive.epm.zubbystudio.site
 
 ## Auth Fixes
 

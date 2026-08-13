@@ -89,7 +89,7 @@ export function Navbar() {
         {isAdmin() && (
           <>
           <a
-            href="/test-checklist"
+            href="/api/v1/checklist/test-checklist"
             target="_blank"
             rel="noopener noreferrer"
             className="w-8 h-8 rounded-md hover:bg-[var(--bg-subtle)] flex items-center justify-center"

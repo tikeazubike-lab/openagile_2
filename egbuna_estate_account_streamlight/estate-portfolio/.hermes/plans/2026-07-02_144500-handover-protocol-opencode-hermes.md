@@ -15,7 +15,7 @@
 | **Project** | Estate Portfolio Manager (EPM) v2 |
 | **Owner** | Zubbyik (Product Owner) |
 | **Stack** | FastAPI + React 18 + PostgreSQL 15 |
-| **Domain** | testdrive.epm.zubbystudio.shop (staging) |
+| **Domain** | testdrive.epm.zubbystudio.site (staging) |
 | **Goal** | Track personal Nigerian stock portfolio: holdings, dividends, registrars, price history, NAV |
 
 ### Three North Star Questions (every feature serves one)
@@ -51,7 +51,7 @@ Never build frontend before backend APIs are stable.
 | **Host** | 185.216.177.250 |
 | **User** | zubbyik |
 | **Project root** | `/home/zubbyik/openagile_2/egbuna_estate_account_streamlight/estate-portfolio/` |
-| **Staging URL** | `https://testdrive.epm.zubbystudio.shop` |
+| **Staging URL** | `https://testdrive.epm.zubbystudio.site` |
 | **Compose file** | `docker-compose.v3.yml` |
 | **Container name** | `epm_v3` |
 

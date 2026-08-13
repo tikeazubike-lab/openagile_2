@@ -32,35 +32,35 @@ APPS
 
 # 3. Remove Orphaned Site Directories
 echo "Removing orphaned site directories..."
-rm -rf sites/erpnext.zubbystudio.shop
-rm -rf sites/library.erpnext.zubbystudio.shop
+rm -rf sites/erpnext.zubbystudio.site
+rm -rf sites/library.erpnext.zubbystudio.site
 
 # 4. Create ERPNext Site (The main ERP site)
 echo "Creating ERPNext Site (main_erpnext)..."
-bench new-site erpnext.zubbystudio.shop \
+bench new-site erpnext.zubbystudio.site \
   --db-name main_erpnext \
   --mariadb-root-password admin \
   --admin-password '!1Winner75' \
   --mariadb-user-host-login-scope='%'
 
-bench --site erpnext.zubbystudio.shop set-config developer_mode 1
-bench --site erpnext.zubbystudio.shop set-config enable_scheduler 1
+bench --site erpnext.zubbystudio.site set-config developer_mode 1
+bench --site erpnext.zubbystudio.site set-config enable_scheduler 1
 
 # 5. Create Library Site
 echo "Creating Library Site (library_erpnext)..."
-bench new-site library.erpnext.zubbystudio.shop \
+bench new-site library.erpnext.zubbystudio.site \
   --db-name library_erpnext \
   --mariadb-root-password admin \
   --admin-password '!1Winner75' \
   --mariadb-user-host-login-scope='%'
 
-bench --site library.erpnext.zubbystudio.shop set-config developer_mode 1
-bench --site library.erpnext.zubbystudio.shop set-config enable_scheduler 1
+bench --site library.erpnext.zubbystudio.site set-config developer_mode 1
+bench --site library.erpnext.zubbystudio.site set-config enable_scheduler 1
 
 # 6. Install the Custom App (library_management) on the Library Site
 # This is the correct moment to install non-core apps.
-echo "Installing library_management app on library.erpnext.zubbystudio.shop..."
-bench --site library.erpnext.zubbystudio.shop install-app library_management
+echo "Installing library_management app on library.erpnext.zubbystudio.site..."
+bench --site library.erpnext.zubbystudio.site install-app library_management
 
 # 7. Update sites/apps.txt to include ALL apps for running the bench
 echo "Updating sites/apps.txt with all apps for runtime..."

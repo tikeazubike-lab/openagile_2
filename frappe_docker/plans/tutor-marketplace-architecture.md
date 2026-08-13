@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the architecture for an online tutor marketplace application built on ERPNext/Frappe. The system will be deployed on a new site (`tuts.erpnext.zubbystudio.shop`) and will be developed as a new Frappe app that references/extends existing education doctypes where appropriate.
+This document outlines the architecture for an online tutor marketplace application built on ERPNext/Frappe. The system will be deployed on a new site (`tuts.erpnext.zubbystudio.site`) and will be developed as a new Frappe app that references/extends existing education doctypes where appropriate.
 
 ## System Overview
 
@@ -707,7 +707,7 @@ import { frappe } from 'frappe-js-sdk';
 
 // Initialize Frappe client
 const frappeClient = frappe({
-  url: import.meta.env.VITE_FRAPPE_URL || 'https://tuts.erpnext.zubbystudio.shop',
+  url: import.meta.env.VITE_FRAPPE_URL || 'https://tuts.erpnext.zubbystudio.site',
   token: () => localStorage.getItem('frappe_token'),
 });
 
@@ -927,7 +927,7 @@ sequenceDiagram
 - Configure availability scheduling logic
 - Implement review aggregation and rating calculations
 - Set up email notifications for sessions and payments
-- Configure site `tuts.erpnext.zubbystudio.shop`
+- Configure site `tuts.erpnext.zubbystudio.site`
 - Ensure proper data validation and security
 
 ---
@@ -939,7 +939,7 @@ sequenceDiagram
 **Backend**:
 - Create `tutor_marketplace` Frappe app
 - Set up basic DocTypes (Tutor Profile, Student Profile, Session Schedule)
-- Configure site `tuts.erpnext.zubbystudio.shop`
+- Configure site `tuts.erpnext.zubbystudio.site`
 - Set up Docker configuration for new site
 
 **Frontend**:

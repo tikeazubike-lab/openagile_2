@@ -40,6 +40,6 @@ docker compose exec frontend ls -la /home/frappe/frappe-bench/sites/assets/ | gr
 
 # Test HTTP
 echo "Testing HTTP access..."
-curl -I https://edu.erpnext.zubbystudio.shop/assets/edu_theme/frontend/assets/index.js
+curl -I https://edu.erpnext.zubbystudio.site/assets/edu_theme/frontend/assets/index.js
 
 echo -e "${GREEN}Done!${NC}"

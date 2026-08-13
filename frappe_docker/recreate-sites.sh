@@ -35,30 +35,30 @@ erpnext
 APPS
 
 # Remove old site directories if they exist
-rm -rf sites/erpnext.zubbystudio.shop
-rm -rf sites/library.erpnext.zubbystudio.shop
+rm -rf sites/erpnext.zubbystudio.site
+rm -rf sites/library.erpnext.zubbystudio.site
 
 # Create ERPNext site
 echo "Creating ERPNext site..."
-bench new-site erpnext.zubbystudio.shop \
+bench new-site erpnext.zubbystudio.site \
   --db-name main_erpnext \
   --mariadb-root-password admin \
   --admin-password '!1Winner75' \
   --mariadb-user-host-login-scope='%'
 
-bench --site erpnext.zubbystudio.shop set-config developer_mode 1
-bench --site erpnext.zubbystudio.shop set-config enable_scheduler 1
+bench --site erpnext.zubbystudio.site set-config developer_mode 1
+bench --site erpnext.zubbystudio.site set-config enable_scheduler 1
 
 # Create Library site
 echo "Creating Library site..."
-bench new-site library.erpnext.zubbystudio.shop \
+bench new-site library.erpnext.zubbystudio.site \
   --db-name library_erpnext \
   --mariadb-root-password admin \
   --admin-password '!1Winner75' \
   --mariadb-user-host-login-scope='%'
 
-bench --site library.erpnext.zubbystudio.shop set-config developer_mode 1
-bench --site library.erpnext.zubbystudio.shop set-config enable_scheduler 1
+bench --site library.erpnext.zubbystudio.site set-config developer_mode 1
+bench --site library.erpnext.zubbystudio.site set-config enable_scheduler 1
 
 echo "✅ Sites created successfully!"
 BACKEND_SCRIPT
@@ -75,6 +75,6 @@ sleep 30
 
 echo ""
 echo "🎉 Sites ready!"
-echo "Main Site: https://erpnext.zubbystudio.shop"
-echo "Library Site: https://library.erpnext.zubbystudio.shop"
+echo "Main Site: https://erpnext.zubbystudio.site"
+echo "Library Site: https://library.erpnext.zubbystudio.site"
 echo "Login: Administrator / !1Winner75"

@@ -10,21 +10,21 @@ services:
       - "traefik.docker.network=openagile_openagile_network"
       
       # Main ERPNext site
-      - "traefik.http.routers.erpnext.rule=Host(`erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext.rule=Host(`erpnext.zubbystudio.site`)"
       - "traefik.http.routers.erpnext.entrypoints=websecure"
       - "traefik.http.routers.erpnext.tls=true"
       - "traefik.http.routers.erpnext.tls.certresolver=cloudflare"
       - "traefik.http.routers.erpnext.service=erpnext-frontend"
       
       # Library Management site
-      - "traefik.http.routers.erpnext-library.rule=Host(`library.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-library.rule=Host(`library.erpnext.zubbystudio.site`)"
       - "traefik.http.routers.erpnext-library.entrypoints=websecure"
       - "traefik.http.routers.erpnext-library.tls=true"
       - "traefik.http.routers.erpnext-library.tls.certresolver=cloudflare"
       - "traefik.http.routers.erpnext-library.service=erpnext-frontend"
       
       # Education site
-      - "traefik.http.routers.erpnext-education.rule=Host(`edu.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-education.rule=Host(`edu.erpnext.zubbystudio.site`)"
       - "traefik.http.routers.erpnext-education.entrypoints=websecure"
       - "traefik.http.routers.erpnext-education.tls=true"
       - "traefik.http.routers.erpnext-education.tls.certresolver=cloudflare"
@@ -34,7 +34,7 @@ services:
       - "traefik.http.services.erpnext-frontend.loadbalancer.server.port=8080"
       
       # HTTP to HTTPS redirect
-      - "traefik.http.routers.erpnext-http.rule=Host(`erpnext.zubbystudio.shop`) || Host(`library.erpnext.zubbystudio.shop`) || Host(`edu.erpnext.zubbystudio.shop`)"
+      - "traefik.http.routers.erpnext-http.rule=Host(`erpnext.zubbystudio.site`) || Host(`library.erpnext.zubbystudio.site`) || Host(`edu.erpnext.zubbystudio.site`)"
       - "traefik.http.routers.erpnext-http.entrypoints=web"
       - "traefik.http.routers.erpnext-http.middlewares=redirect-to-https"
       

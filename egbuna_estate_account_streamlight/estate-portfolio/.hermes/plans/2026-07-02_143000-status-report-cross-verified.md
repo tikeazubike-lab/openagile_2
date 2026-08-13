@@ -63,7 +63,7 @@
 | BUG-004 Theme icon | HO-018 (frontend) | [UI] Moon/Sun toggle | `useTheme` has `useState`, Navbar reactive |
 | BUG-005 Bell empty | HO-018 (frontend) | [UI] Badge shows drafts/stale | `useActionItems` guards `isLoading` |
 
-**Action Required:** Browser verification at `testdrive.epm.zubbystudio.shop` before closing.
+**Action Required:** Browser verification at `testdrive.epm.zubbystudio.site` before closing.
 
 ---
 
@@ -72,7 +72,7 @@
 | Component | Status | Details |
 |-----------|--------|---------|
 | VPS | ✅ Running | 185.216.177.250, 16GB/8vCPU |
-| Docker Compose | ✅ v3 deployed | `epm_v3` container at testdrive.epm.zubbystudio.shop |
+| Docker Compose | ✅ v3 deployed | `epm_v3` container at testdrive.epm.zubbystudio.site |
 | Database | ✅ Shared PG15 | `openagile_postgres` on `openagile_network` |
 | Traefik | ✅ Routing | SSL via Let's Encrypt |
 | CI/CD | ⚠️ Manual only | Git push → manual `docker compose up` on VPS |
@@ -125,7 +125,7 @@
 | Priority | Item | True Blockers | Recommended Action |
 |----------|------|---------------|-------------------|
 | 1 | **Deploy handover3 artifacts to VPS** | AGENT_LOG, F-016, F-007 specs missing from `.context/` | Copy specs to `.context/feature-specs/`, create AGENT_LOG |
-| 2 | **Browser verify BUG-001–005** | All fixes applied, zero verification | Manual test at testdrive.epm.zubbystudio.shop |
+| 2 | **Browser verify BUG-001–005** | All fixes applied, zero verification | Manual test at testdrive.epm.zubbystudio.site |
 | 3 | **Add missing deps to requirements.txt** | scipy, APScheduler, bs4, feedparser, praw | Edit `backend/requirements.txt`, rebuild |
 | 4 | **F-017 Remove editMode** | HO-023 plan ready, no code changes yet | OpenCode DeepSeek Flash → Kimi sequence |
 | 5 | **F-016 User Management** | Spec not in VPS `.context/`, AT-004 must pass first | Deploy spec → OpenCode runs AT-004 → impl |

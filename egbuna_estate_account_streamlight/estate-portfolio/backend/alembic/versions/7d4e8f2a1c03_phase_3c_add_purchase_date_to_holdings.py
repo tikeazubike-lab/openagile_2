@@ -17,7 +17,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('holdings', sa.Column('purchase_date', sa.Date(), nullable=True))
+    conn = op.get_bind()
+    if 'purchase_date' not in {c['name'] for c in sa.inspect(conn).get_columns('holdings')}:
+        op.add_column('holdings', sa.Column('purchase_date', sa.Date(), nullable=True))
 
 
 def downgrade() -> None:

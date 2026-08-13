@@ -18,6 +18,8 @@ import { fmtNaira, fmtDate } from "@/lib/format";
 export const Route = createFileRoute("/_app/companies/$id")({
   component: CompanyProfilePage,
 });
+
+function CompanyProfilePage() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const companyId = Number(id);

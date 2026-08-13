@@ -170,7 +170,7 @@ import { frappe } from 'frappe-js-sdk';
 
 // Initialize Frappe client
 const frappeClient = frappe({
-  url: process.env.VITE_FRAPPE_URL || 'https://tuts.erpnext.zubbystudio.shop',
+  url: process.env.VITE_FRAPPE_URL || 'https://tuts.erpnext.zubbystudio.site',
   token: () => localStorage.getItem('frappe_token'),
 });
 
@@ -493,7 +493,7 @@ The existing components can be extended or modified:
 
 ```env
 # Frappe Backend
-VITE_FRAPPE_URL=https://tuts.erpnext.zubbystudio.shop
+VITE_FRAPPE_URL=https://tuts.erpnext.zubbystudio.site
 VITE_FRAPPE_API_KEY=your_api_key
 VITE_FRAPPE_API_SECRET=your_api_secret
 
@@ -503,7 +503,7 @@ VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
 
 # Application
 VITE_APP_NAME=TutorHub
-VITE_APP_URL=https://tutorhub.zubbystudio.shop
+VITE_APP_URL=https://tutorhub.zubbystudio.site
 ```
 
 ### Vite Configuration
@@ -525,7 +525,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env.VITE_FRAPPE_URL || 'https://tuts.erpnext.zubbystudio.shop',
+        target: process.env.VITE_FRAPPE_URL || 'https://tuts.erpnext.zubbystudio.site',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

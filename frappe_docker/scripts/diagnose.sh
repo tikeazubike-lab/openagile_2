@@ -50,7 +50,7 @@ if [ -n "$ACTUAL_HASH" ]; then
     echo "  Actual bundle: $ACTUAL_HASH.js"
     
     # Try to fetch HTML - with proper error handling
-    HTML_HASH=$(curl -s --max-time 5 https://library.erpnext.zubbystudio.shop 2>/dev/null | grep -o 'frappe-web.bundle.[^"]*\.js' | head -1)
+    HTML_HASH=$(curl -s --max-time 5 https://library.erpnext.zubbystudio.site 2>/dev/null | grep -o 'frappe-web.bundle.[^"]*\.js' | head -1)
     
     if [ -n "$HTML_HASH" ]; then
         echo "  HTML references: $HTML_HASH"
@@ -63,7 +63,7 @@ if [ -n "$ACTUAL_HASH" ]; then
         fi
     else
         # Check if sites are actually accessible
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 https://library.erpnext.zubbystudio.shop 2>/dev/null)
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 https://library.erpnext.zubbystudio.site 2>/dev/null)
         
         if [ "$HTTP_CODE" == "200" ]; then
             echo "  ✅ Site accessible (HTTP 200) but couldn't parse HTML"

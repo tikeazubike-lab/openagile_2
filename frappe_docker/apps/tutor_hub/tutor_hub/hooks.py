@@ -2,7 +2,7 @@ app_name = "tutor_hub"
 app_title = "Tutor Hub"
 app_publisher = "zubbyik"
 app_description = "Nigeria's #1 Tutoring Platform — Connect with top tutors"
-app_email = "mack@zubbystudio.shop"
+app_email = "mack@zubbystudio.site"
 app_license = "mit"
 app_version = "0.0.1"
 

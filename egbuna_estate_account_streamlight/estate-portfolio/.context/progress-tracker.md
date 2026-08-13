@@ -36,8 +36,8 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 
 | ID     | Feature                    | Status   | Notes                                              |
 |--------|----------------------------|----------|----------------------------------------------------|
-| F-NGX-COMPANIES | NGX Listed Companies PDF Upload | ✅ Complete | Backend + frontend deployed. PDF parse, upsert    |
-| F-COST-BASIS    | Historical Cost Basis Upload   | ✅ Complete | Quick form + CSV. 3-step ticker matching, claim auto-create |
+| F-025 | NGX Listed Companies PDF Upload | ✅ Complete | Backend + frontend deployed (renamed from F-NGX-COMPANIES). PDF parse, upsert    |
+| F-024 | Historical Cost Basis Upload   | ✅ Complete | Quick form + CSV. 3-step ticker matching, claim auto-create (renamed from F-COST-BASIS) |
 | F-003b | Holdings Admin Edit View   | PLANNED  | /admin/holdings replaces inline edit toggle        |
 | F-006b | Registrars Admin Edit View | PLANNED  | /admin/registrars replaces inline edit toggle      |
 | F-017  | Remove editMode toggle     | PLANNED  | Delete uiStore.editMode, role guards replace it    |
@@ -51,7 +51,7 @@ Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
 | F-008 | Dividends       | MERGED INTO F-010 | Claim = Dividend in EPM domain. F-010 replaces both |
 | F-009 | Transactions    | PLANNED  | CRUD + auto-generate from holdings                 |
 | F-010 | Claims          | ✅ BUILT | HO-031 | Dividend tracking dashboard. ClaimRecord = dividend record. Deployed to testdrive. |
-| F-011 | Rebalancing     | PLANNED  | Sector targets + gap analysis                      |
+| F-023 | Rebalancing     | PLANNED  | Sector targets + gap analysis                      |
 | F-012 | Watchlist       | PLANNED  | Track stocks, target price, gap-to-target          |
 
 ### Phase 3D (Companies + News)
@@ -134,7 +134,7 @@ praw==7.7.1            needed for F-018 Reddit API
 
 1. ~~F-016 User Management~~ ✅ Done
 2. ~~F-010 Claims (Dividend Tracking)~~ ✅ Done — HO-031
-3. Run BUG-AT-001 + BUG-AT-002 acceptance (F-NGX-COMPANIES + F-COST-BASIS)
+3. Run BUG-AT-001 + BUG-AT-002 acceptance (F-025 + F-024, formerly F-NGX-COMPANIES + F-COST-BASIS)
 4. F-017 Remove editMode toggle — spec needed
 5. F-009 Transactions
 6. F-012 Watchlist

@@ -11,5 +11,5 @@ echo ">>> Updating $LANDING_PAGE with build hashes..."
 sed -i "s|/assets/edu_theme/frontend/main.js|/assets/edu_theme/frontend/assets/$JS_FILE|g" "$LANDING_PAGE"
 sed -i "s|/assets/edu_theme/frontend/style.css|/assets/edu_theme/frontend/assets/$CSS_FILE|g" "$LANDING_PAGE"
 
-echo ">>> Done! Please check https://edu.erpnext.zubbystudio.shop/landing"
+echo ">>> Done! Please check https://edu.erpnext.zubbystudio.site/landing"
 

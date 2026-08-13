@@ -11,7 +11,7 @@ x-depends-on-configurator: &depends_on_configurator
     condition: service_completed_successfully
 
 x-backend-defaults: &backend_defaults
-  image: frappe/erpnext:v15.45.1
+  image: frappe/erpnext:v16.31.1
   platform: linux/amd64
   pull_policy: always
   restart: unless-stopped
@@ -45,6 +45,18 @@ services:
     <<: *backend_defaults
     depends_on:
       <<: *depends_on_configurator
+    entrypoint:
+      - bash
+      - -c
+      - |
+        echo ">>> Installing custom apps into bench venv..."
+        cd /home/frappe/frappe-bench
+        env/bin/pip install -q posthog 2>/dev/null || true
+        env/bin/pip install -q -e apps/library_management 2>/dev/null || true
+        env/bin/pip install -q -e apps/education 2>/dev/null || true
+        env/bin/pip install -q -e apps/edu_theme 2>/dev/null || true
+        echo ">>> Custom apps installed. Starting Frappe..."
+        exec start.sh
     volumes:
       - sites:/home/frappe/frappe-bench/sites
 

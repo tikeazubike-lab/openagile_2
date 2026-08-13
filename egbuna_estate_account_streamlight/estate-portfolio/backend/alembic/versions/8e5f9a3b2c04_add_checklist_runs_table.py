@@ -19,6 +19,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    conn = op.get_bind()
+    if conn.dialect.has_table(conn, 'checklist_runs'):
+        return
     op.create_table(
         'checklist_runs',
         sa.Column('id', sa.Integer(), nullable=False),

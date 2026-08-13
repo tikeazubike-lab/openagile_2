@@ -36,7 +36,7 @@
 - Reference: `.cursor/rules/general.mdc` and `.cursor/rules/infrastructure.mdc` (these are the authoritative source — they say git push only, no local docker)
 
 **Step 1: Determine ground truth**
-The project is running on a Netcup VPS. The .cursor/rules files say "Local workstation: git add, git commit, git push — NOTHING ELSE". But AGENTS.md says to run docker compose directly. Since the user's memory says "User wants full raw codebase audit reports" and the project is already deployed at testdrive.epm.zubbystudio.shop, the actual workflow depends on whether the agent is running ON the VPS or locally.
+The project is running on a Netcup VPS. The .cursor/rules files say "Local workstation: git add, git commit, git push — NOTHING ELSE". But AGENTS.md says to run docker compose directly. Since the user's memory says "User wants full raw codebase audit reports" and the project is already deployed at testdrive.epm.zubbystudio.site, the actual workflow depends on whether the agent is running ON the VPS or locally.
 
 **Step 2: Update AGENTS.md to clarify**
 Replace the deployment section to say:

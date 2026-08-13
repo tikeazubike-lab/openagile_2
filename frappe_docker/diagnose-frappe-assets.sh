@@ -109,7 +109,7 @@ echo
 # 13. Check from web
 echo -e "${YELLOW}▶ Testing HTTP Access${NC}"
 echo "Testing Frappe core asset:"
-curl -s -o /dev/null -w "Status: %{http_code}\n" https://edu.erpnext.zubbystudio.shop/assets/frappe/dist/css/desk.bundle.css 2>/dev/null || echo "Could not reach server"
+curl -s -o /dev/null -w "Status: %{http_code}\n" https://edu.erpnext.zubbystudio.site/assets/frappe/dist/css/desk.bundle.css 2>/dev/null || echo "Could not reach server"
 echo
 
 # 14. Recent Nginx Errors

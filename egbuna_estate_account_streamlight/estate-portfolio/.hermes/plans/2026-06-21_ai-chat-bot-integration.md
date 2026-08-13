@@ -61,7 +61,7 @@ This shows the visual reference — dark theme floating sparkle button, chat pan
 
 | Item | Status | Action Needed |
 |------|--------|--------------|
-| EPM v3 running | ✅ Done | Already deployed at testdrive.epm.zubbystudio.shop |
+| EPM v3 running | ✅ Done | Already deployed at testdrive.epm.zubbystudio.site |
 | Lovable AiAssistant component | ✅ Exists | At epmaide-insight/src/components/AiAssistant.tsx |
 | React version match | ⚠️ Lovable uses React 19, EPM uses React 18 | Component code uses standard hooks — should be compatible |
 | shadcn/ui components | ✅ Both use it | Dialog, Button, Input components available |

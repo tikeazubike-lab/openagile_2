@@ -140,10 +140,10 @@ The enhanced `deploy-compose.sh` script includes:
 - **Deployment History**: View all past deployments and their status
 
 ### Application URLs
-- **Main ERPNext**: https://erpnext.zubbystudio.shop
-- **Library**: https://library.erpnext.zubbystudio.shop
-- **Education**: https://edu.erpnext.zubbystudio.shop
-- **Landing Page**: https://edu.erpnext.zubbystudio.shop/landing
+- **Main ERPNext**: https://erpnext.zubbystudio.site
+- **Library**: https://library.erpnext.zubbystudio.site
+- **Education**: https://edu.erpnext.zubbystudio.site
+- **Landing Page**: https://edu.erpnext.zubbystudio.site/landing
 
 ### Server Logs
 ```bash

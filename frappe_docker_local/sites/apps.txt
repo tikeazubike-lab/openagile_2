@@ -1,4 +1,0 @@
-frappe
-library_management
-education
-erpnext

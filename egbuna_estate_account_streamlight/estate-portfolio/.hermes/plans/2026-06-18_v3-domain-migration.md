@@ -1,15 +1,15 @@
-# Domain Migration: v2 → v3 (testdrive.epm.zubbystudio.shop) Implementation Plan
+# Domain Migration: v2 → v3 (testdrive.epm.zubbystudio.site) Implementation Plan
 
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
-**Goal:** Fork the existing v2 Docker infrastructure (docker-compose.v2.yml, Dockerfile.v2, .env.v2) into v3, changing all domain references from `demo.estate.zubbystudio.shop` to `testdrive.epm.zubbystudio.shop`, and updating all 19 files across the repo that reference the old domain.
+**Goal:** Fork the existing v2 Docker infrastructure (docker-compose.v2.yml, Dockerfile.v2, .env.v2) into v3, changing all domain references from `demo.estate.zubbystudio.shop` to `testdrive.epm.zubbystudio.site`, and updating all 19 files across the repo that reference the old domain.
 
 **Architecture:** In-place rename: `*.v2.*` → `*.v3.*`, `epm_v2` container → `epm_v3`, `estate_portfolio_v2` → `estate_portfolio_v3`. Deploy.sh rewritten to target the new v3 stack. All documentation/test files get the domain string replaced.
 
 **Tech Stack:** Docker Compose v3 format, Dockerfile multi-stage, sed/replace for domain changes across docs.
 
 **User Directives:**
-1. Domain = `testdrive.epm.zubbystudio.shop`  (DNS A record configured, resolves, 1 min TTL)
+1. Domain = `testdrive.epm.zubbystudio.site`  (DNS A record configured, resolves, 1 min TTL)
 2. Q2 = B (edit v2 files in-place → v3)
 3. Q4 = just change ALLOWED_ORIGINS to new domain (no dual-origin)
 4. Every file referencing the old domain gets updated
@@ -107,7 +107,7 @@ mv .env.v2 .env.v3
 
 **Step 2: Update docker-compose.v3.yml content**
 
-All occurrences of `demo.estate.zubbystudio.shop` → `testdrive.epm.zubbystudio.shop`
+All occurrences of `demo.estate.zubbystudio.shop` → `testdrive.epm.zubbystudio.site`
 All occurrences of `estate_portfolio_v2` → `estate_portfolio_v3`
 All occurrences of `epm-v2` → `epm-v3` (Traefik router names)
 Header comment: update "Phase 2" → "Phase 3", "demo.estate" → "testdrive.epm"
@@ -122,7 +122,7 @@ Build context reference: no domain in Dockerfile itself, so just the header comm
 
 ```diff
 - ALLOWED_ORIGINS=https://demo.estate.zubbystudio.shop
-+ ALLOWED_ORIGINS=https://testdrive.epm.zubbystudio.shop
++ ALLOWED_ORIGINS=https://testdrive.epm.zubbystudio.site
 ```
 
 **Step 5: Verify**
@@ -217,7 +217,7 @@ echo ""
 echo "========================================"
 echo "✨ Deployment Complete!"
 echo "========================================"
-echo "Dashboard: https://testdrive.epm.zubbystudio.shop"
+echo "Dashboard: https://testdrive.epm.zubbystudio.site"
 echo ""
 ```
 
@@ -235,7 +235,7 @@ echo ""
 **Change:**
 ```diff
 -    # In production: https://demo.estate.zubbystudio.shop
-+    # In production: https://testdrive.epm.zubbystudio.shop
++    # In production: https://testdrive.epm.zubbystudio.site
 ```
 
 **NOTE:** The actual ALLOWED_ORIGINS value comes from `.env.v3`, not config.py. Only the comment changes.
@@ -244,7 +244,7 @@ echo ""
 
 ## Task 5: Update All Test Files (4 files)
 
-**Objective:** Replace `demo.estate.zubbystudio.shop` with `testdrive.epm.zubbystudio.shop` in all test configs.
+**Objective:** Replace `demo.estate.zubbystudio.shop` with `testdrive.epm.zubbystudio.site` in all test configs.
 
 **Files:**
 - Modify: `backend/tests/performance/locustfile.py`
@@ -265,7 +265,7 @@ Expected: 0
 
 ## Task 6: Update Documentation Files (14 files)
 
-**Objective:** Replace `demo.estate.zubbystudio.shop` with `testdrive.epm.zubbystudio.shop` across all docs.
+**Objective:** Replace `demo.estate.zubbystudio.shop` with `testdrive.epm.zubbystudio.site` across all docs.
 
 **Files (sorted by category):**
 
@@ -313,7 +313,7 @@ After all tasks:
 
 - [ ] `docker-compose.v3.yml` exists (v2 no longer the canonical file)
 - [ ] `Dockerfile.v3` exists
-- [ ] `.env.v3` exists with `ALLOWED_ORIGINS=https://testdrive.epm.zubbystudio.shop`
+- [ ] `.env.v3` exists with `ALLOWED_ORIGINS=https://testdrive.epm.zubbystudio.site`
 - [ ] `deploy.sh` runs without syntax errors and references v3
 - [ ] `backend/app/config.py` comment updated
 - [ ] No file in `backend/tests/` or `epm-tests/` references `demo.estate.zubbystudio.shop`

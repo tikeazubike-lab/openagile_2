@@ -228,7 +228,7 @@ cat > "$FRONTEND_DIR/src/components/Footer.vue" <<EOF
         <div>
           <h4 class="text-white font-bold mb-6">Contact</h4>
           <ul class="space-y-4 text-sm">
-            <li>info@zubbystudio.shop</li>
+            <li>info@zubbystudio.site</li>
             <li>+234 800 EDUMA</li>
           </ul>
         </div>

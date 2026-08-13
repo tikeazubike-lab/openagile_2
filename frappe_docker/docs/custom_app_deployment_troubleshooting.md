@@ -93,6 +93,6 @@ cd frappe_docker
 
 ## 5. Verification
 
-*   **Landing Page:** `https://edu.erpnext.zubbystudio.shop/landing` (Returns 200 OK)
-*   **Assets:** `https://edu.erpnext.zubbystudio.shop/assets/edu_theme/frontend/assets/main-....js` (Returns 200 OK)
+*   **Landing Page:** `https://edu.erpnext.zubbystudio.site/landing` (Returns 200 OK)
+*   **Assets:** `https://edu.erpnext.zubbystudio.site/assets/edu_theme/frontend/assets/main-....js` (Returns 200 OK)
 *   **Backend:** `docker compose exec backend bench list-apps` (Shows all apps installed)

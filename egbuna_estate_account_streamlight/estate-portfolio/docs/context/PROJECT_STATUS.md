@@ -18,7 +18,7 @@ source_last_updated: 2026-05-18
 
 ## Legend
 ```
-✅ DONE        — implemented, tested, deployed to testdrive.epm.zubbystudio.shop
+✅ DONE        — implemented, tested, deployed to testdrive.epm.zubbystudio.site
 ⚠️ PARTIAL     — built but has known bugs or incomplete features
 🔄 IN PROGRESS — currently being worked on (this sprint)
 📋 PLANNED     — designed and specced, not yet built
@@ -33,7 +33,7 @@ source_last_updated: 2026-05-18
 | Item | Status | Notes |
 |------|--------|-------|
 | Docker single-container (FastAPI + React static) | ✅ DONE | Multi-stage build |
-| Traefik SSL routing | ✅ DONE | testdrive.epm.zubbystudio.shop |
+| Traefik SSL routing | ✅ DONE | testdrive.epm.zubbystudio.site |
 | Shared openagile_postgres | ✅ DONE | estate_portfolio DB |
 | GitHub Actions fast-path CI | ✅ DONE | Static analysis + build + deploy |
 | GitHub Actions full-path CI | ⚠️ PARTIAL | Unit tests not yet fully wired |

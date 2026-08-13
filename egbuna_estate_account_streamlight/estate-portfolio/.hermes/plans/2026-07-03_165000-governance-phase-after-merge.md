@@ -26,9 +26,9 @@
 **Run by:** Hermes (governance — docs only, no code)
 
 ### A2: Run BUG-AT-001 + BUG-AT-002 Acceptance
-**Objective:** Verify F-NGX-COMPANIES and F-COST-BASIS work at testdrive.epm.zubbystudio.shop before closing these features.
+**Objective:** Verify F-NGX-COMPANIES and F-COST-BASIS work at testdrive.epm.zubbystudio.site before closing these features.
 
-**Test target:** `https://testdrive.epm.zubbystudio.shop`
+**Test target:** `https://testdrive.epm.zubbystudio.site`
 
 **BUG-AT-001** (F-NGX-COMPANIES): 14 checks
 - PDF upload (valid, duplicate, empty, non-PDF, auth, permissions)

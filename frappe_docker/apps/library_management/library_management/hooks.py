@@ -2,7 +2,7 @@ app_name = "library_management"
 app_title = "Library Management"
 app_publisher = "Mack E."
 app_description = "Library Management system"
-app_email = "mack@zubbystudio.shop"
+app_email = "mack@zubbystudio.site"
 app_license = "mit"
 
 # Apps

@@ -17,6 +17,9 @@ depends_on = None
 
 
 def upgrade() -> None:
+    conn = op.get_bind()
+    if conn.dialect.has_table(conn, 'registrar_contact_fields'):
+        return
     op.create_table(
         'registrar_contact_fields',
         sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),

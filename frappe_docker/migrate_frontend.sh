@@ -97,10 +97,10 @@ if [ -f "$MANIFEST_FILE" ]; then
     sudo chown -R 1000:1000 sites/assets/$APP_NAME
     
     echo ">>> Clearing Cache..."
-    docker compose exec backend bench --site edu.erpnext.zubbystudio.shop clear-cache
+    docker compose exec backend bench --site edu.erpnext.zubbystudio.site clear-cache
     
     echo "✅ Migration Complete!"
-    echo "   Verify at: https://edu.erpnext.zubbystudio.shop/landing"
+    echo "   Verify at: https://edu.erpnext.zubbystudio.site/landing"
 else
     echo "❌ Error: Build manifest not found. Build may have failed."
     exit 1

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useRegistrars, useUnlinkCompany, useDeleteRegistrar } from "@/api/queries";
+import { useRegistrars, useUnlinkCompany, useDeleteRegistrar, useClaimsByRegistrar } from "@/api/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Mail, Phone, MapPin, Globe, Plus, X, Info } from "lucide-react";
+import { Edit, Mail, Phone, MapPin, Globe, Plus, X, Info, ScrollText } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { RegistrarRequirements } from "./RegistrarRequirements";
@@ -173,6 +173,9 @@ export function RegistrarDetails({ registrarId }: { registrarId: number }) {
         </Card>
       )}
 
+      {/* Unclaimed Dividends Widget (F-011) */}
+      <UnclaimedDividendsWidget registrarId={registrarId} registrarName={registrar.name} />
+
       {/* Requirements & Documents */}
       <RegistrarRequirements registrarId={registrarId} />
       
@@ -215,6 +218,85 @@ export function RegistrarDetails({ registrarId }: { registrarId: number }) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+// ─── Unclaimed Dividends Widget ──────────────────────────────────────────────
+
+function UnclaimedDividendsWidget({
+  registrarId,
+  registrarName,
+}: {
+  registrarId: number;
+  registrarName: string;
+}) {
+  const { data: claims, isLoading } = useClaimsByRegistrar(registrarId);
+  const unclaimed = (claims ?? []).filter(
+    (c: any) => c.lifecycle_status === "unclaimed" || c.lifecycle_status === "unresolved",
+  );
+  const totalExpected = unclaimed.reduce(
+    (sum: number, c: any) => sum + (parseFloat(c.expected_payout) || 0),
+    0,
+  );
+
+  if (isLoading) return null;
+  if (!claims || claims.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <ScrollText className="h-5 w-5 text-yellow-500" />
+          Unclaimed Dividends
+          <span className="text-sm font-normal text-muted-foreground ml-auto">
+            {unclaimed.length} pending
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-lg border bg-card mb-3 p-3">
+          <div className="text-2xl font-bold">
+            ₦{totalExpected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div className="text-xs text-muted-foreground">Total expected payout</div>
+        </div>
+        <div className="max-h-[240px] overflow-y-auto space-y-1">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-muted-foreground text-xs uppercase border-b">
+                <th className="text-left py-1 font-medium">Account#</th>
+                <th className="text-right py-1 font-medium">Expected</th>
+                <th className="text-center py-1 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {unclaimed.slice(0, 20).map((c: any) => (
+                <tr key={c.id} className="border-b last:border-0 hover:bg-muted/30">
+                  <td className="py-1.5 font-mono text-xs">{c.claim_reference ?? "—"}</td>
+                  <td className="py-1.5 text-right">₦{(parseFloat(c.expected_payout) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="py-1.5 text-center">
+                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      c.lifecycle_status === "unclaimed"
+                        ? "bg-blue-900/40 text-blue-300"
+                        : c.lifecycle_status === "unresolved"
+                          ? "bg-yellow-900/40 text-yellow-300"
+                          : "bg-green-900/40 text-green-300"
+                    }`}>
+                      {c.lifecycle_status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {unclaimed.length > 20 && (
+            <div className="text-xs text-muted-foreground text-center pt-1">
+              +{unclaimed.length - 20} more
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

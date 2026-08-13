@@ -145,7 +145,7 @@ bcrypt==4.0.1  # pinned — passlib 1.7.4 breaks with bcrypt >= 4.1.0
 ## Current Project State (as of 2026-04-30)
 
 ### What is Working
-- FastAPI backend running at testdrive.epm.zubbystudio.shop
+- FastAPI backend running at testdrive.epm.zubbystudio.site
 - React frontend: Dashboard + Holdings pages with live data
 - JWT auth: login, session persistence, 30-day cookie (pending restore)
 - Null-safe rendering: fmtNaira(), ReturnText badge, optional chaining

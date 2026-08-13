@@ -2,7 +2,7 @@ app_name = "edu_theme"
 app_title = "Edu Theme"
 app_publisher = "Mack E."
 app_description = "The custom theme for the Education"
-app_email = "mack@zubbystudio.shop"
+app_email = "mack@zubbystudio.site"
 app_license = "mit"
 
 # Apps

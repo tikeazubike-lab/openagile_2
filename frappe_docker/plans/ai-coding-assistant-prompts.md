@@ -12,7 +12,7 @@ You are implementing a **Tutor Marketplace** application built on Frappe/ERPNext
 
 - **Backend**: Frappe/ERPNext (Python) running in Docker
 - **Frontend**: React 18 + Vite + Tailwind CSS + TypeScript
-- **Site**: `tuts.erpnext.zubbystudio.shop`
+- **Site**: `tuts.erpnext.zubbystudio.site`
 - **App Name**: `tutor_marketplace`
 - **Payment Gateways**: Stripe and PayPal
 - **Key Features**: Tutor registration, Student management, Scheduling, Payments, Course Packages, Subscriptions, Group Sessions
@@ -166,7 +166,7 @@ export function Input({ value, onChange, type = 'text', placeholder, disabled, e
 import { createClient } from '@frappe/client'
 
 const frappe = createClient({
-  url: import.meta.env.VITE_FRAPPE_URL || 'https://tuts.erpnext.zubbystudio.shop',
+  url: import.meta.env.VITE_FRAPPE_URL || 'https://tuts.erpnext.zubbystudio.site',
   username: () => localStorage.getItem('username'),
   password: () => localStorage.getItem('password')
 })
@@ -673,7 +673,7 @@ def send_tutor_registration_confirmation(email, tutor_name):
         template="tutor_registration_confirmation",
         args={
             "tutor_name": tutor_name,
-            "dashboard_url": "https://tuts.erpnext.zubbystudio.shop/dashboard"
+            "dashboard_url": "https://tuts.erpnext.zubbystudio.site/dashboard"
         }
     )
 ```
@@ -734,7 +734,7 @@ scheduler_events = {
 services:
   frontend:
     environment:
-      - SITES=tuts.erpnext.zubbystudio.shop
+      - SITES=tuts.erpnext.zubbystudio.site
     volumes:
       - ./sites:/home/frappe/frappe-bench/sites
 ```
@@ -745,7 +745,7 @@ services:
 # Traefik labels for routing
 labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.tuts.rule=Host(`tuts.erpnext.zubbystudio.shop`)"
+  - "traefik.http.routers.tuts.rule=Host(`tuts.erpnext.zubbystudio.site`)"
   - "traefik.http.routers.tuts.entrypoints=websecure"
   - "traefik.http.routers.tuts.tls=true"
   - "traefik.http.routers.tuts.tls.certresolver=letsencrypt"
@@ -801,7 +801,7 @@ You are implementing a complete Tutor Marketplace application with both frontend
 This is a full-stack application with:
 - **Backend**: Frappe/ERPNext (Python) with REST API
 - **Frontend**: React 18 SPA communicating with backend API
-- **Site**: `tuts.erpnext.zubbystudio.shop`
+- **Site**: `tuts.erpnext.zubbystudio.site`
 - **App**: `tutor_marketplace`
 
 ## Implementation Strategy
@@ -1055,7 +1055,7 @@ The application is complete when:
 3. Frontend is fully functional with all features
 4. Payment gateways are integrated and working
 5. Email notifications are configured
-6. Site is accessible at `tuts.erpnext.zubbystudio.shop`
+6. Site is accessible at `tuts.erpnext.zubbystudio.site`
 7. All user flows work end-to-end
 8. Security measures are in place
 9. Performance is acceptable

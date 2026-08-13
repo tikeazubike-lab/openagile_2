@@ -5,7 +5,7 @@ title: Registrars Acceptance Test
 status: COMPLETE
 date: 2026-05-05
 tester: Antigravity
-environment: testdrive.epm.zubbystudio.shop
+environment: testdrive.epm.zubbystudio.site
 branch: test
 feature: [BR-005]
 ---

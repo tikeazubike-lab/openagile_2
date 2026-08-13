@@ -7,7 +7,7 @@
 ## Current Phase
 
 Phase 3 — Core pages + Admin restructure + New features
-Environment: testdrive.epm.zubbystudio.shop (openagile_2 codebase)
+Environment: testdrive.epm.zubbystudio.site (openagile_2 codebase)
 
 ---
 

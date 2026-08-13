@@ -1,548 +1,188 @@
 ---
+type: F
 id: F-022
-title: AI Assisted Interactive ChatBot
-status: PLANNED
-owner-backend: Antigravity (Owl Alpha)
-owner-frontend: Deepseek v4 (Nex N2)
-architect: Claude (The Brain)
-reviewer: Grok (Spotter)
-sprint: Phase 4 (future — blocked on F-007 through F-016 completing first)
-replaces: Deepseek draft F-017 (renumbered — F-017 is reserved for editMode removal)
-grok-gaps-resolved: all 7
+title: AI-Assisted Interactive Chatbot (Read-Only Q&A)
+status: Spec complete, all Open Questions resolved — pending Zone 2 consensus (DeepSeek Pro) before implementation
+author: Claude Web (The Brain / Architect)
+date: 2026-07-16
+related: Locked decision "RuleBasedRouter first, for AI chatbot feature F-022"
+supersedes: any prior content in .context/feature-specs/F-022-ai-chatbot.md — reconcile before overwriting
 ---
 
-# F-022 — AI Assisted Interactive ChatBot
+# F-022 — AI-Assisted Interactive Chatbot
 
-## Goal
+## 0. Scope Guardrail (read this first)
 
-A floating AI assistant on every authenticated page that answers
-natural language questions about the user's portfolio using data
-retrieved from the EPM database at query time. No model training
-required. No LLM calls on every query (rule-based first).
+This was originally floated as a platform-agnostic chatbot product usable
+across estate-agent, insurance, and marketing platforms. **That idea is
+explicitly deferred, not part of this spec.** F-022 is narrowly scoped to
+EPM only. If a genuinely generic version is ever built, it will emerge
+from this one real implementation, not be designed speculatively ahead of
+it — see the multi-tenant EPM discussion (2026-07-16) for the reasoning.
 
----
+## 1. Purpose
 
-## Why Phase 4 (Do Not Build Yet)
+A floating chat widget, available on every authenticated page, that
+answers questions about the estate's own portfolio data — "what's my
+current NAV," "how many holdings do I have in banking," "what's the
+status of my dividend claim for X" — without the user navigating to the
+relevant page. Read-only for v1: it answers, it does not act.
 
-The IntentRouter's intents map directly to EPM features:
-  - "What is my portfolio value?" → requires F-007 NAV History data
-  - "Show my top holdings" → requires F-003 Holdings stable
-  - "Which dividends are unclaimed?" → requires F-008 Dividends
-  - "What claims are pending?" → requires F-010 Claims
+## 2. Scope
 
-Building the chatbot before these features exist means building
-intents with no data to query. Complete F-007 through F-016 first,
-then F-022 has real targets to route to.
+**In scope:**
+- Floating widget UI (frontend already built via Lovable — see §6),
+  available on every page for any authenticated user
+- Read-only Q&A against existing, already-shipped data domains (see §2.1)
+- Rule-based intent matching first (locked architectural decision), with
+  deterministic answers pulled from existing API endpoints — never
+  invented figures
+- RBAC-aware: a USER only ever sees what they're already permitted to see
+  elsewhere in the app; no new data-visibility rules invented for the bot
 
----
+**Out of scope for v1 (explicitly deferred, per 2026-07-16 discussion):**
+- Any action-triggering capability (e.g. "recalculate my NAV" via chat) —
+  confirmed read-only-only for this version
+- Platform-agnostic / multi-tenant genericization
+- Free-form financial advice or analysis beyond what's directly queryable
+- Document/PDF Q&A (RAG) — not needed since v1 is structured-data-only
+- Persisted, user-browsable chat history (see §8, OQ-3)
+- Voice, multi-language
 
-## Architecture Overview
+### 2.1 Data Domains In Scope for V1 — Confirmed 2026-07-16
+
+All four already-shipped domains are in scope from day one — nothing
+here is still in flux, so there's no real risk in covering all of them
+at once rather than staging a fast-follow:
+
+- **Holdings** (F-003) — share counts, current value, sector, return %
+- **NAV** (F-007, fully shipped) — current NAV, 7D/30D/YTD change,
+  coverage disclosure (bot must mention the same 34%-coverage caveat the
+  dashboard shows, not a cleaner number that hides the same gap)
+- **Claims/Dividends** (F-010/F-011) — claim status (unresolved/unclaimed/
+  claimed), expected/actual payout
+- **Companies** (F-013) — sector, registrar, ticker lookups
+- **Price History** (F-005) — recent price for a given ticker, date-range
+  lookups
+
+## 3. Architecture — RuleBasedRouter (locked decision)
 
 ```
-User types query
-       ↓
-GatekeeperFilter (length check, auth, content policy)
-       ↓
-RuleBasedRouter (keyword/pattern matching — Stage 1)
-       ↓ [if confidence < threshold]
-OllamaRouter (local LLM fallback — Stage 2, optional)
-       ↓ [if still unresolved]
-FallbackHandler (unsupported_query response)
-       ↓
-IntentHandler (queries PostgreSQL, formats response)
-       ↓
-Response: { text, chart? }
+User message
+    ↓
+RuleBasedRouter: match against known intent patterns
+    ↓
+Matched → call the corresponding EXISTING API endpoint directly
+    (GET /api/v1/nav, GET /api/v1/holdings, GET /api/v1/claims, etc.)
+    → return structured data, phrase as a short natural-language reply
+    ↓
+Unmatched → see §8, OQ-1 (fallback behavior not yet decided)
 ```
 
----
+**Hard rule, non-negotiable**: the bot never generates a number itself.
+Every figure it states must trace back to a real API call against real
+data — this is the same "monetary values never invented" discipline
+already locked for the rest of this codebase, applied to conversational
+output instead of a UI table.
 
-## Stage 1 — RuleBasedRouter
+No new data-access logic is written for this feature — the router calls
+the same endpoints a human already uses via the UI, respecting the same
+auth/RBAC those endpoints already enforce. This is a routing and
+phrasing layer on top of existing, already-audited data paths, not a new
+data layer.
 
-Build this first. Test it until its failure modes are clear.
-Only then evaluate whether Ollama is needed.
+## 4. Data Model
 
-Rationale:
-1. Rule-based is free — no per-query cost
-2. Failures are observable and debuggable (exact keyword that missed)
-3. Most EPM queries are formulaic ("what is X", "show me Y")
-4. A well-designed rule set may be sufficient for 90% of queries
+New table: `chatbot_conversations` — a lightweight, server-side log, not
+a user-facing history feature (see §8, OQ-3 for whether this is wanted
+at all).
 
-### Intent Definitions (Stage 1 — 8 intents)
+```sql
+CREATE TABLE chatbot_conversations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    message TEXT NOT NULL,
+    matched_intent VARCHAR(100),        -- NULL if unmatched
+    response TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
 
-```python
-INTENTS = {
-    "portfolio_value": {
-        "patterns": [
-            r"portfolio.*(value|worth|total)",
-            r"(what|how much).*(own|have|worth)",
-            r"total.*(asset|portfolio)",
-            r"net worth",
-        ],
-        "requires_features": ["F-007"],
+Purpose: lets a future session see which questions are actually being
+asked, to prioritize which intents to add next — informed by real usage
+rather than guessing. Not exposed as a "chat history" feature to the end
+user in v1.
+
+## 5. API Contract
+
+### `POST /api/v1/chatbot/query`
+- **Auth**: any authenticated user (widget is available to all roles)
+- **Request**: `{ "message": "what's my current NAV?" }`
+- **Response**:
+  ```json
+  {
+    "data": {
+      "matched_intent": "current_nav",
+      "response": "Your current NAV is ₦43,174,252.02, based on 25 of 73 holdings with price data (34%).",
+      "raw_data": { "total_value": "43174252.0200", "coverage": {...} }
     },
-    "holdings_summary": {
-        "patterns": [
-            r"(show|list|what).*(holding|stock|share)",
-            r"top.*(holding|stock|position)",
-            r"(my|current).*(portfolio|investment)",
-        ],
-        "requires_features": ["F-003"],
-    },
-    "price_query": {
-        "patterns": [
-            r"(price|cost|value).*(of|for)\s+[A-Z]{2,6}",
-            r"[A-Z]{2,6}.*(price|trading|worth)",
-            r"(current|latest|today).*(price|close)",
-        ],
-        "requires_features": ["F-004", "F-005"],
-    },
-    "dividend_query": {
-        "patterns": [
-            r"dividend",
-            r"(unclaimed|unpaid).*(income|payment)",
-            r"(how much|any).*(dividend)",
-        ],
-        "requires_features": ["F-008"],
-    },
-    "claims_query": {
-        "patterns": [
-            r"claim",
-            r"(delisted|defunct|amcon|cac)",
-            r"(pending|outstanding).*(claim|payout)",
-        ],
-        "requires_features": ["F-010"],
-    },
-    "performance_query": {
-        "patterns": [
-            r"(return|performance|gain|loss|profit)",
-            r"(up|down|change).*(percent|%)",
-            r"(how|well|bad).*(perform|doing|grown)",
-        ],
-        "requires_features": ["F-007"],
-    },
-    "sector_query": {
-        "patterns": [
-            r"sector",
-            r"(banking|financial|industrial|consumer|oil|telecoms)",
-            r"(allocation|exposure|breakdown).*(sector|industry)",
-        ],
-        "requires_features": ["F-002"],
-    },
-    "unsupported_query": {
-        "patterns": [],   # catch-all — see GatekeeperFilter below
-        "requires_features": [],
-    },
-}
-```
-
-### Confidence Threshold
-
-```python
-CONFIDENCE_THRESHOLD = 0.7
-
-# If highest-matching intent scores below threshold:
-#   Stage 1 → Stage 2 (Ollama) if configured
-#   Stage 2 absent → FallbackHandler (unsupported_query)
-```
-
----
-
-## Stage 2 — OllamaRouter (Optional, Future)
-
-Local LLM using Ollama on the VPS. Acts as drop-in replacement
-for RuleBasedRouter when confidence is low.
-
-**How it works (no training required)**:
-The LLM does not need to know about EPM. It receives:
-```
-System: You are a router. Classify the user query into one of these
-        intents: [list]. Return only the intent name. If none match,
-        return "unsupported_query".
-User: [the query]
-```
-The LLM returns an intent name. The IntentHandler then queries the
-database and formats the response. The LLM never sees the data itself.
-
-**Why local Ollama instead of cloud LLM**:
-- No per-query API cost
-- Data stays on the VPS
-- llama3.2 (3B) is sufficient for intent classification — this is
-  not a generation task, it is a classification task
-
-**Data retrieval (RAG pattern)**:
-For IntentHandlers that need to include DB data in the response text,
-inject it as context:
-```python
-# Example for portfolio_value intent:
-db_data = await get_portfolio_summary(db)  # fast DB query
-prompt = f"User has portfolio worth {db_data.total}. Answer: {query}"
-# LLM generates a natural-language sentence from the data
-```
-The LLM never accesses the database directly. It receives pre-fetched
-data as text in the prompt. This is the entire RAG pattern for this
-use case.
-
----
-
-## GatekeeperFilter (Required — Runs Before Any Router)
-
-```python
-class GatekeeperFilter:
-    MAX_QUERY_LENGTH = 500  # characters
-
-    def validate(self, query: str) -> GatekeeperResult:
-        # 1. Length check
-        if len(query.strip()) == 0:
-            return GatekeeperResult(allowed=False, reason="EMPTY_QUERY")
-        if len(query) > self.MAX_QUERY_LENGTH:
-            return GatekeeperResult(allowed=False, reason="QUERY_TOO_LONG",
-                message=f"Query exceeds {self.MAX_QUERY_LENGTH} characters.")
-
-        # 2. Content policy (basic — no personal data injection)
-        forbidden_patterns = [
-            r"(password|token|secret|api.?key)",
-            r"(drop|delete|truncate|insert|update)\s+table",
-        ]
-        for pattern in forbidden_patterns:
-            if re.search(pattern, query, re.IGNORECASE):
-                return GatekeeperResult(allowed=False, reason="POLICY_VIOLATION")
-
-        return GatekeeperResult(allowed=True)
-```
-
----
-
-## API Contract (Fully Locked — Resolves Grok Gap #1 #2 #3 #4 #5 #6)
-
-### Endpoint
-
-```
-POST /api/v1/chat/query
-Auth: Depends(get_current_user) — all authenticated roles
-Router: APIRouter(prefix="/api/v1/chat", tags=["chat"])
-```
-
-### Request
-
-```json
-{
-  "query": "What is my portfolio worth today?"
-}
-```
-
-Validation:
-- `query` required, non-empty string
-- Maximum length: 500 characters (enforced by GatekeeperFilter)
-- No system prompt injection — `query` is user text only
-
-### Success Response
-
-```json
-{
-  "data": {
-    "text": "Your active portfolio is worth ₦12,345,678.00 as of today.",
-    "chart": {
-      "type": "pie",
-      "title": "Sector Allocation",
-      "data": [
-        { "name": "Financial Services", "value": "6500000.00" },
-        { "name": "Industrial Goods",   "value": "3200000.00" },
-        { "name": "Consumer Goods",     "value": "2645678.00" }
-      ]
-    }
-  },
-  "meta": {
-    "intent": "portfolio_value",
-    "router": "rule_based",
-    "query_length": 38
-  },
-  "error": null
-}
-```
-
-**Chart is optional** — only included when the intent warrants it.
-If no chart: `"chart": null`
-
-### Supported Chart Types (Grok Gap #1 — resolved)
-
-```
-line  — price history over time
-bar   — top holdings by value or shares
-pie   — sector allocation
-area  — NAV history trend
-```
-
-No other types. If a handler produces a chart, it must use one of these
-four types. Frontend only renders these four. Any other type is ignored.
-
-### Chart Data Contract (Grok Gap #2 — resolved)
-
-All chart types use this shape:
-
-```json
-{
-  "type": "pie | bar | line | area",
-  "title": "Human-readable chart title",
-  "data": [
-    { "name": "string label", "value": "string monetary or numeric" }
-  ],
-  "x_key": "name",
-  "y_key": "value"
-}
-```
-
-For time series (line, area):
-```json
-{
-  "type": "line",
-  "title": "Portfolio NAV — Last 30 Days",
-  "data": [
-    { "name": "2026-05-01", "value": "12100000.00" },
-    { "name": "2026-05-02", "value": "12234000.00" }
-  ],
-  "x_key": "name",
-  "y_key": "value"
-}
-```
-
-Monetary values: always strings. Frontend parses to float at Recharts
-boundary only (consistent with existing EPM contract).
-
-### Unknown Query Response (Grok Gap #3 — resolved)
-
-```json
-{
-  "data": {
-    "text": "I can currently answer portfolio-related questions only. Try asking about your portfolio value, holdings, dividends, claims, or price history.",
-    "chart": null
-  },
-  "meta": {
-    "intent": "unsupported_query",
-    "router": "fallback"
-  },
-  "error": null
-}
-```
-
-Unknown queries always return 200 with `intent: unsupported_query`.
-They are NOT 4xx errors — the API worked, the query was just out of scope.
-
-### Conversation Mode (Grok Gap #5 — resolved)
-
-```
-conversation-mode: stateless
-
-Every request is independent.
-No chat history is persisted in the database.
-No session context is carried between requests.
-The UI may show previous messages visually, but the backend
-treats each POST /api/v1/chat/query as a fresh request.
-```
-
-If multi-turn memory is added in the future, it is a new feature
-(F-023) with its own migration and spec — it is NOT assumed here.
-
-### Error Contract (Grok Gap #6 — resolved)
-
-```json
-{
-  "data": null,
-  "meta": {},
-  "error": {
-    "code": "QUERY_TOO_LONG",
-    "message": "Query exceeds 500 characters. Please be more concise."
+    "meta": null,
+    "error": null
   }
-}
-```
+  ```
+- Monetary values in `raw_data` as strings, per standing convention.
+- If unmatched, `matched_intent: null` and `response` is whatever §8 OQ-1
+  decides the fallback behavior is.
+- Every call writes a row to `chatbot_conversations` (§4).
 
-Error codes:
-```
-EMPTY_QUERY         — query is blank
-QUERY_TOO_LONG      — exceeds 500 characters
-POLICY_VIOLATION    — forbidden content detected
-INTENT_ERROR        — handler raised an exception (DB error, etc.)
-UNAUTHORIZED        — not authenticated (standard 401)
-```
+## 6. Frontend Requirements
 
-HTTP status codes:
-```
-200  — success (including unsupported_query — it is a valid response)
-400  — EMPTY_QUERY, QUERY_TOO_LONG, POLICY_VIOLATION
-401  — UNAUTHORIZED
-500  — INTENT_ERROR (handler failed — bug)
-```
+**The floating widget component already exists** — built in React via
+Lovable, ready to hand over. Per this project's established Lovable
+pipeline (Lovable → builder review/hardening → Kimi escalation if
+needed), **this component should go through the same hardening pass any
+Lovable output gets before being wired to real endpoints** — null-safety
+per `code-standards.md` conventions (optional chaining, no raw `.map()`
+on possibly-undefined data), RBAC-awareness (the widget must not cache or
+display data a role shouldn't see), and integration with the real
+`POST /api/v1/chatbot/query` endpoint rather than whatever mock data it
+currently uses.
 
----
+- Available on every authenticated route, floating (not a full page)
+- Wire to `POST /api/v1/chatbot/query`
+- Loading state while awaiting response
+- Empty/error state per `ui-context.md`'s mandatory empty-state pattern
+  if the query fails or returns nothing useful
 
-## AuthGuard Visibility (Grok Gap #7 — resolved)
+## 7. Acceptance Criteria
 
-```
-Visible on: every route protected by the _app.tsx AuthGuard
-Hidden on:  login page, register page (if added), any public route
+| ID | Criterion |
+|----|-----------|
+| AT-F022-001 | Widget renders and is accessible on every authenticated page |
+| AT-F022-002 | A matched intent (e.g. "what's my NAV") returns the real current value, matching what `/api/v1/nav` returns independently |
+| AT-F022-003 | A USER-role query never returns data a USER isn't otherwise permitted to see (cross-check against existing RBAC rules) |
+| AT-F022-004 | An unmatched query does not crash and returns whatever §8 OQ-1 decides as fallback behavior |
+| AT-F022-005 | Every query writes a row to `chatbot_conversations`, with the correct `user_id` |
+| AT-F022-006 | Widget handles a failed API call gracefully — error state, not a blank/broken widget |
+| AT-F022-007 | NAV-related answers include the same coverage disclosure the dashboard shows, not a cleaner/misleading number |
+| AT-F022-008 | A Companies-domain query (e.g. sector/registrar lookup for a ticker) returns data matching what `/api/v1/companies` returns independently |
+| AT-F022-009 | A Price-History-domain query (e.g. "what's the latest price for X") returns data matching what the price history endpoint returns independently |
 
-Explicit inclusion list:
-  /dashboard, /holdings, /companies, /dividends,
-  /price-history, /transactions, /registrars, /watchlist,
-  /nav-history, /rebalancing, /admin/*
+## 8. Open Questions — All Resolved 2026-07-16
 
-This means ALL authenticated routes including admin routes.
-Admin users benefit from chatbot access in the admin section.
-```
+| ID | Question | Answer |
+|----|----------|--------|
+| OQ-F022-1 | Should unmatched queries fall back to an LLM for natural-language phrasing, or return a fixed "I don't understand, try one of these examples" message? | **Fixed message.** Keeps behavior fully deterministic and free. LLM-phrasing may be revisited as a v2 enhancement once real usage data (via `chatbot_conversations`) shows what people actually ask. |
+| OQ-F022-2 | Confirm data domains in scope for v1 — Holdings/NAV/Claims only, or include Companies/Price History from day one? | **All four domains from day one** — Holdings, NAV, Claims, Companies, Price History. All already shipped and stable, no staged rollout needed. |
+| OQ-F022-3 | Should `chatbot_conversations` ever be exposed as a browsable history to the end user, or stay purely a server-side log? | **Server-side log only for v1.** A user-facing history feature is a separate, later decision, not needed for the core Q&A capability. |
 
-Implementation: floating button rendered in `__root.tsx` inside
-the `<Outlet />` wrapper for authenticated routes, not in the
-login route file.
+## 9. Dependencies
 
----
+Unlike the original "blocked on F-007–F-016" note in `progress-tracker.md`,
+this is now genuinely unblocked — both are fully shipped:
+- **F-007 NAV History** — complete (backend, frontend, backfill, cron)
+- **F-016 User Management** — shipped
+- **F-010/F-011 Claims** — shipped
+- **F-003 Holdings** — shipped
 
-## Frontend — 3-Stage Flow
-
-### Stage Layout
-
-```
-Stage 1 — Launcher (default):
-  Floating sparkle button, bottom-right, fixed position
-  z-index: 9999 (above all other content)
-  Size: 52px circle, accent-lavender background
-  Icon: Sparkles (Lucide)
-
-Stage 2 — Input Bar:
-  Expands from launcher position upward
-  Width: 320px
-  Input field with placeholder: "Ask about your portfolio..."
-  Send button (arrow icon)
-  Pressing Enter submits
-  Clicking outside → collapse to Stage 1, PRESERVE typed text
-
-Stage 3 — Chat Panel:
-  Width: 380px, max-height: 500px, scrollable
-  Previous messages shown (visual history, not persisted)
-  Current query processing: loading spinner
-  Response: text + chart (if applicable)
-  Chart renders inline using existing Recharts components
-  Clicking outside → collapse to Stage 1, PRESERVE unsent draft text
-```
-
-### Draft Text Preservation
-
-```typescript
-// In chat store (Zustand):
-interface ChatStore {
-  stage: 'launcher' | 'input' | 'panel'
-  draftText: string        // preserved across stage collapses
-  messages: ChatMessage[]  // visual history, memory only (not persisted)
-  setStage: (s: Stage) => void
-  setDraft: (t: string) => void
-  submitQuery: (query: string) => Promise<void>
-}
-
-// On outside click at any stage:
-setStage('launcher')
-// draftText is NOT cleared — preserved for re-open
-
-// On submit:
-setDraft('')             // clear draft ONLY after successful submit
-messages.push(newMsg)   // add to visual history
-```
-
-### Chart Rendering
-
-Reuse existing Recharts components already in the codebase:
-- `pie` → existing SectorAllocationChart pattern
-- `bar` → existing TopHoldingsChart pattern
-- `line` / `area` → existing PriceHistoryChart pattern
-
-Do not create new chart components. Pass the chart data from the
-API response into the existing component interfaces.
-
----
-
-## Backend File Structure
-
-```
-backend/app/routers/chat.py           — endpoint + request/response models
-backend/app/services/chat/
-  __init__.py
-  gatekeeper.py                       — GatekeeperFilter
-  router.py                           — RuleBasedRouter (Stage 1)
-  ollama_router.py                    — OllamaRouter (Stage 2, optional)
-  intents/
-    __init__.py
-    portfolio_value.py
-    holdings_summary.py
-    price_query.py
-    dividend_query.py
-    claims_query.py
-    performance_query.py
-    sector_query.py
-    fallback.py
-```
-
-Each intent handler is a standalone function:
-```python
-# intents/portfolio_value.py
-async def handle(db: AsyncSession, user_id: int) -> ChatResponse:
-    data = await get_portfolio_summary(db, user_id)
-    return ChatResponse(
-        text=f"Your active portfolio is worth {fmtNaira(data.total_value)} as of today.",
-        chart=build_sector_chart(data.sector_allocation)
-    )
-```
-
----
-
-## Acceptance Checklist
-
-### [DB]
-- [ ] No new tables required for Stage 1 (stateless)
-- [ ] Intent handlers query existing tables only
-- [ ] No chat history persisted to DB (confirmed stateless)
-
-### [API]
-- [ ] POST /api/v1/chat/query with "what is my portfolio worth" → 200
-      intent = portfolio_value, text contains ₦ amount
-- [ ] POST with empty string → 400, code = EMPTY_QUERY
-- [ ] POST with 501+ character string → 400, code = QUERY_TOO_LONG
-- [ ] POST with "Warren Buffett children" → 200, intent = unsupported_query
-- [ ] POST without auth → 401
-- [ ] Response chart.type is always one of: line | bar | pie | area | null
-- [ ] All chart data values are JSON strings (not floats)
-- [ ] meta.intent field present in every response
-- [ ] meta.router field present: "rule_based" | "ollama" | "fallback"
-
-### [UI]
-- [ ] Sparkle button visible bottom-right on /dashboard (authenticated)
-- [ ] Sparkle button NOT visible on /login
-- [ ] Click button → input bar expands
-- [ ] Type text → click outside → input bar collapses → reopen → text preserved
-- [ ] Submit query → loading spinner → response text shown
-- [ ] Response with chart → chart renders inline in correct type
-- [ ] Response without chart → text only, no empty chart container
-- [ ] Query > 500 chars → error message shown, no API call
-- [ ] Visible on /admin/* routes (admin users)
-
----
-
-## Open Questions (Deferred to Implementation Phase)
-
-These are not blockers for the spec — they are decisions for the
-implementation agent to make and document in a handover:
-
-1. Which Ollama model version for Stage 2? (llama3.2:3b recommended
-   for classification — fast, low memory, sufficient for intent routing)
-2. How many messages to show in visual history before truncating?
-   (Suggested: last 10 exchanges)
-3. Should the chat panel be dismissible with Escape key?
-   (Recommended: yes — standard keyboard UX)
-
----
-
-## Sign-Off Criteria
-
-Status moves to APPROVED_FOR_IMPLEMENTATION when:
-- [ ] F-007 through F-016 are complete (intent targets exist)
-- [ ] All acceptance checklist items above are reviewable
-- [ ] Ollama decision made (use or skip Stage 2)
-- [ ] progress-tracker.md updated to IN-PROGRESS
-
-Current status: PLANNED — blocked on prerequisite features.
+No outstanding upstream blockers for the recommended v1 scope.

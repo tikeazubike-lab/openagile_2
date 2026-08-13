@@ -1,7 +1,7 @@
 # BUG-AT-002 — Acceptance Test: F-COST-BASIS (Historical Cost Basis Upload)
 
 ## Related Spec
-`.context/feature-specs/F-COST-BASIS.md`
+`.context/feature-specs/F-024-cost-basis-upload.md`
 
 ---
 

@@ -192,7 +192,7 @@ Requirement ref:     REQ-ADMN-001 (User CRUD), REQ-ADMN-002 (Role guards)
 delegate_task(
   role="leaf",
   toolsets=["web"],
-  context="Review F-016 User Management spec. Backend and frontend already implemented. Spec must match EXISTING code exactly — no aspirational features. Check: endpoints match admin_users.py, UI matches _app.settings.users.tsx, API shapes match actual responses, acceptance criteria are verifiable against deployed testdrive.epm.zubbystudio.shop.",
+  context="Review F-016 User Management spec. Backend and frontend already implemented. Spec must match EXISTING code exactly — no aspirational features. Check: endpoints match admin_users.py, UI matches _app.settings.users.tsx, API shapes match actual responses, acceptance criteria are verifiable against deployed testdrive.epm.zubbystudio.site.",
   goal="Review F-016 spec for accuracy against implementation. Return APPROVED or list of required corrections."
 )
 ```
@@ -249,7 +249,7 @@ ORDER BY id;
 **Commands (run from VPS or local with tunnel):**
 ```bash
 # Get admin token first
-TOKEN=$(curl -s -c cookies.txt -X POST https://testdrive.epm.zubbystudio.shop/api/v1/auth/login \
+TOKEN=$(curl -s -c cookies.txt -X POST https://testdrive.epm.zubbystudio.site/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"<ADMIN_PASSWORD>"}' | jq -r .data.access_token)
 
@@ -257,39 +257,39 @@ TOKEN=$(curl -s -c cookies.txt -X POST https://testdrive.epm.zubbystudio.shop/ap
 COOKIE=$(cat cookies.txt | grep epm_token | awk '{print $7}')
 
 # 1. GET list (admin)
-curl -s -b "epm_token=$COOKIE" https://testdrive.epm.zubbystudio.shop/api/v1/admin/users | jq .
+curl -s -b "epm_token=$COOKIE" https://testdrive.epm.zubbystudio.site/api/v1/admin/users | jq .
 
 # 2. GET without auth → expect 401
-curl -s https://testdrive.epm.zubbystudio.shop/api/v1/admin/users | jq .
+curl -s https://testdrive.epm.zubbystudio.site/api/v1/admin/users | jq .
 
 # 3. POST create user
-curl -s -b "epm_token=$COOKIE" -X POST https://testdrive.epm.zubbystudio.shop/api/v1/admin/users \
+curl -s -b "epm_token=$COOKIE" -X POST https://testdrive.epm.zubbystudio.site/api/v1/admin/users \
   -H "Content-Type: application/json" \
   -d '{"username":"testuser1","name":"Test User","password":"testpass123","role":"readonly"}' | jq .
 
 # 4. POST duplicate → expect 409
-curl -s -b "epm_token=$COOKIE" -X POST https://testdrive.epm.zubbystudio.shop/api/v1/admin/users \
+curl -s -b "epm_token=$COOKIE" -X POST https://testdrive.epm.zubbystudio.site/api/v1/admin/users \
   -H "Content-Type: application/json" \
   -d '{"username":"testuser1","name":"Test User","password":"testpass123","role":"readonly"}' | jq .
 
 # 5. PATCH update
-curl -s -b "epm_token=$COOKIE" -X PATCH https://testdrive.epm.zubbystudio.shop/api/v1/admin/users/2 \
+curl -s -b "epm_token=$COOKIE" -X PATCH https://testdrive.epm.zubbystudio.site/api/v1/admin/users/2 \
   -H "Content-Type: application/json" \
   -d '{"name":"Updated Name","role":"admin"}' | jq .
 
 # 6. PUT reset-password
-curl -s -b "epm_token=$COOKIE" -X PUT https://testdrive.epm.zubbystudio.shop/api/v1/admin/users/2/reset-password \
+curl -s -b "epm_token=$COOKIE" -X PUT https://testdrive.epm.zubbystudio.site/api/v1/admin/users/2/reset-password \
   -H "Content-Type: application/json" \
   -d '{"new_password":"newpass123"}' | jq .
 
 # 7. DELETE (soft)
-curl -s -b "epm_token=$COOKIE" -X DELETE https://testdrive.epm.zubbystudio.shop/api/v1/admin/users/2 | jq .
+curl -s -b "epm_token=$COOKIE" -X DELETE https://testdrive.epm.zubbystudio.site/api/v1/admin/users/2 | jq .
 
 # 8. Verify soft delete in DB
 docker exec -it openagile_postgres psql -U openagile -d estate_portfolio -c "SELECT username, deleted_at, is_active FROM users WHERE username='testuser1';"
 
 # 9. Test self-delete block (use admin's own ID)
-curl -s -b "epm_token=$COOKIE" -X DELETE https://testdrive.epm.zubbystudio.shop/api/v1/admin/users/1 | jq .
+curl -s -b "epm_token=$COOKIE" -X DELETE https://testdrive.epm.zubbystudio.site/api/v1/admin/users/1 | jq .
 ```
 
 **Expected:** All status codes and response shapes match spec.
@@ -300,7 +300,7 @@ curl -s -b "epm_token=$COOKIE" -X DELETE https://testdrive.epm.zubbystudio.shop/
 **Objective:** Verify frontend renders correctly, interactions work, role guards enforce.
 
 **Steps:**
-1. Open https://testdrive.epm.zubbystudio.shop/settings/users as admin
+1. Open https://testdrive.epm.zubbystudio.site/settings/users as admin
 2. Verify: Page loads, table shows users, "Add User" button visible
 3. Click "Add User" → fill form → submit → verify user appears in table
 4. Click "Edit" on a user → change role → save → verify badge updates
@@ -384,7 +384,7 @@ git push origin develop
 2. DeepSeek review                            → delegate_task (DeepSeek)
 3. [DB] Verify users table + soft delete      → psql on VPS
 4. [API] Verify all 7 endpoints + guards      → curl with admin cookie
-5. [UI] Browser verification checklist        → testdrive.epm.zubbystudio.shop
+5. [UI] Browser verification checklist        → testdrive.epm.zubbystudio.site
 6. Update progress-tracker.md                 → F-016 = COMPLETE
 7. Write HO-XXX.md + AT-XXX.md                → docs/handovers/ + docs/testing/acceptance/
 8. Commit & push                              → git add/commit/push

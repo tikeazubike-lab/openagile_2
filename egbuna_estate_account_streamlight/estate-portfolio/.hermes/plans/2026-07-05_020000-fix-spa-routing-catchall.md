@@ -2,7 +2,7 @@
 
 > **For Hermes:** Use subagent-driven-development to implement this plan task-by-task.
 
-**Goal:** Fix the 3 failures found during human testing of testdrive.epm.zubbystudio.shop so the release can proceed.
+**Goal:** Fix the 3 failures found during human testing of testdrive.epm.zubbystudio.site so the release can proceed.
 
 **Root causes:**
 1. **SPA routing (Companies blank, 401 no redirect):** `app.mount("/", StaticFiles(html=True))` at `main.py:88` intercepts all client-side routes before the `/{full_path:path}` catch-all and returns 404 instead of `index.html`
@@ -188,7 +188,7 @@ const [daysFilter, setDaysFilter] = useState<number>(365); // 7, 30, 90, 365, 0 
 
 ```bash
 for path in /login /holdings /companies /price-history; do
-  echo "$path: $(curl -s -o /dev/null -w '%{http_code}' "https://testdrive.epm.zubbystudio.shop$path")"
+  echo "$path: $(curl -s -o /dev/null -w '%{http_code}' "https://testdrive.epm.zubbystudio.site$path")"
 done
 ```
 
@@ -210,7 +210,7 @@ Expected: all 200.
 **Step 4: Browser test — 401 redirect**
 
 1. Open incognito / clear cookies
-2. Navigate to `https://testdrive.epm.zubbystudio.shop/holdings`
+2. Navigate to `https://testdrive.epm.zubbystudio.site/holdings`
 3. Expected: redirect to `/login`
 
 ---

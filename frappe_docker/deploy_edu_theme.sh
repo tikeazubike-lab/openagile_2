@@ -31,6 +31,6 @@ echo ">>> Verifying Nginx access..."
 docker compose exec frontend ls -R /home/frappe/frappe-bench/sites/assets/$APP_NAME
 
 # 6. Clear Cache
-docker compose exec backend bench --site edu.erpnext.zubbystudio.shop clear-cache
+docker compose exec backend bench --site edu.erpnext.zubbystudio.site clear-cache
 
 echo ">>> Deployment Complete! ✅"

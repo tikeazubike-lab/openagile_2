@@ -71,7 +71,7 @@ docker compose exec frontend ls -la /home/frappe/frappe-bench/sites/assets/ | gr
     echo -e "${GREEN}✓ Fix 2 worked! Assets now visible${NC}"
     echo
     echo -e "${YELLOW}Testing HTTP access...${NC}"
-    curl -I https://edu.erpnext.zubbystudio.shop/assets/edu_theme/frontend/assets/index.js
+    curl -I https://edu.erpnext.zubbystudio.site/assets/edu_theme/frontend/assets/index.js
     exit 0
 } || {
     echo -e "${RED}✗ Fix 2 didn't work either${NC}"

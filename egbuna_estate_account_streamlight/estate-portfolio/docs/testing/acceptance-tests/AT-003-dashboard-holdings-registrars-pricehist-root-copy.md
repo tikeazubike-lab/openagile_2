@@ -6,7 +6,7 @@ status: PENDING
 version: 1.0
 created: 2026-05-08
 tester: [fill in]
-environment: testdrive.epm.zubbystudio.shop
+environment: testdrive.epm.zubbystudio.site
 branch: test
 feature: BR-001
 related: SC-UI-001 through SC-UI-046
@@ -42,7 +42,7 @@ Group failures at the bottom under **Issues Found**.
 
 ### Notification Bell
 - [ ] SC-UI-006: When draft holdings or stale prices exist, a numbered amber badge appears on the bell icon
-- [skipped]SC-UI-007: Clicking the bell opens a dropdown showing the last 5 action items; each item is clickable; clicking outside closes the dropdown. note action could not be created because trying to add a new holding could not be completed successfully. The frontend displays the create holding form but clicking on save returns an error "XHRPOST https://testdrive.epm.zubbystudio.shop/api/v1/holdings [HTTP/2 500 156ms]"
+- [skipped]SC-UI-007: Clicking the bell opens a dropdown showing the last 5 action items; each item is clickable; clicking outside closes the dropdown. note action could not be created because trying to add a new holding could not be completed successfully. The frontend displays the create holding form but clicking on save returns an error "XHRPOST https://testdrive.epm.zubbystudio.site/api/v1/holdings [HTTP/2 500 156ms]"
 - [skipped]008: When no pending items exist, the bell has no badge
 
 ### Sector Allocation Chart
@@ -76,12 +76,12 @@ Group failures at the bottom under **Issues Found**.
 ### Inline Editing
 - [x] SC-UI-023: Clicking Edit on a row enables inline editing for THAT row only; other rows remain read-only
 - [failed] SC-UI-024: Changing Shares and clicking Save calls PATCH /api/v1/holdings/{id} and the row updates in place note: The save button brings up this error: "Average cost must be a positive number", even though the values are the unedited values, and they are all positive values.
-- [failed] SC-UI-025: Clicking Cancel discards any changes and the row returns to its original values; no API call is made(I thought there are two buttons, edit and delete. I only disable the edit/view switch button on top to escape the edit mode and thereby "cancelling" edit mode. I did not see any cancel button on the rows. Unless your intention is for the button marked X to be the cancel button? I also tried to enter a positive number in the average cost field and click save, but it still gives the same error message "XHRPATCH https://testdrive.epm.zubbystudio.shop/api/v1/holdings/1 [HTTP/2 500 213ms]")
+- [failed] SC-UI-025: Clicking Cancel discards any changes and the row returns to its original values; no API call is made(I thought there are two buttons, edit and delete. I only disable the edit/view switch button on top to escape the edit mode and thereby "cancelling" edit mode. I did not see any cancel button on the rows. Unless your intention is for the button marked X to be the cancel button? I also tried to enter a positive number in the average cost field and click save, but it still gives the same error message "XHRPATCH https://testdrive.epm.zubbystudio.site/api/v1/holdings/1 [HTTP/2 500 213ms]")
 - [failed] SC-UI-026: Entering a negative number for Shares shows a validation error on the row; Save is blocked note: doesnt even allow the user to enter a negative number.
 - [failed] SC-UI-026: During inline editing of the holdings table, the values in the cells are too jammed to the increment/decrement button, at least a 10px gap should be added to the right of the value field
 ### Add Holding
 - [skipped] SC-UI-027: Clicking [+ Add Holding] in Edit Mode inserts a blank inline form row at the TOP of the table(change these statement, it is supposed to insert a form from the right side of the table according to the @Ho-011-claude-to-antigravity.md handover document)
-- [failed] SC-UI-028: Filling in Company, Shares, Avg Cost and clicking Save creates the holding with status "draft"; a DRAFT badge appears on the new row note: I got an error on this "Average cost must be a positive number" when i tried to enter a positive number in the average cost field and click save, but it still gives the same error message "XHRPATCH https://testdrive.epm.zubbystudio.shop/api/v1/holdings/1 [HTTP/2 500 213ms]"
+- [failed] SC-UI-028: Filling in Company, Shares, Avg Cost and clicking Save creates the holding with status "draft"; a DRAFT badge appears on the new row note: I got an error on this "Average cost must be a positive number" when i tried to enter a positive number in the average cost field and click save, but it still gives the same error message "XHRPATCH https://testdrive.epm.zubbystudio.site/api/v1/holdings/1 [HTTP/2 500 213ms]"
 - [skipped] SC-UI-029: Attempting to add a holding for a company that already has one shows an error; no API call is made note: I tried adding a new holding with the same company name and ticker as an existing holding, and it still created the holding without any error.
 
 ### Draft / Publish / Delete

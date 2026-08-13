@@ -13,7 +13,7 @@ Implemented and deployed all 5 tasks:
 - Task 3: Frontend F-NGX-COMPANIES — /settings/data-upload route with PDF dropzone, result summary, company list with search/filter
 - Task 4: Backend F-COST-BASIS — cost_basis.py router, 3-step ticker matching, claim auto-creation, Alembic migration (purchase_date), 12 unit tests
 - Task 5: Frontend F-COST-BASIS — tabs on /settings/data-upload with quick form, bulk CSV preview/commit, records table
-All 23 tests pass. Deployed to testdrive.epm.zubbystudio.shop. Migration 7d4e8f2a1c03 ran on DB. Branch: test. Next: acceptance verification by Hermes.
+All 23 tests pass. Deployed to testdrive.epm.zubbystudio.site. Migration 7d4e8f2a1c03 ran on DB. Branch: test. Next: acceptance verification by Hermes.
 
 ## 2026-07-03 18:45 UTC — opencode — Agent routing update
 Updated `Master_context_Claude_web_2.txt` per user request:

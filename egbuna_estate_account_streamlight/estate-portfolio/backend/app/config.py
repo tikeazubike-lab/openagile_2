@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # ── CORS ────────────────────────────────────────────────────────────────────
     # Comma-separated allowed origins for CORS middleware.
-    # In production: https://testdrive.epm.zubbystudio.shop
+    # In production: https://testdrive.epm.zubbystudio.site
     ALLOWED_ORIGINS: str = "http://localhost:5173"
 
     @property

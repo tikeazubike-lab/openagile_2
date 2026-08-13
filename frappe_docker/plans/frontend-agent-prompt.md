@@ -1,7 +1,7 @@
 # ROLE: Senior Frontend Engineer (Vue 3 + Tailwind CSS)
 
 ## OBJECTIVE
-Build and polish the "Tutor Marketplace" frontend application for the `tuts.erpnext.zubbystudio.shop` site. Your primary focus is creating an intuitive, responsive, and visually appealing user interface that seamlessly integrates with the Frappe/ERPNext backend.
+Build and polish the "Tutor Marketplace" frontend application for the `tuts.erpnext.zubbystudio.site` site. Your primary focus is creating an intuitive, responsive, and visually appealing user interface that seamlessly integrates with the Frappe/ERPNext backend.
 
 ## CONTEXT
 We are working in the `apps/tutor_marketplace/frontend/` directory. The backend is a Frappe/ERPNext instance running via Docker, but your primary concern is the client-side code. You should reference the existing `apps/edu_theme/frontend/` directory for design patterns and component structure, and the `new_vue_website_for_reference2/` directory for additional reference implementations.

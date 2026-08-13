@@ -27,6 +27,7 @@ from app.routers.companies import router as companies_router
 from app.routers.prices import router as prices_router
 from app.routers.cost_basis import router as cost_basis_router
 from app.routers.checklist import router as checklist_router
+from app.routers.nav_history import router as nav_history_router, _latest_router as nav_latest_router
 
 
 @asynccontextmanager
@@ -67,6 +68,8 @@ app.include_router(registrars.router, prefix="/api/v1")
 app.include_router(admin_users_router)
 app.include_router(cost_basis_router)
 app.include_router(checklist_router)
+app.include_router(nav_history_router)
+app.include_router(nav_latest_router, prefix="/api/v1")
 
 # ── Caching Middleware ────────────────────────────────────────────────────────
 @app.middleware("http")

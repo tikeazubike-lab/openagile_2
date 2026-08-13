@@ -19,7 +19,7 @@ from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
@@ -38,29 +38,35 @@ from app.models.users import User
 
 DB_HOST = os.environ["DB_HOST"]          # e.g. openagile_postgres
 DB_PORT = os.environ.get("DB_PORT", "5432")
-DB_NAME = os.environ["DB_NAME"]          # e.g. estate_portfolio
+DB_NAME = os.environ.get("DB_NAME", "epm_test")  # isolated test database
 DB_USER = os.environ["DB_USER"]          # e.g. openagile
 DB_PASSWORD = os.environ["DB_PASSWORD"]
-
-DB_TEST_SCHEMA = os.environ.get("DB_TEST_SCHEMA", "estate_portfolio_test")
 
 TEST_DATABASE_URL = (
     f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}"
     f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    f"?options=-csearch_path%3D{DB_TEST_SCHEMA}"
 )
 
 # NullPool: never reuse connections between tests (clean slate every time)
-engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool, echo=False)
+engine = create_async_engine(
+    TEST_DATABASE_URL,
+    poolclass=NullPool,
+    echo=False,
+)
 
 
-# ---------------------------------------------------------------------------
-# Event loop (module-scoped for async fixtures)
-# ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="session")
+# ── Create tables in the test database ──────────────────────────────────────
+@pytest.fixture(scope="session", autouse=True)
 def event_loop():
+    """Create test database tables once per session."""
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    async def init():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    loop.run_until_complete(init())
     yield loop
     loop.close()
 
@@ -110,7 +116,7 @@ async def test_app(db_session: AsyncSession):
 
 @pytest_asyncio.fixture
 async def async_client(test_app) -> AsyncGenerator[AsyncClient, None]:
-    async with AsyncClient(app=test_app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         yield client
 
 
@@ -118,7 +124,7 @@ async def async_client(test_app) -> AsyncGenerator[AsyncClient, None]:
 async def admin_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
     token = create_access_token(data={"sub": "test_admin", "role": "admin"})
     async with AsyncClient(
-        app=test_app,
+        transport=ASGITransport(app=test_app),
         base_url="http://test",
         cookies={"epm_token": token},
     ) as client:
@@ -129,7 +135,7 @@ async def admin_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
 async def user_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
     token = create_access_token(data={"sub": "test_viewer", "role": "readonly"})
     async with AsyncClient(
-        app=test_app,
+        transport=ASGITransport(app=test_app),
         base_url="http://test",
         cookies={"epm_token": token},
     ) as client:

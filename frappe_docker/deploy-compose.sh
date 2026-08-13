@@ -185,7 +185,7 @@ sleep 30
 # Clear Cache
 # Clear Cache
 log_info "Clearing Bench Cache..."
-SITES=("erpnext.zubbystudio.shop" "library.erpnext.zubbystudio.shop" "edu.erpnext.zubbystudio.shop" "tutor.erpnext.zubbystudio.shop")
+SITES=("erpnext.zubbystudio.site" "library.erpnext.zubbystudio.site" "edu.erpnext.zubbystudio.site" "tutor.erpnext.zubbystudio.site")
 for site in "${SITES[@]}"; do
     log_info "Clearing cache for $site..."
     docker compose exec -T backend bench --site "$site" clear-cache || log_warn "Failed to clear cache for $site"
@@ -241,35 +241,35 @@ if [ "$CI_MODE" != "true" ]; then
     sleep 10
     
     # Test main ERPNext site
-    if curl -sSf -o /dev/null -w "%{http_code}" https://erpnext.zubbystudio.shop 2>/dev/null | grep -q "200\|302"; then
+    if curl -sSf -o /dev/null -w "%{http_code}" https://erpnext.zubbystudio.site 2>/dev/null | grep -q "200\|302"; then
         log_info "✓ ERPNext site: OK"
     else
         log_warn "⚠ ERPNext site: Not responding (may need time to start)"
     fi
     
     # Test Library site
-    if curl -sSf -o /dev/null -w "%{http_code}" https://library.erpnext.zubbystudio.shop 2>/dev/null | grep -q "200\|302"; then
+    if curl -sSf -o /dev/null -w "%{http_code}" https://library.erpnext.zubbystudio.site 2>/dev/null | grep -q "200\|302"; then
         log_info "✓ Library site: OK"
     else
         log_warn "⚠ Library site: Not responding (may need time to start)"
     fi
     
     # Test Education site
-    if curl -sSf -o /dev/null -w "%{http_code}" https://edu.erpnext.zubbystudio.shop 2>/dev/null | grep -q "200\|302"; then
+    if curl -sSf -o /dev/null -w "%{http_code}" https://edu.erpnext.zubbystudio.site 2>/dev/null | grep -q "200\|302"; then
         log_info "✓ Education site: OK"
     else
         log_warn "⚠ Education site: Not responding (may need time to start)"
     fi
     
     # Test edu landing page
-    if curl -sSf -o /dev/null -w "%{http_code}" https://edu.erpnext.zubbystudio.shop/landing 2>/dev/null | grep -q "200"; then
+    if curl -sSf -o /dev/null -w "%{http_code}" https://edu.erpnext.zubbystudio.site/landing 2>/dev/null | grep -q "200"; then
         log_info "✓ Education landing page: OK"
     else
         log_warn "⚠ Education landing page: Not responding (may need time to start)"
     fi
 
     # Test tutor_hub landing page
-    if curl -sSf --max-time 30 -o /dev/null -w "%{http_code}" https://tutor.erpnext.zubbystudio.shop/landing 2>/dev/null | grep -q "200"; then
+    if curl -sSf --max-time 30 -o /dev/null -w "%{http_code}" https://tutor.erpnext.zubbystudio.site/landing 2>/dev/null | grep -q "200"; then
         log_info "✓ TutorHub landing page: OK"
     else
         log_warn "⚠ TutorHub landing page: Not responding (site may not be created yet — run bench new-site)"
@@ -282,10 +282,10 @@ echo "✅ Deployment Complete!"
 echo "================================"
 echo ""
 echo "📍 Site URLs:"
-echo "   • Main ERPNext: https://erpnext.zubbystudio.shop"
-echo "   • Library:      https://library.erpnext.zubbystudio.shop"
-echo "   • Education:    https://edu.erpnext.zubbystudio.shop"
-echo "   • Landing Page: https://edu.erpnext.zubbystudio.shop/landing"
+echo "   • Main ERPNext: https://erpnext.zubbystudio.site"
+echo "   • Library:      https://library.erpnext.zubbystudio.site"
+echo "   • Education:    https://edu.erpnext.zubbystudio.site"
+echo "   • Landing Page: https://edu.erpnext.zubbystudio.site/landing"
 echo ""
 echo "📝 Next Steps:"
 echo "   1. If databases are missing: ./recreate-sites.sh"

@@ -138,7 +138,7 @@ and write a handover brief to Claude.
 After Cursor pushes to test:
 
 1. Watch GitHub Actions: confirm fast-path CI passes
-2. Navigate to `testdrive.epm.zubbystudio.shop`
+2. Navigate to `testdrive.epm.zubbystudio.site`
 3. Run the 9-step logout acceptance test:
    - Log in → confirm cookie in DevTools (Application → Cookies)
    - Click logout → confirm cookie cleared

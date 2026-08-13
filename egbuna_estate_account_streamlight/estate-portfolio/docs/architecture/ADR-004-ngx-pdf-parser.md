@@ -38,7 +38,7 @@ git commit -m "fix: downgrade bcrypt to 4.0.1 — passlib incompatible with >= 4
 git push origin test
 ```
 
-Wait for CI to pass and confirm login works on testdrive.epm.zubbystudio.shop
+Wait for CI to pass and confirm login works on testdrive.epm.zubbystudio.site
 before proceeding to Task 2.
 
 ---
@@ -455,7 +455,7 @@ This uses the CSS variable pattern so it works in both light and dark mode.
 ## Acceptance Test — BCrypt + Seed + PDF Parser
 
 ### BCrypt Fix
-- [ ] Login works at testdrive.epm.zubbystudio.shop
+- [ ] Login works at testdrive.epm.zubbystudio.site
 - [ ] No 500 errors in server logs related to passlib/bcrypt
 
 ### Company Seed

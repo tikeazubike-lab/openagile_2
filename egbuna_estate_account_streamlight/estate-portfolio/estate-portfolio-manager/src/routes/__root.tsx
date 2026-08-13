@@ -7,6 +7,7 @@ import { Outlet, createRootRoute, Link } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTheme } from "@/hooks/useTheme";
+import { AiAssistant } from "@/components/AiAssistant";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +49,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <AiAssistant />
     </QueryClientProvider>
   );
 }

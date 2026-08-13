@@ -146,7 +146,7 @@ Execution path:   GitHub Actions → VPS only
                   NO local Docker, NO local Python, NO local Node
 
 Deployment:       Push to feature/* or develop → CI runs
-                  Push to test → deploy to testdrive.epm.zubbystudio.shop
+                  Push to test → deploy to testdrive.epm.zubbystudio.site
                   Push to main → approval required
 
 Database:         PostgreSQL 15, shared instance, REUSE — no new instances

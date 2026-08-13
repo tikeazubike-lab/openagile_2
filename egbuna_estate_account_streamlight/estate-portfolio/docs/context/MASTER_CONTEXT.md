@@ -46,7 +46,7 @@ the prompt, active file, handover, or acceptance test mentions any of:
 - `egbuna_estate_account_streamlight/estate-portfolio/`
 - `Estate Portfolio Manager`
 - `EPM`
-- `testdrive.epm.zubbystudio.shop`
+- `testdrive.epm.zubbystudio.site`
 - `estate-portfolio-manager`
 - `backend/app/routers/holdings.py`
 - `AT-003`, `AT-003-1`, `AT-003-2`

@@ -179,14 +179,20 @@ export interface ClaimHolding {
 
 export interface Claim {
   id: number;
+  holding_id: number | null;
   claim_reference: string;
   holding: ClaimHolding | null;
   claim_status: string;
+  lifecycle_status: string;
+  raw_company_name: string | null;
   actual_payout: number | null;
   expected_payout: number | null;
   payout_date: string | null;
   date_filed: string | null;
   notes: string | null;
+  documents_reference: string | null;
+  claim_authority: string | null;
+  claim_type: string;
 }
 
 // ─── Registrars ────────────────────────────────────────────────────────────────
@@ -221,13 +227,32 @@ export interface WatchlistItem {
 
 // ─── NAV History ───────────────────────────────────────────────────────────────
 
-export interface NavSnapshot {
-  id: number;
+export interface NavDataPoint {
   snapshot_date: string;
-  portfolio_value: number;
-  total_invested: number;
-  gain_loss: number;
-  return_pct: number;
+  total_value: string;
+  total_cost: string;
+  gain_loss: string;
+  notes: string | null;
+  created_at: string | null;
+}
+
+export interface NavSummary {
+  current_nav: string;
+  change_7d: string;
+  change_30d: string;
+  change_ytd: string;
+  first_nav_date: string;
+}
+
+export interface CoverageInfo {
+  priced_holdings_count: number;
+  total_active_holdings_count: number;
+}
+
+export interface NavHistoryResponse {
+  data_points: NavDataPoint[];
+  summary: NavSummary | null;
+  coverage: CoverageInfo;
 }
 
 // ─── Rebalancing ───────────────────────────────────────────────────────────────

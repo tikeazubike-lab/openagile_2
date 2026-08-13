@@ -1,7 +1,7 @@
 # BUG-AT-001 — Acceptance Test: F-NGX-COMPANIES (NGX Listed Companies PDF Upload)
 
 ## Related Spec
-`.context/feature-specs/F-NGX-COMPANIES.md`
+`.context/feature-specs/F-025-ngx-companies-upload.md`
 
 ---
 

@@ -2,11 +2,12 @@ import { useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   UploadCloud, Building2, Search, CheckCircle, XCircle, AlertTriangle,
-  DollarSign, FileSpreadsheet, Download,
+  DollarSign, FileSpreadsheet, Download, ScrollText,
 } from "lucide-react";
 import {
   useCompanies, useUploadCompaniesPdf,
   useCostBasisRecords, useQuickCostBasis, useBulkCsvCostBasis,
+  useClaimsUploadPreview, useClaimsUploadCommit, downloadClaimsTemplate,
 } from "@/api/queries";
 import { useUIStore } from "@/store/uiStore";
 import { useAuthStore } from "@/store/authStore";
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/_app/settings/data-upload")({
 const TABS = [
   { id: "companies", label: "Companies", icon: Building2 },
   { id: "cost-basis", label: "Cost Basis", icon: DollarSign },
+  { id: "claims", label: "Claims", icon: ScrollText },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -64,6 +66,7 @@ function DataUploadPage() {
 
       {activeTab === "companies" && <CompaniesSection />}
       {activeTab === "cost-basis" && <CostBasisSection />}
+      {activeTab === "claims" && <ClaimsSection />}
     </div>
   );
 }
@@ -579,6 +582,300 @@ function CostBasisListPanel() {
             </tbody>
           </table>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLAIMS SECTION (F-011)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function ClaimsSection() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="lg:col-span-5">
+        <ClaimsCsvUpload />
+      </div>
+      <div className="lg:col-span-7">
+        <ClaimsUploadGuide />
+      </div>
+    </div>
+  );
+}
+
+function ClaimsCsvUpload() {
+  const { mutate: uploadPreview, isPending: isPreviewPending } = useClaimsUploadPreview();
+  const { mutate: commitUpload, isPending: isCommitPending } = useClaimsUploadCommit();
+  const addToast = useUIStore((s) => s.addToast);
+
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [file, setFile] = useState<File | null>(null);
+  const [previewData, setPreviewData] = useState<Record<string, unknown> | null>(null);
+  const [acknowledged, setAcknowledged] = useState(false);
+
+  const isPending = isPreviewPending || isCommitPending;
+
+  const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.name.toLowerCase().endsWith(".csv")) {
+      addToast({ title: "Invalid File", description: "Only .csv files accepted", type: "error" });
+      return;
+    }
+    setFile(f);
+    setAcknowledged(false);
+    uploadPreview(f, {
+      onSuccess: (res) => {
+        setPreviewData(res.data);
+        setStep(2);
+      },
+      onError: (err: Error) => {
+        addToast({ title: "Upload Failed", description: err.message, type: "error" });
+        setFile(null);
+      },
+    });
+    e.target.value = "";
+  };
+
+  const handleCommit = () => {
+    if (!previewData) return;
+    const rows = (previewData as any).rows ?? [];
+    commitUpload(
+      { rows, confirm_unmatched: acknowledged },
+      {
+        onSuccess: (res) => {
+          setPreviewData(res.data);
+          setStep(3);
+        },
+        onError: (err: Error) => addToast({ title: "Commit Failed", description: err.message, type: "error" }),
+      },
+    );
+  };
+
+  const reset = () => {
+    setFile(null);
+    setPreviewData(null);
+    setStep(1);
+    setAcknowledged(false);
+  };
+
+  const summary = (previewData as any)?.summary;
+  const rows = (previewData as any)?.rows ?? [];
+
+  return (
+    <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold text-white">Claims CSV Upload</h2>
+        <span className="text-[11px] font-mono text-white/40 bg-white/5 px-2 py-0.5 rounded">STEP {step}/3</span>
+      </div>
+      <div className="p-5 space-y-4">
+        {step === 1 && (
+          <>
+            <div className="text-[13px] text-white/60 leading-relaxed">
+              Upload a CSV from your registrar, with columns:{" "}
+              <code className="text-white/80">Account#, Shareholder, Company, Operator</code>
+            </div>
+            <button onClick={downloadClaimsTemplate}
+              className="flex items-center gap-2 text-[12px] text-[var(--accent-lavender)] hover:underline">
+              <Download className="w-3.5 h-3.5" /> Download Template
+            </button>
+            <div className="relative">
+              <input type="file" accept=".csv" onChange={handleSelect}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={isPending} />
+              <div className="border-2 border-dashed border-white/10 hover:border-white/20 rounded-xl p-6 text-center transition-colors">
+                <FileSpreadsheet className="w-6 h-6 mx-auto text-white/30 mb-2" />
+                <div className="text-[13px] font-medium text-white mb-0.5">
+                  {isPending ? "Uploading & Matching..." : "Click to select CSV file"}
+                </div>
+                <div className="text-[11px] text-white/40">.csv accepted · max 5MB</div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 2 && summary && (
+          <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-[var(--bg-subtle)] rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-green-400 font-medium text-[13px]">{summary.matched ?? 0} matched</span>
+                <span className="text-white/30">·</span>
+                <span className={cn(
+                  "font-medium text-[13px]",
+                  (summary.unmatched ?? 0) > 0 ? "text-yellow-400" : "text-white/50",
+                )}>
+                  {summary.unmatched ?? 0} unmatched
+                </span>
+                {(summary.duplicates_skipped ?? 0) > 0 && (
+                  <>
+                    <span className="text-white/30">·</span>
+                    <span className="text-blue-400 text-[13px]">{summary.duplicates_skipped} duplicates</span>
+                  </>
+                )}
+              </div>
+              <span className="text-[11px] text-white/40">{file?.name}</span>
+            </div>
+
+            <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="text-white/50 border-b border-[var(--border)] text-[11px] uppercase tracking-wider">
+                    <th className="text-left px-2 py-1 font-medium">Account#</th>
+                    <th className="text-left px-2 py-1 font-medium">Shareholder</th>
+                    <th className="text-left px-2 py-1 font-medium">Company</th>
+                    <th className="text-center px-2 py-1 font-medium">Match</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r: any, i: number) => (
+                    <tr key={i} className="border-b border-[var(--border)] hover:bg-white/[0.02] transition-colors">
+                      <td className="px-2 py-1.5 font-mono text-white">{r.account_number}</td>
+                      <td className="px-2 py-1.5 text-white/80 max-w-[150px] truncate" title={r.shareholder}>
+                        {r.shareholder}
+                      </td>
+                      <td className="px-2 py-1.5 text-white/70 max-w-[160px] truncate" title={r.company_name_raw}>
+                        {r.company_name_raw}
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        {r.match_status === "matched" && (
+                          <span className="inline-flex items-center gap-1 text-green-400 text-[10px]">
+                            <CheckCircle className="w-3 h-3" /> Maatched
+                          </span>
+                        )}
+                        {r.match_status === "unmatched" && (
+                          <span className="inline-flex items-center gap-1 text-yellow-400 text-[10px]">
+                            <AlertTriangle className="w-3 h-3" /> Unmatched
+                          </span>
+                        )}
+                        {r.match_status === "ambiguous" && (
+                          <span className="inline-flex items-center gap-1 text-orange-400 text-[10px]">
+                            <AlertTriangle className="w-3 h-3" /> Ambiguous
+                          </span>
+                        )}
+                        {r.match_status === "error" && (
+                          <span className="inline-flex items-center gap-1 text-red-400 text-[10px]">
+                            <XCircle className="w-3 h-3" /> {r.error ?? "Error"}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {(summary.unmatched ?? 0) > 0 && (
+              <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acknowledged}
+                    onChange={(e) => setAcknowledged(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-white/20 bg-white/5 text-[var(--accent-lavender)] focus:ring-[var(--accent-lavender)]"
+                  />
+                  <span className="text-[12px] text-yellow-300/90">
+                    I acknowledge that {summary.unmatched} row(s) could not be matched to existing companies. They will be skipped on commit.
+                  </span>
+                </label>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button onClick={reset}
+                className="flex-1 h-9 rounded-md border border-white/20 text-[13px] text-white/70 hover:bg-white/5 transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={handleCommit}
+                disabled={isPending || ((summary.matched ?? 0) === 0) || ((summary.unmatched ?? 0) > 0 && !acknowledged)}
+                className="flex-1 h-9 rounded-md bg-green-600 text-white text-[13px] font-semibold hover:bg-green-500 disabled:opacity-50 transition-colors"
+              >
+                {isCommitPending ? "Committing..." : `Commit ${summary.matched ?? 0} rows`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && previewData && (
+          <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-2 text-green-400">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-[14px] font-medium">Upload Complete</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-[var(--bg-subtle)] rounded-lg p-3 text-center">
+                <div className="text-[20px] font-bold text-green-400">{(previewData as any).created ?? 0}</div>
+                <div className="text-[11px] text-white/50">Created</div>
+              </div>
+              <div className="bg-[var(--bg-subtle)] rounded-lg p-3 text-center">
+                <div className="text-[20px] font-bold text-blue-400">{(previewData as any).skipped ?? 0}</div>
+                <div className="text-[11px] text-white/50">Skipped</div>
+              </div>
+              <div className="bg-[var(--bg-subtle)] rounded-lg p-3 text-center">
+                <div className="text-[20px] font-bold text-white">{(previewData as any).total ?? 0}</div>
+                <div className="text-[11px] text-white/50">Total</div>
+              </div>
+            </div>
+            {(previewData as any).errors?.length > 0 && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                <div className="text-[12px] font-medium text-red-400 mb-1">Errors:</div>
+                {(previewData as any).errors.slice(0, 5).map((err: string, i: number) => (
+                  <div key={i} className="text-[11px] text-red-300/80 ml-2">{err}</div>
+                ))}
+              </div>
+            )}
+            <button onClick={reset}
+              className="w-full h-9 rounded-md border border-white/20 text-[13px] text-white/70 hover:bg-white/5 transition-colors">
+              Upload Another
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ClaimsUploadGuide() {
+  return (
+    <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden flex flex-col h-full">
+      <div className="px-5 py-4 border-b border-[var(--border)]">
+        <h2 className="text-[14px] font-semibold text-white">Upload Guide</h2>
+      </div>
+      <div className="p-5 space-y-4 text-[13px] text-white/70 leading-relaxed">
+        <div className="bg-white/5 rounded-lg p-4 space-y-2">
+          <h3 className="text-white font-medium text-[13px]">CSV Format</h3>
+          <div className="bg-black/30 rounded p-3 font-mono text-[11px] text-white/60 leading-loose">
+            Account#,Shareholder,Company,Operator<br />
+            0000012345,"Egbuna, Benjamin","Fidelity Bank Plc","First Registrars &amp; Investors"<br />
+            0000054321,"Okonkwo, Chinwe","Transcorp Hotel Plc","Image Registrars"
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-white font-medium text-[13px]">How It Works</h3>
+          <ol className="list-decimal ml-4 space-y-1.5 text-white/60">
+            <li><strong className="text-white/80">Upload CSV</strong> — the system parses each row and matches the company name against your registered companies using fuzzy matching (95% threshold).</li>
+            <li><strong className="text-white/80">Review Matches</strong> — rows with match scores ≥90% auto-proceed. Rows below 90% are flagged as unmatched, requiring acknowledgement before commit.</li>
+            <li><strong className="text-white/80">Commit</strong> — creates claim records linked to your holdings. Already-uploaded account numbers are skipped (idempotent re-upload).</li>
+          </ol>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-white font-medium text-[13px]">Lifecycle</h3>
+          <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+            <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-2">
+              <div className="text-yellow-300 font-medium">unresolved</div>
+              <div className="text-white/40 mt-0.5">No requirements met</div>
+            </div>
+            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-2">
+              <div className="text-blue-300 font-medium">unclaimed</div>
+              <div className="text-white/40 mt-0.5">Requirements met</div>
+            </div>
+            <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-2">
+              <div className="text-green-300 font-medium">claimed</div>
+              <div className="text-white/40 mt-0.5">Payment received</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
