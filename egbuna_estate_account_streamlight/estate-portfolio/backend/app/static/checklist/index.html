@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPM — Pre-Merge Test Checklist</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 24px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .section {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #334155;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #93c5fd;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #334155;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    cursor: pointer;
+    user-select: none;
+  }
+  .item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #22c55e;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .item label {
+    font-size: 13px;
+    cursor: pointer;
+    flex: 1;
+  }
+  .item .badge {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .badge.pass { background: #166534; color: #86efac; }
+  .badge.fail { background: #991b1b; color: #fca5a5; }
+  .badge.skip { background: #854d0e; color: #fde68a; }
+  .stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 12px 20px;
+    border: 1px solid #334155;
+    text-align: center;
+    flex: 1;
+    min-width: 80px;
+  }
+  .stat-card .num {
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .stat-card .label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-card.pass .num { color: #22c55e; }
+  .stat-card.fail .num { color: #ef4444; }
+  .stat-card.total .num { color: #93c5fd; }
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  button {
+    background: #334155;
+    color: #e2e8f0;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  button:hover { background: #475569; }
+  button.primary { background: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+  button.danger { background: #991b1b; }
+  button.danger:hover { background: #b91c1c; }
+  .signoff-area {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+    border: 1px solid #334155;
+    display: none;
+  }
+  .signoff-area.show { display: block; }
+  .signoff-area textarea {
+    width: 100%;
+    height: 80px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 12px;
+    font-family: monospace;
+    resize: vertical;
+  }
+  .signoff-area .copy-btn {
+    background: #1d4ed8;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+  .signoff-area .copy-btn:hover { background: #1e40af; }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #166534;
+    color: #86efac;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .history { margin-top: 20px; }
+  .history h2 { font-size: 14px; font-weight: 600; color: #93c5fd; margin-bottom: 10px; }
+  .history-item { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .history-item .date { color: #94a3b8; font-size: 12px; }
+  .history-item .summary { display: flex; gap: 10px; }
+  .history-item .summary .p { color: #86efac; }
+  .history-item .summary .f { color: #fca5a5; }
+  .history-item .summary .s { color: #fde68a; }
+  .history-empty { color: #64748b; font-size: 13px; text-align: center; padding: 20px; }
+  .login-section {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid #334155;
+    text-align: center;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .login-section h2 { font-size: 16px; color: #f8fafc; margin-bottom: 8px; }
+  .login-section .subtitle { margin-bottom: 16px; }
+  .login-section input {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #0f172a;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 14px;
+  }
+  .login-section input:focus { outline: none; border-color: #3b82f6; }
+  .login-section button { width: 100%; }
+  .login-section .error {
+    color: #fca5a5;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  .login-section .info {
+    color: #94a3b8;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  #checklistContent { display: none; }
+  @media (max-width: 480px) {
+    body { padding: 12px; }
+    .stats { gap: 8px; }
+    .stat-card { padding: 8px 12px; min-width: 60px; }
+    .stat-card .num { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>EPM — Pre-Merge Test Checklist</h1>
+<p class="subtitle">Test against <strong>testdrive.epm.zubbystudio.site</strong>. Tick each item as verified. Updated for F-007/F-022/F-026.</p>
+
+<div class="login-section" id="loginSection">
+  <h2>Login</h2>
+  <p class="subtitle">Authenticate to access the checklist</p>
+  <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
+  <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+  <button onclick="doLogin()" class="primary">Log In</button>
+  <div class="error" id="loginError"></div>
+  <div class="info">Cookie expires with session. Relogin if page shows login.</div>
+</div>
+
+<div id="checklistContent"><div class="stats" id="stats">
+  <div class="stat-card pass"><div class="num" id="passCount">0</div><div class="label">Passed</div></div>
+  <div class="stat-card fail"><div class="num" id="failCount">0</div><div class="label">Failed</div></div>
+  <div class="stat-card total"><div class="num" id="totalCount">0</div><div class="label">Total</div></div>
+</div>
+
+<div id="checklist"></div>
+
+<div class="actions">
+  <button onclick="resetAll()" class="danger">Reset All</button>
+  <button onclick="toggleAll(true)">Pass All</button>
+  <button onclick="generateSignoff()" class="primary" id="signoffBtn">Generate Sign-off</button>
+</div>
+
+<div class="signoff-area" id="signoffArea">
+  <h3 style="font-size:13px; color:#93c5fd; margin-bottom:8px;">Sign-off Summary</h3>
+  <textarea id="signoffText" readonly></textarea>
+  <button class="copy-btn" onclick="copySignoff()">Copy to Clipboard</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="history" id="history">
+  <h2>Previous Runs</h2>
+  <div id="historyList"><div class="history-empty">Loading...</div></div>
+</div>
+
+</div>
+
+<script>
+const ITEMS = [
+  { section: "Authentication & Access", items: [
+    { id: "login",              desc: "Login — works with valid credentials" },
+    { id: "401",                desc: "401 — protected page while logged out → redirect to login" },
+    { id: "403-readonly",       desc: "403 — readonly user on admin-gated endpoints gets denied" },
+    { id: "signout",            desc: "Sign out — redirects to login page" },
+    { id: "notifications",      desc: "Admin user — notification bell visible in header" },
+  ]},
+  { section: "F-017 / F-016 — Admin Structure", items: [
+    { id: "f017-audit",        desc: "No inline editing exists — editMode fully removed (HO-107/108/109 codebase audit confirmed)" },
+    { id: "admin-actions",     desc: "Admin user — still sees edit/delete, Add Holding buttons (modal-based)" },
+    { id: "readonly-actions",  desc: "Readonly user — no action buttons visible" },
+    { id: "admin-menu",        desc: "Admin menu — shows Price Entry, Data Upload, Users" },
+  ]},
+  { section: "Data Integrity", items: [
+    { id: "holds-data",         desc: "Holdings — positions load, values look correct" },
+    { id: "price-history",      desc: "Price History — loads without errors" },
+    { id: "dashboard",          desc: "Dashboard — loads without errors, charts render" },
+    { id: "companies",          desc: "Companies — full list loads, filter/search works" },
+  ]},
+  { section: "F-010 — Claims Dashboard", items: [
+    { id: "claims-route",       desc: "Claims page loads at /claims without errors" },
+    { id: "claims-sidebar",     desc: "Sidebar shows 'Claims' nav item (replaces old Dividends)" },
+    { id: "claims-kpis",        desc: "KPI cards display correct totals (total, unclaimed value, claimed value)" },
+    { id: "claims-charts",      desc: "Bar chart + Pie chart render with correct data" },
+    { id: "claims-reg-table",   desc: "Claim Summary by Registrar table loads with correct counts" },
+    { id: "claims-records",     desc: "Claim Records table shows all records with search/filter" },
+    { id: "claims-search",      desc: "Client-side search by account/company filters rows instantly" },
+    { id: "claims-status-filter", desc: "Status filter (Unclaimed/Claimed/Pending/All) filters records" },
+    { id: "claims-reg-filter",  desc: "Registrar filter limits table to selected registrar" },
+    { id: "claims-detail",      desc: "Click 'View Details' opens claim detail drawer with all fields" },
+    { id: "claims-reg-profile", desc: "Click registrar row opens registrar profile drawer with stats + related claims" },
+    { id: "claims-theme",       desc: "Page renders correctly in both light + dark themes" },
+    { id: "claims-loading",     desc: "Page shows loading indicator while data fetches" },
+    { id: "claims-empty",       desc: "Empty state displays gracefully when no claims exist" },
+    { id: "claims-api",         desc: "GET /api/v1/claims returns envelope response with chained company+registrar data" },
+  ]},
+  { section: "F-007 — NAV History", items: [
+    { id: "nav-chart",          desc: "NAV History — chart renders with data points" },
+    { id: "nav-range",          desc: "NAV History — range selector (1M/3M/6M/1Y/All) updates chart" },
+    { id: "nav-coverage",       desc: "NAV History — coverage disclosure shows real holding/price counts" },
+    { id: "nav-cron",           desc: "NAV History — daily snapshot cron is running (check admin_audit for cron_auto)" },
+    { id: "nav-empty",          desc: "NAV History — empty state handles holdings with no price history gracefully" },
+  ]},
+  { section: "F-022 — AI Chatbot", items: [
+    { id: "chatbot-render",     desc: "AI Chatbot — widget renders on dashboard and other pages" },
+    { id: "chatbot-nav",        desc: "Chatbot — 'holdings in banking' returns correct count (not cross-joined)" },
+    { id: "chatbot-price",      desc: "Chatbot — 'price of SEPLAT' returns current price data" },
+    { id: "chatbot-claim",      desc: "Chatbot — 'unclaimed dividends' returns claim summary" },
+    { id: "chatbot-company",    desc: "Chatbot — 'companies in Oil & Gas' returns filtered list" },
+    { id: "chatbot-rbac",       desc: "Chatbot — readonly user sees same responses (no per-user filtering)" },
+  ]},
+  { section: "F-026 — Registrar Requirements Tracker", items: [
+    { id: "reg-dashboard",      desc: "Registrars — dashboard renders with summary cards (no add/edit/delete controls)" },
+    { id: "reg-health",         desc: "Registrars — health pie chart shows complete/attention/no_data breakdown" },
+    { id: "reg-tracker",        desc: "Registrars — Global Requirements Tracker table loads with pagination" },
+    { id: "reg-settings",       desc: "Settings/Registrars — add/edit/delete registrar works via modals" },
+    { id: "reg-unmapped",       desc: "Registrars — unmapped companies count shows on dashboard (companies without registrar link)" },
+  ]},
+];
+
+const state = {}; // id -> true=pass, false=fail, undefined=unticked
+
+function render() {
+  const container = document.getElementById('checklist');
+  container.innerHTML = '';
+  ITEMS.forEach(section => {
+    const div = document.createElement('div');
+    div.className = 'section';
+    let html = `<div class="section-title">${section.section}</div>`;
+    section.items.forEach(item => {
+      const val = state[item.id];
+      const badge = val === true ? '<span class="badge pass">PASS</span>'
+                  : val === false ? '<span class="badge fail">FAIL</span>'
+                  : '<span class="badge skip">—</span>';
+      html += `
+        <div class="item" onclick="toggle('${item.id}')">
+          <input type="checkbox" ${val === true ? 'checked' : ''} data-id="${item.id}">
+          <label>${item.desc}</label>
+          ${badge}
+        </div>`;
+    });
+    div.innerHTML = html;
+    container.appendChild(div);
+  });
+  updateStats();
+}
+
+function toggle(id) {
+  const current = state[id];
+  if (current === true) {
+    state[id] = false;
+  } else if (current === false) {
+    delete state[id];
+  } else {
+    state[id] = true;
+  }
+  render();
+}
+
+function updateStats() {
+  let pass = 0, fail = 0, total = 0;
+  ITEMS.forEach(s => s.items.forEach(i => {
+    const v = state[i.id];
+    if (v === true) pass++;
+    else if (v === false) fail++;
+    total++;
+  }));
+  document.getElementById('passCount').textContent = pass;
+  document.getElementById('failCount').textContent = fail;
+  document.getElementById('totalCount').textContent = total;
+}
+
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  err.textContent = '';
+  if (!user || !pass) { err.textContent = 'Enter username and password'; return; }
+  fetch('/api/v1/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ username: user, password: pass }),
+  })
+    .then(r => {
+      if (r.ok) {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('checklistContent').style.display = 'block';
+        fetchHistory();
+        return;
+      }
+      return r.text().then(t => { throw new Error(t.includes('401') ? 'Invalid credentials' : 'Login failed'); });
+    })
+    .catch(e => { err.textContent = e.message || 'Login failed'; });
+}
+
+// On page load, check auth by trying fetchHistory
+(function init() {
+  fetch('/api/v1/checklist/runs', { credentials: 'include' })
+    .then(r => {
+      if (r.ok) {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('checklistContent').style.display = 'block';
+        return r.json();
+      }
+      throw new Error('not authenticated');
+    })
+    .then(resp => {
+      render();
+      const runs = resp.data || [];
+      const list = document.getElementById('historyList');
+      if (!runs.length) {
+        list.innerHTML = '<div class="history-empty">No previous runs</div>';
+      } else {
+        list.innerHTML = runs.map(r => {
+          const d = r.created_at ? r.created_at.slice(0, 10) + ' ' + r.created_at.slice(11, 16) : '';
+          return `<div class="history-item"><span><strong>${r.username}</strong> <span class="date">${d}</span></span><span class="summary"><span class="p">✓${r.pass_count}</span><span class="f">✗${r.fail_count}</span><span class="s">–${r.skip_count}</span></span></div>`;
+        }).join('');
+      }
+    })
+    .catch(() => {
+      // Not authenticated — login form stays visible
+      render();
+    });
+})();
+
+function resetAll() {
+  if (!confirm('Reset all checkboxes?')) return;
+  ITEMS.forEach(s => s.items.forEach(i => delete state[i.id]));
+  render();
+}
+
+function toggleAll(val) {
+  ITEMS.forEach(s => s.items.forEach(i => state[i.id] = val));
+  render();
+}
+
+function generateSignoff() {
+  const area = document.getElementById('signoffArea');
+  const text = document.getElementById('signoffText');
+  let pass = 0, fail = 0, total = 0;
+  let lines = ['## Pre-Merge Test Results', ''];
+
+  ITEMS.forEach(s => {
+    lines.push(`### ${s.section}`);
+    s.items.forEach(i => {
+      const v = state[i.id];
+      if (v === true) { pass++; lines.push(`- [x] ${i.desc} ✅`); }
+      else if (v === false) { fail++; lines.push(`- [ ] ${i.desc} ❌ FAIL`); }
+      else { lines.push(`- [ ] ${i.desc} ⏳`); }
+      total++;
+    });
+    lines.push('');
+  });
+
+  lines.push('---');
+  lines.push(`**Passed:** ${pass}/${total} — **Failed:** ${fail} — **Skipped:** ${total - pass - fail}`);
+  lines.push('');
+  lines.push('| Role | Name | Date |');
+  lines.push('|------|------|------|');
+  lines.push('| **QA (Human)** | | |');
+  lines.push('| **Merge** | | |');
+
+  text.value = lines.join('\n');
+  area.classList.add('show');
+  area.scrollIntoView({ behavior: 'smooth' });
+
+  const results = {};
+  ITEMS.forEach(s => s.items.forEach(i => { results[i.id] = state[i.id] || null; }));
+  fetch('/api/v1/checklist/runs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ results, signoff_markdown: text.value }),
+  })
+    .then(r => { if (r.ok) showToast('Run saved!'); })
+    .catch(() => {});
+  setTimeout(fetchHistory, 500);
+}
+
+function copySignoff() {
+  const text = document.getElementById('signoffText');
+  text.select();
+  navigator.clipboard.writeText(text.value);
+  showToast('Copied to clipboard!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function fetchHistory() {
+  const list = document.getElementById('historyList');
+  fetch('/api/v1/checklist/runs', { credentials: 'include' })
+    .then(r => r.json())
+    .then(resp => {
+      const runs = resp.data || [];
+      if (!runs.length) {
+        list.innerHTML = '<div class="history-empty">No previous runs</div>';
+        return;
+      }
+      list.innerHTML = runs.map(r => {
+        const d = r.created_at ? r.created_at.slice(0, 10) + ' ' + r.created_at.slice(11, 16) : '';
+        return `<div class="history-item"><span><strong>${r.username}</strong> <span class="date">${d}</span></span><span class="summary"><span class="p">✓${r.pass_count}</span><span class="f">✗${r.fail_count}</span><span class="s">–${r.skip_count}</span></span></div>`;
+      }).join('');
+    })
+    .catch(() => { list.innerHTML = '<div class="history-empty">Failed to load history</div>'; });
+}
+</script>
+</body>
+</html>
