@@ -8,7 +8,7 @@ export function useTutors(filters?: { subject?: string; active?: boolean }) {
   return useQuery({
     queryKey: ["tutors", filters],
     queryFn: () => {
-      const frappeFilters: Record<string, unknown>[] = [];
+      const frappeFilters: unknown[] = [];
       if (filters?.subject) {
         frappeFilters.push(["subjects", "like", `%${filters.subject}%`]);
       }

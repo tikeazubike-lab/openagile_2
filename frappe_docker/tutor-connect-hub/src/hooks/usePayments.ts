@@ -13,7 +13,7 @@ export function usePayments(filters?: {
   return useQuery({
     queryKey: ["payments", filters],
     queryFn: () => {
-      const frappeFilters: Record<string, unknown>[] = [];
+      const frappeFilters: unknown[] = [];
       if (filters?.status) {
         frappeFilters.push(["status", "=", filters.status]);
       }

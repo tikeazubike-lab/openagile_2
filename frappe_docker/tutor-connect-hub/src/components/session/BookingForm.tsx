@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CalendarDays, Clock, Star, BookOpen } from "lucide-react";
-import { getInitials, formatCurrency, formatDate } from "@/lib/utils";
+import { getInitials, formatCurrency } from "@/lib/utils";
 import { SUBJECTS } from "@/lib/constants";
 
 const TIME_SLOTS = [

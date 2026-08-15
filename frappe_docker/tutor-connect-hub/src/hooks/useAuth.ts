@@ -6,7 +6,7 @@ import type { AuthState, User } from "@/types";
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error: _error } = useQuery({
     queryKey: ["auth"],
     queryFn: async () => {
       const res = await frappeApi.getSessionUser();

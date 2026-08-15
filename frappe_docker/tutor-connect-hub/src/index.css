@@ -1,43 +1,81 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary-50: #EEF2FF;
-  --color-primary-100: #E0E7FF;
-  --color-primary-200: #C7D2FE;
-  --color-primary-300: #A5B4FC;
-  --color-primary-400: #818CF8;
-  --color-primary-500: #4F46E5;
-  --color-primary-600: #4338CA;
-  --color-primary-700: #3730A3;
-  --color-primary-800: #312E81;
-  --color-primary-900: #1E1B4B;
+  /* Primary purple */
+  --color-primary-50: #F3F1FE;
+  --color-primary-100: #E8E5FC;
+  --color-primary-200: #D1CAF9;
+  --color-primary-300: #B8ABF5;
+  --color-primary-400: #9C8BF0;
+  --color-primary-500: #6C5CE7;
+  --color-primary-600: #5B4BD4;
+  --color-primary-700: #4A3BB0;
+  --color-primary-800: #3A2E8A;
+  --color-primary-900: #2A2163;
+
+  /* Secondary orange */
+  --color-secondary-50: #FFF2EA;
+  --color-secondary-100: #FFE4D3;
+  --color-secondary-200: #FFC9A8;
+  --color-secondary-300: #FFA87D;
+  --color-secondary-400: #FF8C42;
+  --color-secondary-500: #F07A2D;
+  --color-secondary-600: #D9681F;
+  --color-secondary-700: #B55316;
+  --color-secondary-800: #8F3F12;
+  --color-secondary-900: #6A2E0D;
+
+  /* Accent colors */
+  --color-accent-yellow: #FFD93D;
+  --color-accent-yellow-light: #FFF4C7;
+  --color-accent-pink: #FFB7C5;
+  --color-accent-pink-light: #FFE4E9;
+  --color-accent-mint: #B8F2E6;
+  --color-accent-mint-light: #E2FBF6;
+  --color-accent-cyan: #A0E7E5;
+  --color-accent-cyan-light: #DDF7F6;
+  --color-accent-lavender: #D8C7FF;
+  --color-accent-lavender-light: #F0E9FF;
+
+  /* Surfaces */
+  --color-cream: #FFFBEB;
+  --color-cream-dark: #FFF5D6;
   --color-background: #FFFFFF;
-  --color-foreground: #0F172A;
-  --color-muted: #F1F5F9;
-  --color-muted-foreground: #64748B;
-  --color-border: #E2E8F0;
+  --color-foreground: #1F2937;
+  --color-muted: #F9FAFB;
+  --color-muted-foreground: #6B7280;
+  --color-border: #E5E7EB;
   --color-destructive: #EF4444;
-  --color-success: #10B981;
+  --color-success: #22C55E;
   --color-warning: #F59E0B;
+
+  /* Custom spacing */
+  --spacing-13: 3.25rem;
+  --spacing-18: 4.5rem;
 }
 
 body {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Nunito", system-ui, sans-serif;
   color: var(--color-foreground);
   background-color: var(--color-background);
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-muted);
+  background: var(--color-cream);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-primary-300);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary-400);
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
 }

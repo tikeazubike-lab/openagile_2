@@ -12,7 +12,6 @@ import {
   Clock,
   Wallet,
   Search,
-  Star,
 } from "lucide-react";
 
 interface SidebarLink {

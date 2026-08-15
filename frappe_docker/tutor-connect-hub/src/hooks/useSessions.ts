@@ -13,7 +13,7 @@ export function useSessions(filters?: {
   return useQuery({
     queryKey: ["sessions", filters],
     queryFn: () => {
-      const frappeFilters: Record<string, unknown>[] = [];
+      const frappeFilters: unknown[] = [];
       if (filters?.status) {
         frappeFilters.push(["status", "=", filters.status]);
       }

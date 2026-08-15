@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useSessions, useUpdateSessionStatus } from "@/hooks/useSessions";
 import { useMyTutorProfile } from "@/hooks/useTutors";
 import { SessionCard } from "@/components/session/SessionCard";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function TutorSessions() {
