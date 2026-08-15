@@ -1,0 +1,7 @@
+# Tutor Hub React frontend — serves React SPA at /, Frappe API at /api, desk at /desk
+
+services:
+  frontend:
+    volumes:
+      - ./tutor-connect-hub/dist:/var/www/tutor-connect-hub:ro
+      - ./configs/nginx/frappe-tutor.conf:/etc/nginx/conf.d/frappe.conf:ro
