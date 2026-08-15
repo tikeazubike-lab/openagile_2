@@ -1,4 +1,235 @@
 import frappe
+from frappe import _
+from datetime import datetime
+
+from tutor_hub.tutor_hub.payments import handle_stripe_webhook
+from tutor_hub.tutor_hub.stripe_client import create_checkout_session as _create_checkout_session
+
+
+# ---------------------------------------------------------------------------
+# Stripe Webhook Endpoint
+# ---------------------------------------------------------------------------
+
+@frappe.whitelist(allow_guest=True, csrf=False, methods=["POST"])
+def stripe_webhook():
+	"""Receive and process Stripe webhook events.
+
+	Stripe doesn't send CSRF tokens, so csrf=False is required.
+	Signature verification happens inside handle_stripe_webhook.
+
+	Webhook URL: https://tutor.zubbystudio.site/api/method/tutor_hub.tutor_hub.api.stripe_webhook
+	"""
+	payload = frappe.request.get_data()
+	sig_header = frappe.request.headers.get("Stripe-Signature", "")
+
+	try:
+		result = handle_stripe_webhook(payload, sig_header)
+		frappe.response["http_status_code"] = 200
+		return result
+	except Exception:
+		frappe.log_error(title="Stripe Webhook Error", message=frappe.get_traceback())
+		frappe.response["http_status_code"] = 400
+		return {"status": "error", "message": "Webhook processing failed."}
+
+
+# ---------------------------------------------------------------------------
+# Checkout Session Creator
+# ---------------------------------------------------------------------------
+
+@frappe.whitelist()
+def create_checkout_session(session_name: str):
+	"""Create a Stripe Checkout Session for a student's booking.
+
+	Args:
+		session_name: The name (ID) of a Session Schedule document.
+
+	Returns:
+		dict with checkout_url and session_id.
+	"""
+	session_doc = frappe.get_doc("Session Schedule", session_name)
+
+	# Permission check: only the booked student or an admin can initiate payment
+	if frappe.session.user != "Administrator" and not frappe.has_role("System Manager"):
+		student_user = frappe.db.get_value("Student Profile", session_doc.student, "user")
+		if student_user != frappe.session.user:
+			frappe.throw(_("You do not have permission to pay for this session."))
+
+	tutor_profile = frappe.get_doc("Tutor Profile", session_doc.tutor)
+	connected_account_id = tutor_profile.stripe_account_id
+
+	settings = frappe.get_single("Marketplace Settings")
+	amount = int(session_doc.price * 100)  # Convert to smallest currency unit
+
+	site_url = frappe.utils.get_url()
+	metadata = {
+		"session_name": session_name,
+		"session_title": session_doc.session_title or f"Tutoring: {session_doc.subject}",
+		"student": session_doc.student,
+		"tutor": session_doc.tutor,
+		"payment_type": "session",
+	}
+
+	checkout = _create_checkout_session(
+		amount=amount,
+		currency=session_doc.currency or settings.currency or "NGN",
+		metadata=metadata,
+		success_url=f"{site_url}/tutor_hub/payment-success?session_id={session_name}",
+		cancel_url=f"{site_url}/tutor_hub/payment-cancel?session_id={session_name}",
+		connected_account_id=connected_account_id or None,
+	)
+
+	# Create Payment Transaction record
+	txn = frappe.get_doc(
+		{
+			"doctype": "Payment Transaction",
+			"session": session_name,
+			"student": session_doc.student,
+			"tutor": session_doc.tutor,
+			"currency": session_doc.currency or "NGN",
+			"gross_amount": session_doc.price,
+			"payment_status": "Pending",
+			"payment_intent_id": checkout.payment_intent,
+		}
+	)
+	txn.insert(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		"checkout_url": checkout.url,
+		"session_id": checkout.id,
+		"payment_transaction": txn.name,
+	}
+
+
+# ---------------------------------------------------------------------------
+# Book Session (Atomic Slot Reservation)
+# ---------------------------------------------------------------------------
+
+@frappe.whitelist()
+def book_session(
+	tutor: str,
+	student: str,
+	subject: str,
+	start_time: str,
+	end_time: str,
+	timezone: str = "Africa/Lagos",
+):
+	"""Book a tutoring session with atomic slot reservation.
+
+	Creates a Session Schedule and a pending Payment Transaction in a
+	single database transaction to prevent double-booking.
+
+	Args:
+		tutor: Tutor Profile name.
+		student: Student Profile name.
+		subject: Subject name.
+		start_time: ISO 8601 datetime string (e.g. '2026-08-20T14:00:00').
+		end_time: ISO 8601 datetime string.
+		timezone: Student's timezone (default Africa/Lagos).
+
+	Returns:
+		dict with session_name, checkout_url.
+	"""
+	# Parse datetimes
+	start_dt = datetime.fromisoformat(start_time)
+	end_dt = datetime.fromisoformat(end_time)
+
+	if end_dt <= start_dt:
+		frappe.throw(_("End time must be after start time."))
+
+	# Validate tutor exists and is active
+	tutor_doc = frappe.get_doc("Tutor Profile", tutor)
+	if tutor_doc.status != "Active":
+		frappe.throw(_("This tutor is not currently accepting bookings."))
+
+	# Atomic: check for overlapping slots then insert within same commit scope
+	# Frappe's ORM doesn't support SELECT FOR UPDATE natively, so we use
+	# a direct SQL query with FOR UPDATE to lock the row range.
+	overlap = frappe.db.sql(
+		"""
+		SELECT name FROM `tabSession Schedule`
+		WHERE tutor = %s
+		  AND status NOT IN ('Cancelled', 'No Show')
+		  AND scheduled_start_at_utc < %s
+		  AND scheduled_end_at_utc > %s
+		FOR UPDATE
+		""",
+		(tutor, end_dt, start_dt),
+	)
+
+	if overlap:
+		frappe.throw(
+			_("Tutor is not available at the selected time. Conflicting session: {0}").format(
+				overlap[0][0]
+			)
+		)
+
+	# Create Session Schedule
+	session_doc = frappe.get_doc(
+		{
+			"doctype": "Session Schedule",
+			"tutor": tutor,
+			"student": student,
+			"subject": subject,
+			"scheduled_start_at_utc": start_dt,
+			"scheduled_end_at_utc": end_dt,
+			"tutor_timezone": tutor_doc.get("timezone") or "Africa/Lagos",
+			"student_timezone": timezone,
+			"status": "Scheduled",
+			"price": tutor_doc.hourly_rate,
+			"currency": tutor_doc.currency or "NGN",
+			"session_type": "1-on-1",
+		}
+	)
+	session_doc.insert(ignore_permissions=True)
+
+	# Create Stripe Checkout Session
+	site_url = frappe.utils.get_url()
+	settings = frappe.get_single("Marketplace Settings")
+	amount = int(session_doc.price * 100)
+
+	metadata = {
+		"session_name": session_doc.name,
+		"session_title": session_doc.session_title
+		or f"Tutoring: {subject}",
+		"student": student,
+		"tutor": tutor,
+		"payment_type": "session",
+	}
+
+	connected_account_id = tutor_doc.stripe_account_id
+
+	checkout = _create_checkout_session(
+		amount=amount,
+		currency=session_doc.currency or settings.currency or "NGN",
+		metadata=metadata,
+		success_url=f"{site_url}/tutor_hub/payment-success?session_id={session_doc.name}",
+		cancel_url=f"{site_url}/tutor_hub/payment-cancel?session_id={session_doc.name}",
+		connected_account_id=connected_account_id or None,
+	)
+
+	# Create Payment Transaction
+	txn = frappe.get_doc(
+		{
+			"doctype": "Payment Transaction",
+			"session": session_doc.name,
+			"student": student,
+			"tutor": tutor,
+			"currency": session_doc.currency or "NGN",
+			"gross_amount": session_doc.price,
+			"payment_status": "Pending",
+			"payment_intent_id": checkout.payment_intent,
+		}
+	)
+	txn.insert(ignore_permissions=True)
+
+	frappe.db.commit()
+
+	return {
+		"session_name": session_doc.name,
+		"checkout_url": checkout.url,
+		"payment_transaction": txn.name,
+	}
 
 
 @frappe.whitelist(allow_guest=True)

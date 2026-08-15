@@ -7,6 +7,23 @@
  "issingle": 1,
  "fields": [
   {
+   "fieldname": "section_break_stripe",
+   "fieldtype": "Section Break",
+   "label": "Stripe Configuration"
+  },
+  {
+   "fieldname": "stripe_secret_key",
+   "fieldtype": "Password",
+   "label": "Stripe Secret Key",
+   "description": "sk_live_... or sk_test_..."
+  },
+  {
+   "fieldname": "stripe_webhook_endpoint_secret",
+   "fieldtype": "Password",
+   "label": "Stripe Webhook Endpoint Secret",
+   "description": "whsec_... from Stripe Dashboard > Webhooks"
+  },
+  {
    "fieldname": "section_break_fees",
    "fieldtype": "Section Break",
    "label": "Fee Configuration"
