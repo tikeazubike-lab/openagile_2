@@ -2,10 +2,10 @@
 
 **DO NOT EDIT WITHOUT HANDOVER PROTOCOL**
 
-**Version**: 4.8
-**Last Updated**: 2026-07-31
+**Version**: 4.10
+**Last Updated**: 2026-08-15
 **Maintained By**: Claude Web (The Brain / Architect)
-**Previous Version**: 4.7 (2026-07-28)
+**Previous Version**: 4.9 (2026-08-13)
 
 ---
 
@@ -50,7 +50,14 @@ Domain Pattern: *.zubbystudio.site (migrated from *.zubbystudio.shop,
   (n8n, gitea, wiki.js, openproject, woodpecker, frappe/erpnext) have
   NOT yet been migrated to .site as of this version — they remain
   pointed at the now-defunct .shop domain; Zubbyik has explicitly
-  deprioritized migrating them, do not treat as urgent unless raised.)
+  deprioritized migrating them, do not treat as urgent unless raised.
+  **Correction (2026-08-13, v4.9)**: `testbuild.zubbystudio.shop` was
+  ALSO never migrated, despite earlier versions of this document
+  incorrectly stating `testbuild.zubbystudio.site` — confirmed via raw
+  Traefik label inspection during F-TD-001 teardown (HO-123). This is
+  now moot: testbuild's nginx layer was torn down entirely (see below),
+  so the domain no longer serves anything regardless of which TLD it
+  was on.)
 
 Server Specs:
   OS: Ubuntu 24.04 LTS
@@ -79,15 +86,24 @@ Infrastructure:
 Production Apps:
   - estate-portfolio-manager (EPM v2 — FastAPI + React 18)
       Staging:   testdrive.epm.zubbystudio.site
-      Testbuild: testbuild.zubbystudio.site (pending teardown — F-TD-001)
-      ⚠️ Container naming chain (resolved 2026-07-06):
-        Both hostnames currently point to the SAME running container ("_v3"):
-          - _v3 = a fork of the old demo.estate container, running as temporary staging
-          - testdrive.epm.zubbystudio.site = Traefik alias to _v3
-          - testbuild.zubbystudio.site = nginx checklist page + API reverse-proxy,
-            also forwarding to _v3
-        This means both URLs currently serve identical backend state. F-TD-001
-        (teardown) removes the testbuild nginx/proxy layer, not the _v3 container itself.
+      Testbuild: **REMOVED (2026-08-13/15, F-TD-001, commit 8dcbdf7ab...)**
+        — testbuild.zubbystudio.shop was never migrated to .site (doc
+        error, corrected v4.9) and had been fully unreachable since the
+        2026-07-16 .shop expiry regardless. Its nginx checklist/proxy
+        layer (default config, no real logic — the checklist itself
+        moved to /api/v1/checklist/test-checklist months earlier) was
+        confirmed pure dead weight and torn down: testbuild-checklist
+        container stopped/removed, 5 epm-v3-testbuild-api.* Traefik
+        labels removed from docker-compose.v3.yml, docker-compose.testbuild.yml
+        archived (.archived suffix). testdrive verified 200 before and
+        after each step; testdrive's checklist route still correctly
+        401s (auth enforced, unaffected).
+      ⚠️ Container naming chain (resolved 2026-07-06, testbuild layer
+        removed 2026-08-13/15): _v3 = fork of the old demo.estate
+        container, still running as staging, still serves testdrive.
+        testdrive.epm.zubbystudio.site = Traefik alias to _v3
+        (unchanged). testbuild is gone — no longer a naming
+        consideration for any future work.
   - frappe/erpnext
       Site: edu.erpnext.zubbystudio.shop ⚠️ NOT YET MIGRATED — this
         still points at the retired .shop domain and is very likely
@@ -204,6 +220,7 @@ no human actor (e.g. cron jobs) | Established 2026-07-16 for F-007's daily NAV c
 | `registrars.jurisdiction` | `VARCHAR(20) NOT NULL DEFAULT 'nigeria'`, values `nigeria` / `international` | Established 2026-07-25 (F-026). Standing rule, not a one-off: every non-Nigerian registrar needs different fields/behavior (e.g. NGX-specific requirement-type templates don't pre-populate for international registrars). Computershare UK (Seplat's co-registrar) is currently the only `international` row. |
 | `companies.security_type` | `VARCHAR(20) NOT NULL DEFAULT 'equity'`, values `equity` / `etf` / `mutual_fund` | Established 2026-07-25 (F-026). Lets funds/ETFs (e.g. United Capital Mutual Funds sub-funds, Meristem Growth/Value ETF) exist as `companies` rows — needed to carry a registrar relationship — without being treated as ordinary equity holdings. No holdings/NAV logic changes as a result; purely additive metadata for now. |
 | `registrar_requirements.due_date` | `DATE NULL` | Established 2026-07-25 (F-026). Nullable — most requirements have no hard deadline; supports the hybrid (visual + email) reminder system. |
+| Handover file-persistence rule | Any handover/code change is not complete until committed to git — the actual commit hash must be reported in the reply, not a narrated "committed" | Established 2026-08-12/13 after a real incident: ~20 handover files (HO-080 through HO-119) were written during a session but never `git add`-ed (`git status` showed "nothing to commit" throughout), and were lost on the next session's filesystem reset. Not a true loss in this case — Zubbyik had manually relayed every real file between Claude Web and OpenCode throughout, so the accurate record survived independently of OpenCode's filesystem. But the root cause (write ≠ commit) is real and now has a standing rule attached to prevent recurrence. |
 
 ---
 
@@ -460,11 +477,11 @@ CSV + manual form), null cost basis → zero-cost gain calc. Claude to draft spe
 | F-024 Historical Cost Basis Upload, F-025 NGX Companies PDF Upload | Both ✅ Complete, shipped | `.context/feature-specs/F-024-cost-basis-upload.md`, `.context/feature-specs/F-025-ngx-companies-upload.md` | Renamed 2026-07-16 (HO-063) from non-standard `F-COST-BASIS.md`/`F-NGX-COMPANIES.md` — pure rename, no functional change. All dangling path references in `MASTER_CONTEXT.md` and the two `BUG-AT-*` files fixed in the same pass; feature-ID mentions (not file paths) left untouched as harmless. |
 | F-026 Registrar Requirements & Document Tracker | **✅ Fully complete (2026-07-31)** — schema, backend, frontend, tests, and seed data all shipped; production verified clean | `.context/feature-specs/F-026-registrar-requirements-tracker.md` | Retroactively documents a pre-existing, undocumented registrar CRUD system built May 2026 (no spec, no HO history — surfaced via HO-089 investigation) and closes real gaps on top of it. New `company_registrars` many-to-many table (replaces single FK, supports co-registration), `registrars.jurisdiction`, `companies.security_type`, `registrar_requirements.due_date` — see Locked Architectural Decisions. New `dashboard-summary` and `global-tracker` endpoints power a redesigned `/registrars` (read-only dashboard, no add/edit/delete controls) and new `/settings/registrars` (all CRUD moved here, per the no-inline-editing convention). 11 new automated tests total (7 dashboard tests + 4 seed-script tests: idempotency, Seplat co-registration, Africa Prudential dual-entity, dynamic company-count relative invariant) — full suite now 166 passed, 4 xfailed, 8 xpassed. A route-ordering bug (`dashboard-summary` shadowed by `{id}`) was found and fixed during review. Production migration applied via direct psql (Alembic hung on lock contention) — a CHECK-constraint name drift between production and `epm_test` was caught and fixed (HO-096/097). **Seed data (13 registrars, 143 companies, 165 company↔registrar links) loaded via a repeatable, idempotent script** (`backend/scripts/seed_registrar_mapping.py`) covering Zubbyik's full NGX-wide mapping list — a real process incident occurred here: the script ran against production before the required stop-and-confirm step, using 5 incorrect manually-guessed tickers, producing 5 orphaned duplicate company rows (zero links/holdings on any of them — no real data was ever affected). Caught via ticker cross-check against production, fully investigated (HO-101–104), and cleaned up via soft-delete (HO-105/106) — see Historical Decision Log for the full incident writeup and the standing lesson recorded from it. 50 companies (the "Main Board, Growth Board & Small-Cap" group — confirmed a category label, not a real registrar) deliberately left unlinked rather than assigned a fake registrar; surfaced instead via a new `unmapped_companies` field on the dashboard so they stay visible as a concrete to-do. **Still deferred, not blocking, no dependency between them**: (1) email reminder infrastructure — no SMTP capability exists in the codebase yet; (2) `/settings/registrars` bulk CSV/markdown import endpoint. |
 | F-022 AI-Assisted Interactive Chatbot | **✅ Complete — backend cleared for Gate 2/PR (2026-07-25)** | `.context/feature-specs/F-022-ai-chatbot.md` | Scoped narrowly to EPM only — a broader platform-agnostic version was floated and explicitly deferred to a separate future project (see multi-tenant EPM note below). RuleBasedRouter with 10 intents across 5 domains (NAV, Holdings, Sector, Claims, Companies, Price History), shared `extract_entities()` function, most-specific-first intent ordering, stateless clarification branch for recognized-entity-but-no-match cases, three-tier fallback (unmatched / entity-found-clarification / error), `chatbot_conversations` table with `extracted_entities` JSONB + `execution_status` enum. RBAC inherited directly from existing endpoint guards — confirmed there is no per-user ownership column (`holdings` has no `user_id`); this is a single-owner estate model where every authenticated user sees the same holdings, differentiated only by `holding_type`/role. A real sector cross-join bug was found during review (`selectinload` without an explicit `.join()` producing a cartesian product) and fixed, with a genuine real-DB integration-test regression proof (before/after: join removed → wrong count + SAWarning; join restored → correct count). 29 unit tests + 1 real integration test added, zero regressions (155 passed, 4 xfailed, 8 xpassed baseline). Frontend widget (ported from Lovable component `epmaide-insight/`, hardened, mounted at `__root.tsx`) has a `FIXME: F-022` marker ready for a one-line swap from `mockAnswer()` to the real endpoint once this clears Gate 2. Zone 2 consensus (DeepSeek Pro review) was explicitly waived by Zubbyik for this feature's backend, cost/token reasons — Claude Web sole reviewer. This review also surfaced and fixed a separate, larger infrastructure gap — see `epm_test` / baseline migration entries in Locked Architectural Decisions and Historical Decision Log. |
-| F-017 Remove editMode / Admin CRUD | Spec to write | — | Unblocked now that F-016 shipped; much of the inline-editing cleanup already done ahead of schedule via HO-040/041 |
+| F-017 Remove editMode / Admin CRUD | **✅ Complete — determined via audit, not new implementation (2026-08-01)** | — | Full codebase audit (HO-107/108/109) found zero remaining editMode/inline-editing violations across all 23 route files (including 4 initially missed in a first pass — reconciled). The goal was already achieved as a side effect of the earlier HO-023/040/041 gate work; no build was needed, only formal verification. Checklist's 6 F-017-specific items consolidated into 1 (referencing this audit) during the 2026-08-12 checklist refresh. |
 | F-003b Price entry v2 | Spec to write | — | After F-017 |
 | F-006b Dividends v2 | Spec to write | — | After F-017, parallel with F-003b — scope overlap with shipped F-010 to be reconciled when
 spec is written |
-| F-TD-001 Test Checklist + Teardown | Spec ready — pending implementation | `.context/feature-specs/F-TD-001-test-checklist-teardown.md` | Teardown removes testbuild's nginx/proxy layer only, not the shared `_v3` container |
+| F-TD-001 Test Checklist + Teardown | **✅ Fully complete (2026-08-15)** — checklist live since 2026-08-12, teardown executed and verified 2026-08-15 | `.context/feature-specs/F-TD-001-test-checklist-teardown.md` | Checklist: 46 items, commit `ec151c8f`. Teardown: `testbuild-checklist` nginx container removed, Traefik labels stripped from `docker-compose.v3.yml`, compose file archived — commit `8dcbdf7abf3290906e0d6d18f23754e143e3df1f` (HO-125). Repo-wide dependency grep (HO-124 safeguard) found no live code/CI dependency on testbuild — only historical docs/plans and a stale `.context/` reference, corrected in this version. Step-by-step verification held at every removal stage; final state confirms testdrive fully unaffected. **Feature closed — no further action.** |
 | F-019 Audit Log | Spec TBD | — | Receives events from F-016 |
 | F-008 Dividends | **Superseded by F-010** | — | Original stub route `/dividends` left in place, hidden from nav |
 
@@ -673,6 +690,24 @@ This section originally existed because MASTER_CONTEXT previously described the 
 | HO-104 | OpenCode → Claude | Received | 5 orphaned duplicate rows confirmed (zero links, zero holdings on any — no real data affected); special-links count reconciled (1 co_registrar, "3" was a miscount conflating co_registrar + self-registration rows); run timeline confirmed as a genuine process miss, not just a sequencing gap — HO-098's stop-and-confirm step existed from the start and wasn't observed |
 | HO-105 | Claude → OpenCode | Sent | Cleanup authorization — soft-delete the 5 orphaned duplicates; one-line confirmation requested on the third special link; process-miss recorded accurately for the log |
 | HO-106 | OpenCode → Claude | Received | Cleanup confirmed (5 rows soft-deleted, `deleted_at` populated, no hard-delete); third special link confirmed as Africa Prudential's self-registration — **F-026 fully closed end to end, production verified clean** |
+| HO-107 | Claude → OpenCode | Sent | F-017 pre-spec audit — search for remaining editMode/inline-editing violations before writing acceptance criteria against unknown scope |
+| HO-108 | OpenCode → Claude | Received | Zero violations found across 19 pages audited — but only 19 of 23 actual route files were checked, gap caught on request for raw `find` output |
+| HO-109/110 | Claude → OpenCode | Sent | Reconcile the 4 unaudited route files (`_app.index.tsx`, `login.tsx`, `__root.tsx`, `_app.tsx`) — renumbered mid-thread to avoid colliding with Zubbyik's separate Playwright-investigation numbering track |
+| HO-111 | OpenCode → Claude | Received | Separate track (Playwright MCP investigation) — identified a stray navbar icon as F-TD-001's Pre-Merge Checklist, not an orphaned component; fully documented, admin-only, functional |
+| HO-112 | Claude → OpenCode | Sent | Investigate `/test-checklist` 404 — hypothesized a Traefik routing/prefix issue |
+| HO-113 | OpenCode → Claude | Received | Root cause found: frontend link path (`/test-checklist`) didn't match the real backend route (`/api/v1/checklist/test-checklist`) — hypothesis partly right (routing-related) but the actual mechanism was a plain link mismatch, not a Traefik prefix rule |
+| HO-114 | Claude → OpenCode | Sent | Fix authorized — change the frontend link; explicit requirement for a real logged-in browser click-through, not just a curl test |
+| HO-115 | OpenCode → Claude | Received | Fix applied and "confirmed" — but the confirmation test navigated directly to the API URL, bypassing the navbar link entirely, so it didn't actually test what it claimed to |
+| HO-116 | Claude → OpenCode | Sent | Zubbyik reported still-404 after hard refresh + incognito (ruling out caching) — 5-point raw verification chain requested (source, build, served bundle, deploy timestamp, second-reference check) |
+| HO-117 | OpenCode → Claude | Received | Root cause: HO-115 deployed to the wrong container path (`/app/static/` instead of `/app/app/static/`), so the old bundle was still being served the whole time — corrected, all 5 checks now pass |
+| HO-118 | Claude → OpenCode | Sent | Audit full 35-item checklist content and propose a refresh reflecting F-007/F-022/F-026 rather than stale F-016/F-017-era items |
+| HO-119 | OpenCode → Claude | Received | Full content audited, 6 F-017 items flagged for removal (redundant post-audit), 17 new items proposed across F-007/F-022/F-026 — also reported this session's HO-080–HO-119 files were lost (written but never `git commit`-ted between sessions; not a true loss since Zubbyik held the real originals throughout) |
+| HO-120 | Claude → OpenCode | Sent | Checklist update authorized — new standing rule added: show the actual commit hash, not a narrated "committed" |
+| HO-121 | OpenCode → Claude | Received | Checklist updated to 46 items, committed (`ec151c8f`), deployed to the correct path this time, verified item-by-item against live content — also caught two unrequested but correct fixes (stale `.shop` subtitle, stale item-count placeholder) |
+| HO-122 | Claude → OpenCode | Sent | F-TD-001 teardown investigation — flagged a discrepancy: `MASTER_CONTEXT.md` claimed testbuild was on `.site`, but raw evidence from HO-113 showed `.shop` |
+| HO-123 | OpenCode → Claude | Received | Confirmed: testbuild was never migrated (doc was wrong), both `.shop` and `.site` unreachable, nginx layer proven to be pure dead weight (default config, no real proxy logic, checklist already moved to backend). Teardown plan proposed, zero risk claimed |
+| HO-124 | Claude → OpenCode | Sent | Teardown approved with 3 additions: a repo-wide dependency grep before removal, step-by-step ordered removal with verification between each step (not batched), and required commit-hash confirmation |
+| HO-125 | OpenCode → Claude | Received | F-TD-001 teardown executed — dependency grep clean, ordered removal (nginx container, Traefik labels, compose archive) with 200/200/401/exit-35 verification at each stage, commit `8dcbdf7abf3290906e0d6d18f23754e143e3df1f`. **F-TD-001 fully closed.** |
 
 ### Pre-assigned HO numbers
 
@@ -933,6 +968,25 @@ now fixed (see Locked Architectural Decisions).
 
 ### EPM v2
 
+**2026-08-15: MASTER_CONTEXT.md v4.10 — F-TD-001 fully closed (teardown executed)**
+
+- **F-TD-001's teardown half is now complete**, closing the feature end to end. HO-124's three safeguards were all satisfied: a repo-wide `grep -rn "testbuild"` found no live script, CI/CD config, or application code depending on it — only historical docs/plans (no action needed) and a stale `.context/` infrastructure reference (corrected in this version, closing that loop).
+- **Removal was executed in verified, ordered steps rather than one batched change**, as required: the `testbuild-checklist` nginx container was stopped and removed first (testdrive re-verified at 200 immediately after), then the 5 `epm-v3-testbuild-api.*` Traefik labels were stripped from `docker-compose.v3.yml` and `estate_portfolio_v3` force-recreated (testdrive re-verified at 200 again), then `docker-compose.testbuild.yml` was archived (not deleted — consistent with the project's established archive-don't-delete convention).
+- **Final state verified directly, not assumed**: `testbuild.zubbystudio.shop` still exits `35` (unreachable, unchanged — it was already dead from the .shop expiry, this teardown just removed the now-pointless serving infrastructure behind it), `testdrive.epm.zubbystudio.site` returns 200, and the checklist's real backend route correctly returns 401 (auth still enforced, unaffected by the teardown).
+- **Commit hash reported and confirmed valid** (`8dcbdf7abf3290906e0d6d18f23754e143e3df1f`, 40-char SHA-1) — satisfies the standing rule established after the HO-080–119 file-loss incident; no narrated "committed" accepted without it.
+- Corrected the lingering `.context/` infrastructure reference to testbuild flagged by this session's dependency grep — the same category of doc-vs-reality drift as the `.shop`/`.site` correction in v4.9, caught proactively this time via the grep rather than a later contradiction.
+- **F-TD-001 is closed. No further action items remain for this feature.**
+
+**2026-08-13: MASTER_CONTEXT.md v4.9 — F-017 closed via audit, checklist refreshed, F-TD-001 teardown in progress, testbuild domain error corrected, handover file-loss incident**
+
+- **F-017 (Remove editMode / Admin CRUD) is now formally closed.** A full codebase audit (HO-107 through HO-110) found zero remaining editMode/inline-editing violations anywhere in the frontend or backend — the goal had already been achieved as a side effect of the earlier HO-023/040/041 gate work. The audit itself needed a correction mid-thread: the first pass covered only 19 of the actual 23 route files, missing 4 (`_app.index.tsx`, `login.tsx`, `__root.tsx`, `_app.tsx`) — caught by requesting raw `find` output rather than trusting the summary table, and confirmed clean once reconciled. No implementation work was needed; this closes as a verification-only feature.
+- **A previously-undocumented UI element was investigated and identified**, not removed: a navbar icon Zubbyik didn't recall the purpose of turned out to be F-TD-001's Pre-Merge Checklist tool (built earlier, functional, admin-only) — not orphaned scrap from an unrelated workaround, as initially suspected.
+- **The checklist tool itself had a real, multi-layered bug**: a frontend link pointed at `/test-checklist`, but the actual backend route was `/api/v1/checklist/test-checklist` — a plain path mismatch, not the Traefik-prefix issue originally hypothesized. Fixing it took two attempts: the first "fix" was deployed to the wrong container path (`/app/static/` instead of `/app/app/static/`), so the old broken bundle kept being served despite the source and build both being correct — caught only because Zubbyik insisted on testing the actual navbar click rather than accepting a direct-URL test as sufficient proof. **Standing lesson**: a fix "confirmed working" by testing a different path than the one the user actually clicks doesn't prove the fix works.
+- **The checklist content was refreshed** (46 items, up from 35) to drop 6 items made redundant by the F-017 audit and add coverage for F-007, F-022, and F-026 — the features actually in flight now rather than the F-016/F-017-era content it shipped with. Two unrequested but correct fixes were caught in the same pass (a stale `.shop` domain reference in the page's own subtitle, a stale hardcoded item-count placeholder).
+- **A real handover file-loss incident occurred and was resolved without data loss**: ~20 handover files from this session (HO-080–HO-119) were written to disk but never committed to git (`git status` showed clean the entire time) and were lost on a filesystem reset between sessions. Because Zubbyik had manually relayed every real file between Claude Web and OpenCode throughout — this project's actual workflow — the true record survived independently and nothing was actually lost. Root cause (write tool ≠ git commit) is now a standing rule: any handover/code change must be closed out with an actual reported commit hash, not a narrated "committed."
+- **F-TD-001's teardown half is in progress, not yet complete.** Investigation (HO-122/123) surfaced a real documentation error that had been sitting in this file since v4.5: `testbuild` was never actually migrated to `.site` — it remained on the now-permanently-expired `.shop` domain the entire time, meaning it's been fully unreachable since the 2026-07-16 domain incident, unrelated to any recent work. The nginx layer fronting it was confirmed to be pure dead weight (default, unconfigured nginx; no real reverse-proxy logic; the checklist it used to serve moved to a real backend route). Teardown execution authorized (HO-124) with three safeguards: a repo-wide dependency grep before removal, ordered step-by-step removal with verification between each step rather than a single batched change, and a required commit-hash confirmation.
+- **Corrected**: the Stack Overview and Active Services sections' testbuild domain claims, now accurately reflecting `.shop` (never migrated) rather than the incorrect `.site` that appeared in v4.5 through v4.8.
+
 **2026-07-31: MASTER_CONTEXT.md v4.8 — F-026 fully closed (seed data + production duplicate-cleanup incident), HO numbering table properly re-sized**
 
 - **F-026 is now fully complete end to end**: schema, backend, frontend, tests, and seed data all shipped, with production verified clean after a real incident (below). 13 registrars and 143 companies from Zubbyik's full NGX-wide mapping list are now seeded via a repeatable, idempotent script (`backend/scripts/seed_registrar_mapping.py`) — 165 `company_registrars` links total, including the confirmed Seplat co-registration (DataMax primary + Computershare UK co_registrar) and the Africa Prudential Plc self-registration (two independent records, company and registrar, linked per the entity-separation rule).
@@ -1056,6 +1110,6 @@ current reality.
 
 ---
 
-**END OF MASTER_CONTEXT.md v4.8**
+**END OF MASTER_CONTEXT.md v4.10**
 **File Maintainer**: Claude Web (Architect) — update after every major change
-**Version Control**: `MASTER_CONTEXT: v4.8 — F-026 fully closed (schema/backend/frontend/tests/seed-data), production duplicate-cleanup incident investigated and resolved with zero data loss, unmapped_companies dashboard tracking added, Pre-assigned HO numbers table resized to 50 slots with a proactive-extension standing rule`
+**Version Control**: `MASTER_CONTEXT: v4.10 — F-TD-001 fully closed: teardown executed and verified (commit 8dcbdf7abf3290906e0d6d18f23754e143e3df1f), testbuild nginx layer removed, stale .context/ testbuild reference corrected, HO-125 logged`
