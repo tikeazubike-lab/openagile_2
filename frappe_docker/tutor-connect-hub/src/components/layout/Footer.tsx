@@ -2,10 +2,15 @@ import { Link } from "react-router-dom";
 import { GraduationCap, Mail, Phone, MapPin } from "lucide-react";
 import { GrassEdge } from "@/components/ui/doodles";
 
+const socials = [
+  { label: "f", name: "Facebook", href: "https://facebook.com" },
+  { label: "X", name: "Twitter", href: "https://twitter.com" },
+  { label: "Ig", name: "Instagram", href: "https://instagram.com" },
+];
+
 export function Footer() {
   return (
     <footer className="relative bg-primary-800 text-white">
-      {/* Grass strip at the very bottom of the page (Kidza motif) */}
       <div className="absolute bottom-0 left-0 right-0">
         <GrassEdge />
       </div>
@@ -24,6 +29,20 @@ export function Footer() {
             <p className="text-sm leading-relaxed text-primary-200">
               Connecting students with qualified tutors for personalized learning experiences that are fun, flexible, and effective.
             </p>
+            <div className="flex gap-3 pt-1">
+              {socials.map((s) => (
+                <a
+                  key={s.name}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.name}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-700 text-xs font-black text-white transition-colors hover:bg-secondary-400"
+                >
+                  {s.label}
+                </a>
+              ))}
+            </div>
           </div>
 
           <div>

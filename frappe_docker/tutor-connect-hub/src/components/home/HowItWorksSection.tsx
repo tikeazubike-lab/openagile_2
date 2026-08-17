@@ -1,5 +1,5 @@
 import { Search, Calendar, Video, CreditCard } from "lucide-react";
-import { ScallopEdge, HeartDoodle, LightbulbDoodle } from "@/components/ui/doodles";
+import { Wave, HeartDoodle, LightbulbDoodle, SparkleDoodle, PlaneDoodle } from "@/components/ui/doodles";
 
 const steps = [
   {
@@ -30,30 +30,31 @@ const steps = [
 
 export function HowItWorksSection() {
   return (
-    <section className="relative bg-white pb-32 pt-20 sm:pt-28">
-      <HeartDoodle className="absolute right-8 top-16 h-12 w-12 -rotate-12 opacity-80 sm:right-24" />
+    <section className="relative bg-cream pb-32 pt-20 sm:pt-28">
+      <HeartDoodle className="absolute right-[8%] top-16 h-12 w-12 -rotate-12 opacity-80 sm:right-[12%]" />
+      <SparkleDoodle className="absolute left-[6%] top-24 h-6 w-6 opacity-70" />
+      <PlaneDoodle className="absolute right-[6%] bottom-24 h-12 w-12 -rotate-6 opacity-70" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Image side with blob frame + floating badge */}
           <div className="relative mx-auto w-full max-w-lg">
-            <div className="absolute -left-6 -top-6 h-full w-full rounded-[3rem] bg-accent-yellow" />
+            <div className="absolute -left-5 -top-5 h-full w-full rounded-[3rem] bg-secondary-300" />
             <img
               src="/images/online-lesson-girl.jpg"
               alt="Student learning online with a tutor"
               className="relative w-full rounded-[3rem] border-4 border-white object-cover shadow-2xl"
             />
-            {/* Floating experience badge */}
-            <div className="absolute -bottom-8 -right-4 flex h-28 w-28 flex-col items-center justify-center rounded-full bg-primary-500 text-white shadow-xl sm:-right-8 sm:h-32 sm:w-32 border-4 border-white">
-              <span className="text-3xl font-black sm:text-4xl">38+</span>
-              <span className="text-xs font-extrabold uppercase tracking-wide">Top Tutors</span>
+            <div className="absolute -bottom-6 -right-4 flex h-24 w-24 flex-col items-center justify-center rounded-full bg-primary-500 text-white shadow-xl sm:-right-6 sm:h-28 sm:w-28 border-4 border-white">
+              <span className="text-2xl font-black sm:text-3xl">38+</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wide text-center leading-tight">Top<br/>Tutors</span>
             </div>
-            <LightbulbDoodle className="absolute -top-10 right-6 h-14 w-14 rotate-12 drop-shadow-md" />
+            <LightbulbDoodle className="absolute -top-8 right-8 h-14 w-14 rotate-12 drop-shadow-md" />
           </div>
 
           {/* Steps side */}
           <div>
-            <span className="inline-flex items-center rounded-full bg-primary-100 px-5 py-2 text-sm font-black text-primary-700">
+            <span className="inline-flex items-center rounded-full bg-white px-5 py-2 text-sm font-black text-primary-700 shadow-sm">
               How It Works
             </span>
             <h2 className="mt-5 text-3xl font-black text-foreground sm:text-4xl lg:text-5xl leading-tight">
@@ -64,14 +65,12 @@ export function HowItWorksSection() {
               to begin your learning journey.
             </p>
 
-            <div className="mt-10 space-y-6">
+            <div className="mt-10 space-y-5">
               {steps.map((step, index) => (
-                <div key={step.title} className="group flex items-start gap-4">
+                <div key={step.title} className="group flex items-start gap-4 rounded-2xl bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
                   <div className="relative shrink-0">
-                    <div
-                      className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-md transition-transform group-hover:scale-110 group-hover:-rotate-6 ${step.chip}`}
-                    >
-                      <step.icon className="h-7 w-7" />
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl shadow-md transition-transform group-hover:scale-110 ${step.chip}`}>
+                      <step.icon className="h-6 w-6" />
                     </div>
                     <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-xs font-black text-white shadow">
                       {index + 1}
@@ -90,9 +89,9 @@ export function HowItWorksSection() {
         </div>
       </div>
 
-      {/* Scalloped bottom into cream Testimonials section */}
+      {/* Wave bottom into white Testimonials section */}
       <div className="absolute bottom-0 left-0 right-0">
-        <ScallopEdge fill="#FFFBEB" />
+        <Wave fill="#FFFFFF" />
       </div>
     </section>
   );

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, GraduationCap } from "lucide-react";
-import { ScallopEdge, SunDoodle, SparkleDoodle } from "@/components/ui/doodles";
+import { Wave, SunDoodle, SparkleDoodle, HeartDoodle, CrownDoodle } from "@/components/ui/doodles";
 
 const photos = [
   { src: "/images/students-library.jpg", alt: "Students celebrating in the library" },
@@ -14,8 +14,10 @@ export function CTASection() {
 
   return (
     <section className="relative bg-primary-500 pb-32 pt-20 sm:pt-24">
-      <SunDoodle className="absolute left-10 top-16 h-16 w-16 opacity-80" />
-      <SparkleDoodle className="absolute right-12 top-24 h-8 w-8 opacity-70" />
+      <SunDoodle className="absolute left-[8%] top-16 h-14 w-14 opacity-80" />
+      <SparkleDoodle className="absolute right-[10%] top-20 h-8 w-8 opacity-70" />
+      <HeartDoodle className="absolute left-[6%] bottom-32 h-10 w-10 -rotate-12 opacity-70" />
+      <CrownDoodle className="absolute right-[8%] bottom-40 h-10 w-12 rotate-12 opacity-70" />
       <div className="pointer-events-none absolute -left-10 bottom-24 h-40 w-40 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -right-10 top-10 h-56 w-56 rounded-full bg-accent-yellow/20" />
 
@@ -49,7 +51,6 @@ export function CTASection() {
           </Button>
         </div>
 
-        {/* Class-card style photo strip (Kidza motif) */}
         <div className="mt-14 grid grid-cols-3 gap-4 sm:gap-6">
           {photos.map((p, i) => (
             <div
@@ -64,9 +65,8 @@ export function CTASection() {
         </div>
       </div>
 
-      {/* Scalloped bottom into deep-purple footer */}
       <div className="absolute bottom-0 left-0 right-0">
-        <ScallopEdge fill="#3A2E8A" />
+        <Wave fill="#3A2E8A" />
       </div>
     </section>
   );

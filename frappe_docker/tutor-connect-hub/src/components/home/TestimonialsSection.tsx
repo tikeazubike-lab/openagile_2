@@ -1,5 +1,5 @@
 import { Star, Quote } from "lucide-react";
-import { ScallopEdge, FlowerDoodle, PlaneDoodle } from "@/components/ui/doodles";
+import { Wave, FlowerDoodle, SparkleDoodle, LightningDoodle } from "@/components/ui/doodles";
 
 const testimonials = [
   {
@@ -27,14 +27,14 @@ const testimonials = [
 
 export function TestimonialsSection() {
   return (
-    <section className="relative bg-cream pb-32 pt-20 sm:pt-28">
-      <FlowerDoodle className="absolute left-8 top-20 h-14 w-14 rotate-12 opacity-80 sm:left-24" />
-      <PlaneDoodle className="absolute right-10 top-28 h-14 w-14 -rotate-6 opacity-80 sm:right-32" />
+    <section className="relative bg-white pb-32 pt-20 sm:pt-28">
+      <FlowerDoodle className="absolute left-[6%] top-20 h-14 w-14 rotate-12 opacity-80" />
+      <SparkleDoodle className="absolute right-[8%] top-28 h-6 w-6 opacity-70" />
+      <LightningDoodle className="absolute left-[8%] bottom-24 h-8 w-6 rotate-12 opacity-60" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Purple rounded container (Home 04 motif) */}
+        {/* Purple rounded container */}
         <div className="relative overflow-hidden rounded-[3rem] bg-primary-500 px-6 py-14 shadow-2xl sm:px-12">
-          {/* Decorative circles */}
           <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-accent-yellow/20" />
 
@@ -54,9 +54,7 @@ export function TestimonialsSection() {
             {testimonials.map((t, i) => (
               <div
                 key={t.name}
-                className={`relative rounded-3xl bg-white p-7 shadow-lg transition-transform hover:-translate-y-2 ${
-                  i === 1 ? "md:-translate-y-4" : ""
-                }`}
+                className={`relative rounded-3xl bg-white p-7 shadow-lg transition-transform hover:-translate-y-2 ${i === 1 ? "md:-translate-y-4" : ""}`}
               >
                 <Quote className="absolute right-5 top-5 h-8 w-8 text-primary-100" />
                 <div className="flex gap-1">
@@ -84,9 +82,9 @@ export function TestimonialsSection() {
         </div>
       </div>
 
-      {/* Scalloped bottom into purple CTA section */}
+      {/* Wave bottom into purple CTA section */}
       <div className="absolute bottom-0 left-0 right-0">
-        <ScallopEdge fill="#6C5CE7" />
+        <Wave fill="#6C5CE7" />
       </div>
     </section>
   );
