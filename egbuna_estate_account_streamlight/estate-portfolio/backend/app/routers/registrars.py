@@ -15,7 +15,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.deps import get_current_user, require_admin, get_session
-from app.models import User, Registrar, RegistrarContactField, RegistrarRequirement, RegistrarDocument, Company
+from app.models import User, Registrar, RegistrarContactField, RegistrarRequirement, RegistrarDocument, Company, CompanyRegistrar, ReminderLog
 
 router = APIRouter(tags=["Registrars"])
 
@@ -577,3 +577,72 @@ async def unlink_company_from_registrar(
     await db.commit()
 
     return _envelope({"status": "success", "unlinked": True})
+
+
+# ─── F-026b: Email Reminder Endpoints ────────────────────────────────────────
+
+@router.post("/admin/reminders/test-send")
+async def test_send_reminder(
+    session: AsyncSession = Depends(get_session),
+    _: User = Depends(require_admin),
+):
+    """Send a test email to validate SMTP configuration. Does not write to reminder_log."""
+    import os
+    recipient = os.environ.get("REMINDER_RECIPIENT_EMAIL", "zubbyik@gmail.com")
+
+    from app.services.email import send_test_email
+    result = send_test_email(to=recipient)
+
+    if result["status"] == "sent":
+        return _envelope({"status": "sent", "recipient": recipient})
+    else:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=502, detail=result.get("detail", "Send failed"))
+
+
+@router.get("/admin/reminders/log")
+async def get_reminder_log(
+    session: AsyncSession = Depends(get_session),
+    _: User = Depends(require_admin),
+    page: int = 1,
+    page_size: int = 20,
+):
+    """Paginated reminder log with joined requirement descriptions."""
+    offset = (page - 1) * page_size
+
+    stmt = (
+        select(ReminderLog)
+        .order_by(ReminderLog.sent_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+    result = await session.execute(stmt)
+    logs = result.scalars().all()
+
+    total = await session.scalar(
+        select(func.count(ReminderLog.id))
+    ) or 0
+
+    data = []
+    for log in logs:
+        req = await session.get(RegistrarRequirement, log.requirement_id)
+        data.append({
+            "id": log.id,
+            "requirement_id": log.requirement_id,
+            "requirement_title": req.document_title if req else "Unknown",
+            "reminder_type": log.reminder_type,
+            "recipient_email": log.recipient_email,
+            "delivery_status": log.delivery_status,
+            "error_detail": log.error_detail,
+            "sent_at": log.sent_at.isoformat() if log.sent_at else None,
+        })
+
+    return _envelope({
+        "data": data,
+        "meta": {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size,
+        },
+    })
