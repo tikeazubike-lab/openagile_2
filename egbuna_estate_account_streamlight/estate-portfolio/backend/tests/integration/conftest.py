@@ -19,7 +19,8 @@ from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
@@ -27,13 +28,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
-from passlib.context import CryptContext
 from app.main import app
 from app.database import Base
 from app.deps import create_access_token, get_session
 from app.models import User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # ---------------------------------------------------------------------------
 # Build DSN from GitHub Actions secrets / environment
@@ -41,29 +39,35 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 DB_HOST = os.environ["DB_HOST"]          # e.g. openagile_postgres
 DB_PORT = os.environ.get("DB_PORT", "5432")
-DB_NAME = os.environ["DB_NAME"]          # e.g. estate_portfolio
+DB_NAME = os.environ.get("DB_NAME", "epm_test")  # isolated test database
 DB_USER = os.environ["DB_USER"]          # e.g. openagile
 DB_PASSWORD = os.environ["DB_PASSWORD"]
-
-DB_TEST_SCHEMA = os.environ.get("DB_TEST_SCHEMA", "estate_portfolio_test")
 
 TEST_DATABASE_URL = (
     f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}"
     f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    f"?options=-csearch_path%3D{DB_TEST_SCHEMA}"
 )
 
 # NullPool: never reuse connections between tests (clean slate every time)
-engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool, echo=False)
+engine = create_async_engine(
+    TEST_DATABASE_URL,
+    poolclass=NullPool,
+    echo=False,
+)
 
 
-# ---------------------------------------------------------------------------
-# Event loop (module-scoped for async fixtures)
-# ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="session")
+# ── Create tables in the test database ──────────────────────────────────────
+@pytest.fixture(scope="session", autouse=True)
 def event_loop():
+    """Create test database tables once per session."""
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    async def init():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    loop.run_until_complete(init())
     yield loop
     loop.close()
 
@@ -99,10 +103,10 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture
 async def test_app(db_session: AsyncSession):
     """FastAPI app wired to the rollback DB session."""
-    async def override_get_session():
+    async def override_get_db():
         yield db_session
 
-    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_session] = override_get_db
     yield app
     app.dependency_overrides.clear()
 
@@ -113,17 +117,27 @@ async def test_app(db_session: AsyncSession):
 
 @pytest_asyncio.fixture
 async def async_client(test_app) -> AsyncGenerator[AsyncClient, None]:
-    async with AsyncClient(app=test_app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         yield client
 
 
 @pytest_asyncio.fixture
-async def admin_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
-    token = create_access_token(user_id=1, role="admin")
+async def admin_http_client(test_app, test_admin_user: User) -> AsyncGenerator[AsyncClient, None]:
+    from passlib.context import CryptContext
+    pwd = CryptContext(schemes=["bcrypt"])
+    hashed = pwd.hash("testpass123")
+
+    # Ensure user exists with correct hash in the test DB
+    async with engine.begin() as conn:
+        await conn.execute(text("""
+            INSERT INTO users (username, name, hashed_password, role, is_active)
+            VALUES (:uname, :name, :pwd, 'admin', true)
+            ON CONFLICT (username) DO UPDATE SET hashed_password = :pwd
+        """), {"uname": test_admin_user.username, "name": test_admin_user.name, "pwd": hashed})
+
     async with AsyncClient(
-        app=test_app,
+        transport=ASGITransport(app=test_app),
         base_url="http://test",
-        cookies={"epm_token": token},
     ) as client:
         yield client
 
@@ -132,7 +146,7 @@ async def admin_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
 async def user_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
     token = create_access_token(user_id=2, role="readonly")
     async with AsyncClient(
-        app=test_app,
+        transport=ASGITransport(app=test_app),
         base_url="http://test",
         cookies={"epm_token": token},
     ) as client:
@@ -145,10 +159,12 @@ async def user_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
 
 @pytest_asyncio.fixture
 async def test_admin_user(db_session: AsyncSession) -> User:
+    from passlib.context import CryptContext
+    pwd = CryptContext(schemes=["bcrypt"])
     user = User(
         username="test_admin",
         name="Test Admin",
-        hashed_password=pwd_context.hash("testpass123"),
+        hashed_password=pwd.hash("testpass123"),
         role="admin",
         is_active=True,
     )
@@ -159,10 +175,12 @@ async def test_admin_user(db_session: AsyncSession) -> User:
 
 @pytest_asyncio.fixture
 async def test_readonly_user(db_session: AsyncSession) -> User:
+    from passlib.context import CryptContext
+    pwd = CryptContext(schemes=["bcrypt"])
     user = User(
         username="test_viewer",
         name="Test Viewer",
-        hashed_password=pwd_context.hash("viewpass123"),
+        hashed_password=pwd.hash("viewpass123"),
         role="readonly",
         is_active=True,
     )
@@ -188,13 +206,11 @@ async def test_company(db_session: AsyncSession):
 @pytest_asyncio.fixture
 async def test_live_holding(db_session: AsyncSession, test_company):
     from app.models import Holding
-    from decimal import Decimal
     holding = Holding(
         company_id=test_company.id,
         num_shares=100,
-        average_cost_basis=Decimal("450.00"),
-        total_cost=Decimal("45000.00"),
-        holding_type="active",
+        avg_purchase_price="450.00",
+        status="live",
     )
     db_session.add(holding)
     await db_session.flush()
@@ -204,7 +220,6 @@ async def test_live_holding(db_session: AsyncSession, test_company):
 @pytest_asyncio.fixture
 async def test_draft_holding(db_session: AsyncSession, test_company):
     from app.models import Holding, Company
-    from decimal import Decimal
     # Use a different company to avoid UNIQUE constraint collision with test_live_holding
     company2 = Company(
         ticker="DRAFTCO",
@@ -218,9 +233,8 @@ async def test_draft_holding(db_session: AsyncSession, test_company):
     holding = Holding(
         company_id=company2.id,
         num_shares=50,
-        average_cost_basis=Decimal("200.00"),
-        total_cost=Decimal("10000.00"),
-        holding_type="draft",
+        avg_purchase_price="200.00",
+        status="draft",
     )
     db_session.add(holding)
     await db_session.flush()
