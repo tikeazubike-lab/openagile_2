@@ -20,6 +20,7 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
@@ -28,9 +29,9 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 
 from app.main import app
-from app.database import Base, get_db
-from app.auth.logic import create_access_token, hash_password
-from app.models.users import User
+from app.database import Base
+from app.deps import create_access_token, get_session
+from app.models import User
 
 # ---------------------------------------------------------------------------
 # Build DSN from GitHub Actions secrets / environment
@@ -105,7 +106,7 @@ async def test_app(db_session: AsyncSession):
     async def override_get_db():
         yield db_session
 
-    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_session] = override_get_db
     yield app
     app.dependency_overrides.clear()
 
@@ -121,19 +122,29 @@ async def async_client(test_app) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest_asyncio.fixture
-async def admin_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
-    token = create_access_token(data={"sub": "test_admin", "role": "admin"})
+async def admin_http_client(test_app, test_admin_user: User) -> AsyncGenerator[AsyncClient, None]:
+    from passlib.context import CryptContext
+    pwd = CryptContext(schemes=["bcrypt"])
+    hashed = pwd.hash("testpass123")
+
+    # Ensure user exists with correct hash in the test DB
+    async with engine.begin() as conn:
+        await conn.execute(text("""
+            INSERT INTO users (username, name, hashed_password, role, is_active)
+            VALUES (:uname, :name, :pwd, 'admin', true)
+            ON CONFLICT (username) DO UPDATE SET hashed_password = :pwd
+        """), {"uname": test_admin_user.username, "name": test_admin_user.name, "pwd": hashed})
+
     async with AsyncClient(
         transport=ASGITransport(app=test_app),
         base_url="http://test",
-        cookies={"epm_token": token},
     ) as client:
         yield client
 
 
 @pytest_asyncio.fixture
 async def user_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
-    token = create_access_token(data={"sub": "test_viewer", "role": "readonly"})
+    token = create_access_token(user_id=2, role="readonly")
     async with AsyncClient(
         transport=ASGITransport(app=test_app),
         base_url="http://test",
@@ -148,10 +159,12 @@ async def user_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
 
 @pytest_asyncio.fixture
 async def test_admin_user(db_session: AsyncSession) -> User:
+    from passlib.context import CryptContext
+    pwd = CryptContext(schemes=["bcrypt"])
     user = User(
         username="test_admin",
         name="Test Admin",
-        password_hash=hash_password("testpass123"),
+        hashed_password=pwd.hash("testpass123"),
         role="admin",
         is_active=True,
     )
@@ -162,10 +175,12 @@ async def test_admin_user(db_session: AsyncSession) -> User:
 
 @pytest_asyncio.fixture
 async def test_readonly_user(db_session: AsyncSession) -> User:
+    from passlib.context import CryptContext
+    pwd = CryptContext(schemes=["bcrypt"])
     user = User(
         username="test_viewer",
         name="Test Viewer",
-        password_hash=hash_password("viewpass123"),
+        hashed_password=pwd.hash("viewpass123"),
         role="readonly",
         is_active=True,
     )
@@ -176,7 +191,7 @@ async def test_readonly_user(db_session: AsyncSession) -> User:
 
 @pytest_asyncio.fixture
 async def test_company(db_session: AsyncSession):
-    from app.models.companies import Company
+    from app.models import Company
     company = Company(
         ticker="TESTCO",
         name="Test Company Ltd",
@@ -190,7 +205,7 @@ async def test_company(db_session: AsyncSession):
 
 @pytest_asyncio.fixture
 async def test_live_holding(db_session: AsyncSession, test_company):
-    from app.models.holdings import Holding
+    from app.models import Holding
     holding = Holding(
         company_id=test_company.id,
         num_shares=100,
@@ -204,9 +219,8 @@ async def test_live_holding(db_session: AsyncSession, test_company):
 
 @pytest_asyncio.fixture
 async def test_draft_holding(db_session: AsyncSession, test_company):
-    from app.models.holdings import Holding
+    from app.models import Holding, Company
     # Use a different company to avoid UNIQUE constraint collision with test_live_holding
-    from app.models.companies import Company
     company2 = Company(
         ticker="DRAFTCO",
         name="Draft Company Ltd",
