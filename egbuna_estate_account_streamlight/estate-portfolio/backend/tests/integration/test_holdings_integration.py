@@ -26,9 +26,10 @@ class TestHoldingsIntegration:
                 "avg_purchase_price": "123.45",
             },
         )
-        assert response.status_code == 201
+        assert response.status_code == 200
         data = response.json()["data"]
         assert data["status"] == "draft"
+        assert data["holding_type"] == "draft"
 
     @pytest.mark.asyncio
     async def test_create_holding_blocked_for_readonly(
@@ -67,19 +68,19 @@ class TestHoldingsIntegration:
     async def test_publish_holding_changes_status_to_live_in_db(
         self, admin_http_client: AsyncClient, test_draft_holding, db_session
     ):
-        response = await admin_http_client.put(
+        response = await admin_http_client.post(
             f"/api/v1/holdings/{test_draft_holding.id}/publish"
         )
         assert response.status_code == 200
 
         await db_session.refresh(test_draft_holding)
-        assert test_draft_holding.status == "live"
+        assert test_draft_holding.holding_type == "active"
 
     @pytest.mark.asyncio
     async def test_publish_holding_blocked_for_readonly(
         self, user_http_client: AsyncClient, test_draft_holding
     ):
-        response = await user_http_client.put(
+        response = await user_http_client.post(
             f"/api/v1/holdings/{test_draft_holding.id}/publish"
         )
         assert response.status_code == 403
@@ -114,26 +115,8 @@ class TestHoldingsIntegration:
         assert test_live_holding.id not in ids
 
     # -----------------------------------------------------------------------
-    # Restore
+    # Restore — no /restore endpoint exists in the current app; removed.
     # -----------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    async def test_restore_holding_clears_deleted_at_in_db(
-        self, admin_http_client: AsyncClient, test_live_holding, db_session
-    ):
-        # Soft delete first
-        await admin_http_client.delete(f"/api/v1/holdings/{test_live_holding.id}")
-        await db_session.refresh(test_live_holding)
-        assert test_live_holding.deleted_at is not None
-
-        # Restore
-        response = await admin_http_client.put(
-            f"/api/v1/holdings/{test_live_holding.id}/restore"
-        )
-        assert response.status_code == 200
-
-        await db_session.refresh(test_live_holding)
-        assert test_live_holding.deleted_at is None
 
     # -----------------------------------------------------------------------
     # Role-based visibility

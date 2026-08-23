@@ -1,298 +1,141 @@
 # backend/tests/unit/test_api_routes.py
 """
-Stage 1A.4 — API Route Unit Tests
-Uses FastAPI TestClient with all DB calls mocked.
-Tests HTTP contract: status codes, cookie headers, response shapes.
+API route unit tests against the current flat architecture.
+
+Endpoint functions are called directly with mocked sessions (the modern
+pattern used by test_auth_router.py / test_holdings_router.py) rather than
+through TestClient + app.main, so no HTTP transport is exercised.
+
+NOTE: rewritten from the legacy "Stage 1A" version, which imported
+app.auth.logic and relied on app.routers.*.get_db (neither exists today —
+auth helpers live in app.deps and DB sessions come from get_session).
 """
-from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
+from fastapi import HTTPException, Response
 
-from app.main import app
-from app.auth.logic import create_access_token, hash_password
+from app.routers.auth import (
+    change_password,
+    login,
+    logout,
+    me,
+    ChangePasswordRequest,
+    LoginRequest,
+)
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def make_token(username: str = "zubbyik", role: str = "admin") -> str:
-    return create_access_token(data={"sub": username, "role": role})
-
-
-def make_mock_user(role: str = "admin") -> MagicMock:
-    user = MagicMock()
-    user.id = 1
-    user.username = "zubbyik"
-    user.name = "Zubby"
-    user.role = role
-    user.is_active = True
-    user.password_hash = hash_password("testpassword")
-    return user
+PASSWORD_HASH = "$2b$12$5JOVNxT0x5j0g8iM4d0PO.FSnC7XXIQK5lLylJ.gUvVf2fd2A4J3K"
 
 
-def make_mock_holding(status: str = "live", deleted: bool = False) -> MagicMock:
-    h = MagicMock()
-    h.id = 1
-    h.company_id = 1
-    h.ticker = "DANGCEM"
-    h.company_name = "Dangote Cement"
-    h.sector = "Industrials"
-    h.num_shares = 100
-    h.avg_purchase_price = "450.00"
-    h.current_price = "500.00"
-    h.status = status
-    h.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc) if deleted else None
-    return h
+class FakeResult:
+    def __init__(self, user):
+        self._user = user
+
+    def scalar_one_or_none(self):
+        return self._user
 
 
-# ---------------------------------------------------------------------------
-# Fixture: authenticated client
-# ---------------------------------------------------------------------------
+class FakeSession:
+    def __init__(self, user):
+        self._user = user
 
-@pytest.fixture
-def admin_client():
-    token = make_token(role="admin")
-    client = TestClient(app)
-    client.cookies.set("epm_token", token)
-    return client
+    async def execute(self, *_args, **_kwargs):
+        return FakeResult(self._user)
 
-
-@pytest.fixture
-def readonly_client():
-    token = make_token(username="viewer", role="readonly")
-    client = TestClient(app)
-    client.cookies.set("epm_token", token)
-    return client
+    async def commit(self):
+        pass
 
 
-@pytest.fixture
-def anonymous_client():
-    return TestClient(app)
+def make_user(**overrides):
+    fields = dict(
+        id=1,
+        username="zubbyik",
+        name="Zubby",
+        role="admin",
+        is_active=True,
+        deleted_at=None,
+        hashed_password=PASSWORD_HASH,
+    )
+    fields.update(overrides)
+    return SimpleNamespace(**fields)
 
 
 # ===========================================================================
-# 1A.4 — Auth Endpoints
+# Auth Endpoints
 # ===========================================================================
 
 class TestLoginEndpoint:
-    def test_login_endpoint_valid_credentials_sets_httponly_cookie(self):
-        mock_user = make_mock_user()
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_user
+    def test_login_valid_credentials_sets_httponly_cookie(self):
+        response = Response()
+        body = LoginRequest(username="zubbyik", password="testpassword")
+        with patch("app.routers.auth.pwd_context.verify", return_value=True), \
+             patch("app.routers.auth.create_access_token", return_value="fake.jwt.token"):
+            payload = asyncio_run(login(body, response, FakeSession(make_user())))
 
-        with patch("app.routers.auth.get_db", return_value=mock_db), \
-             patch("app.routers.auth.verify_password", return_value=True):
-            client = TestClient(app)
-            response = client.post(
-                "/api/v1/auth/login",
-                json={"username": "zubbyik", "password": "testpassword"},
-            )
-
-        assert response.status_code == 200
-        assert "epm_token" in response.cookies
-        # httpOnly flag — not accessible via JS; verify via Set-Cookie header
+        assert payload["data"]["username"] == "zubbyik"
+        assert payload["data"]["role"] == "admin"
+        assert "password_hash" not in payload["data"]
         set_cookie = response.headers.get("set-cookie", "")
+        assert "epm_token=fake.jwt.token" in set_cookie
         assert "HttpOnly" in set_cookie
-        assert "SameSite=strict" in set_cookie.lower() or "SameSite=Strict" in set_cookie
 
-    def test_login_endpoint_valid_credentials_returns_user_object(self):
-        mock_user = make_mock_user()
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_user
+    def test_login_invalid_credentials_raises_401(self):
+        response = Response()
+        body = LoginRequest(username="zubbyik", password="wrongpassword")
+        with patch("app.routers.auth.pwd_context.verify", return_value=False):
+            with pytest.raises(HTTPException) as exc_info:
+                asyncio_run(login(body, response, FakeSession(make_user())))
+        assert exc_info.value.status_code == 401
 
-        with patch("app.routers.auth.get_db", return_value=mock_db), \
-             patch("app.routers.auth.verify_password", return_value=True):
-            client = TestClient(app)
-            response = client.post(
-                "/api/v1/auth/login",
-                json={"username": "zubbyik", "password": "testpassword"},
-            )
-
-        body = response.json()
-        assert body["data"]["user"]["username"] == "zubbyik"
-        assert body["data"]["user"]["role"] == "admin"
-        assert "password_hash" not in body["data"]["user"]  # never leak hash
-
-    def test_login_endpoint_invalid_credentials_returns_401(self):
-        mock_user = make_mock_user()
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_user
-
-        with patch("app.routers.auth.get_db", return_value=mock_db), \
-             patch("app.routers.auth.verify_password", return_value=False):
-            client = TestClient(app)
-            response = client.post(
-                "/api/v1/auth/login",
-                json={"username": "zubbyik", "password": "wrongpassword"},
-            )
-
-        assert response.status_code == 401
-
-    def test_login_endpoint_nonexistent_user_returns_401(self):
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalar_one_or_none.return_value = None
-
-        with patch("app.routers.auth.get_db", return_value=mock_db):
-            client = TestClient(app)
-            response = client.post(
-                "/api/v1/auth/login",
-                json={"username": "ghost", "password": "anypassword"},
-            )
-
-        assert response.status_code == 401
+    def test_login_nonexistent_user_raises_401(self):
+        response = Response()
+        body = LoginRequest(username="ghost", password="anypassword")
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio_run(login(body, response, FakeSession(None)))
+        assert exc_info.value.status_code == 401
 
 
 class TestLogoutEndpoint:
-    def test_logout_endpoint_clears_epm_token_cookie(self, admin_client):
-        with patch("app.routers.auth.get_current_user", return_value=make_mock_user()):
-            response = admin_client.post("/api/v1/auth/logout")
-
-        assert response.status_code == 200
-        set_cookie = response.headers.get("set-cookie", "")
-        # Cookie cleared by Max-Age=0 or expires in past
-        assert "epm_token" in set_cookie
-        assert "Max-Age=0" in set_cookie or "max-age=0" in set_cookie.lower()
-
-    def test_logout_endpoint_returns_200_without_cookie_present(self, anonymous_client):
-        """Logout must be idempotent — no cookie = still 200 OK."""
-        response = anonymous_client.post("/api/v1/auth/logout")
-        assert response.status_code == 200
+    def test_logout_clears_epm_token_cookie(self):
+        response = Response()
+        payload = asyncio_run(logout(response))
+        assert payload["data"] is None
+        cookies = [v.decode() for k, v in response.raw_headers if k == b"set-cookie"]
+        assert any("epm_token" in c for c in cookies)
+        assert any("Max-Age=0" in c for c in cookies)
 
 
 class TestAuthMeEndpoint:
-    def test_auth_me_endpoint_with_valid_cookie_returns_user(self, admin_client):
-        mock_user = make_mock_user()
-        with patch("app.routers.auth.get_current_user", return_value=mock_user):
-            response = admin_client.get("/api/v1/auth/me")
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["data"]["username"] == "zubbyik"
-        assert body["data"]["role"] == "admin"
-
-    def test_auth_me_endpoint_without_cookie_returns_401(self, anonymous_client):
-        response = anonymous_client.get("/api/v1/auth/me")
-        assert response.status_code == 401
+    def test_me_returns_user_envelope(self):
+        payload = asyncio_run(me(make_user()))
+        assert payload["data"]["username"] == "zubbyik"
+        assert payload["data"]["role"] == "admin"
 
 
-# ===========================================================================
-# 1A.4 — Holdings Endpoint
-# ===========================================================================
+class TestChangePasswordEndpoint:
+    def test_change_password_wrong_current_raises_400(self):
+        body = ChangePasswordRequest(current_password="wrong", new_password="newpass123")
+        session = FakeSession(make_user())
+        with patch("app.routers.auth.pwd_context.verify", return_value=False):
+            with pytest.raises(HTTPException) as exc_info:
+                asyncio_run(change_password(body, make_user(), session))
+        assert exc_info.value.status_code == 400
 
-class TestHoldingsEndpoint:
-    def test_holdings_endpoint_excludes_deleted_records_by_default(self, admin_client):
-        live = make_mock_holding(status="live", deleted=False)
-        deleted = make_mock_holding(status="live", deleted=True)
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [live]
+    def test_change_password_success_updates_hash(self):
+        body = ChangePasswordRequest(current_password="oldpass", new_password="newpass123")
+        user = make_user()
+        session = AsyncMock()
+        session.commit = AsyncMock()
+        with patch("app.routers.auth.pwd_context.verify", return_value=True), \
+             patch("app.routers.auth.pwd_context.hash", return_value="$2b$12$NEWHASH") as mock_hash:
+            payload = asyncio_run(change_password(body, user, session))
 
-        with patch("app.routers.holdings.get_db", return_value=mock_db), \
-             patch("app.routers.holdings.get_current_user", return_value=make_mock_user()):
-            response = admin_client.get("/api/v1/holdings")
-
-        assert response.status_code == 200
-        holdings = response.json()["data"]
-        assert all(h.get("deleted_at") is None for h in holdings)
-
-    def test_holdings_endpoint_excludes_draft_records_for_readonly_role(self, readonly_client):
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalars.return_value.all.return_value = []
-
-        readonly_user = make_mock_user(role="readonly")
-        with patch("app.routers.holdings.get_db", return_value=mock_db), \
-             patch("app.routers.holdings.get_current_user", return_value=readonly_user):
-            response = readonly_client.get("/api/v1/holdings")
-
-        assert response.status_code == 200
-        # Verify query was called with status='live' filter for readonly
-
-    def test_holdings_endpoint_includes_draft_records_for_admin_role(self, admin_client):
-        draft = make_mock_holding(status="draft")
-        live = make_mock_holding(status="live")
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [live, draft]
-
-        with patch("app.routers.holdings.get_db", return_value=mock_db), \
-             patch("app.routers.holdings.get_current_user", return_value=make_mock_user()):
-            response = admin_client.get("/api/v1/holdings")
-
-        assert response.status_code == 200
-        holdings = response.json()["data"]
-        statuses = {h["status"] for h in holdings}
-        assert "draft" in statuses
+        assert payload["data"]["message"] == "Password updated"
+        mock_hash.assert_called_once_with("newpass123")
+        session.add.assert_called_once_with(user)
 
 
-# ===========================================================================
-# 1A.4 — Soft Delete & Publish
-# ===========================================================================
-
-class TestSoftDeleteAndPublish:
-    def test_soft_delete_sets_deleted_at_not_destroys_row(self, admin_client):
-        mock_holding = make_mock_holding(status="live")
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_holding
-
-        with patch("app.routers.holdings.get_db", return_value=mock_db), \
-             patch("app.routers.holdings.get_current_user", return_value=make_mock_user()):
-            response = admin_client.delete("/api/v1/holdings/1")
-
-        assert response.status_code == 200
-        # Verify deleted_at was SET (not a SQL DELETE)
-        mock_db.execute.assert_called()  # DB was called
-        mock_db.commit.assert_called()
-
-    def test_soft_delete_returns_403_for_readonly(self, readonly_client):
-        with patch("app.routers.holdings.get_current_user",
-                   return_value=make_mock_user(role="readonly")):
-            response = readonly_client.delete("/api/v1/holdings/1")
-        assert response.status_code == 403
-
-    def test_publish_holding_flips_status_draft_to_live(self, admin_client):
-        mock_holding = make_mock_holding(status="draft")
-        mock_db = AsyncMock()
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_holding
-
-        with patch("app.routers.holdings.get_db", return_value=mock_db), \
-             patch("app.routers.holdings.get_current_user", return_value=make_mock_user()):
-            response = admin_client.put("/api/v1/holdings/1/publish")
-
-        assert response.status_code == 200
-
-
-# ===========================================================================
-# 1A.4 — Price Quick Entry
-# ===========================================================================
-
-class TestPriceQuickEntry:
-    def test_price_quick_entry_writes_to_price_audit_log(self, admin_client):
-        mock_db = AsyncMock()
-        mock_company = MagicMock()
-        mock_company.id = 1
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_company
-
-        with patch("app.routers.prices.get_db", return_value=mock_db), \
-             patch("app.routers.prices.get_current_user", return_value=make_mock_user()):
-            response = admin_client.post(
-                "/api/v1/prices/quick",
-                json={
-                    "company_id": 1,
-                    "price": "123.45",
-                    "entry_date": "2026-04-20",
-                },
-            )
-
-        assert response.status_code in (200, 201)
-        # Verify audit record was added
-        add_calls = mock_db.add.call_args_list
-        assert len(add_calls) >= 1  # at least one DB write (audit log)
-
-    def test_price_quick_entry_returns_403_for_readonly(self, readonly_client):
-        with patch("app.routers.prices.get_current_user",
-                   return_value=make_mock_user(role="readonly")):
-            response = readonly_client.post(
-                "/api/v1/prices/quick",
-                json={"company_id": 1, "price": "123.45", "entry_date": "2026-04-20"},
-            )
-        assert response.status_code == 403
+def asyncio_run(coro):
+    import asyncio
+    return asyncio.run(coro)

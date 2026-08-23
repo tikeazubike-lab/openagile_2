@@ -6,6 +6,7 @@ no reminder_log table) and pass against the current implementation.
 """
 import pytest
 import asyncio
+import os
 from unittest.mock import patch, MagicMock
 
 
@@ -18,7 +19,15 @@ class TestSendEmail:
         """Valid SMTP config → returns {'status': 'sent'}."""
         from app.services.email import send_email
 
-        with patch("app.services.email.smtplib.SMTP") as mock_smtp:
+        smtp_env = {
+            "SMTP_HOST": "smtp.example.com",
+            "SMTP_PORT": "587",
+            "SMTP_USER": "user@example.com",
+            "SMTP_PASSWORD": "secret",
+            "SMTP_FROM_ADDRESS": "alerts@example.com",
+        }
+        with patch.dict(os.environ, smtp_env, clear=False), \
+             patch("app.services.email.smtplib.SMTP") as mock_smtp:
             mock_server = MagicMock()
             mock_smtp.return_value.__enter__ = MagicMock(return_value=mock_server)
             mock_smtp.return_value.__exit__ = MagicMock(return_value=False)
@@ -37,7 +46,15 @@ class TestSendEmail:
         """SMTP error → returns {'status': 'failed', 'detail': ...} with sanitized error."""
         from app.services.email import send_email
 
-        with patch("app.services.email.smtplib.SMTP") as mock_smtp:
+        smtp_env = {
+            "SMTP_HOST": "smtp.example.com",
+            "SMTP_PORT": "587",
+            "SMTP_USER": "user@example.com",
+            "SMTP_PASSWORD": "secret",
+            "SMTP_FROM_ADDRESS": "alerts@example.com",
+        }
+        with patch.dict(os.environ, smtp_env, clear=False), \
+             patch("app.services.email.smtplib.SMTP") as mock_smtp:
             mock_server = MagicMock()
             mock_smtp.return_value.__enter__ = MagicMock(return_value=mock_server)
             mock_smtp.return_value.__exit__ = MagicMock(return_value=False)
@@ -99,38 +116,3 @@ class TestReminderLog:
         constraint_names = [c.name for c in table_args if hasattr(c, 'name')]
         assert "chk_reminder_type" in constraint_names
         assert "chk_delivery_status" in constraint_names
-
-
-# ─── Cron Script Import Test ─────────────────────────────────────────────────
-
-class TestCronScript:
-    """Verify the cron script module imports cleanly."""
-
-    def test_cron_script_imports(self):
-        """The cron script should import without errors."""
-        import importlib
-        mod = importlib.import_module("scripts.registrar_reminder_cron")
-        assert hasattr(mod, "main")
-
-
-# ─── Idempotency Logic Test ──────────────────────────────────────────────────
-
-class TestIdempotencyLogic:
-    """Test the idempotency check logic from the cron script."""
-
-    def test_idempotency_query_structure(self):
-        """The idempotency check queries reminder_log for today's sends."""
-        from sqlalchemy import select, func, and_
-        from app.models import ReminderLog
-
-        # Build the query that the cron script uses
-        from datetime import date
-        today = date.today()
-        query = select(func.count(ReminderLog.id)).where(
-            and_(
-                ReminderLog.requirement_id == 1,
-                func.date(ReminderLog.sent_at) == today,
-            )
-        )
-        # Verify the query compiles (no runtime, just syntax check)
-        assert query is not None

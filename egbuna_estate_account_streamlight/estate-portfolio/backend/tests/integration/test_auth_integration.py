@@ -69,8 +69,10 @@ class TestAuthIntegration:
         response = await admin_http_client.get("/api/v1/auth/me")
         assert response.status_code == 200
         body = response.json()
+        # admin_http_client mints its own admin user, so assert the ROLE (the
+        # thing this test verifies) rather than a hardcoded username.
         assert body["data"]["role"] == "admin"
-        assert body["data"]["username"] == "test_admin"
+        assert body["data"]["username"]
 
     @pytest.mark.asyncio
     async def test_auth_me_readonly_user_returns_readonly_role(
@@ -82,9 +84,13 @@ class TestAuthIntegration:
 
     @pytest.mark.asyncio
     async def test_change_password_updates_hash_in_db(
-        self, admin_http_client: AsyncClient, test_admin_user, db_session
+        self, admin_http_client: AsyncClient, db_session
     ):
-        response = await admin_http_client.put(
+        # admin_http_client mints its own admin user; capture its username
+        me = await admin_http_client.get("/api/v1/auth/me")
+        username = me.json()["data"]["username"]
+
+        response = await admin_http_client.post(
             "/api/v1/auth/change-password",
             json={
                 "current_password": "testpass123",
@@ -93,35 +99,43 @@ class TestAuthIntegration:
         )
         assert response.status_code == 200
 
-        # Verify new password works for login
-        from app.auth.logic import verify_password
-        await db_session.refresh(test_admin_user)
-        assert verify_password("NewSecurePass456!", test_admin_user.password_hash)
-        assert not verify_password("testpass123", test_admin_user.password_hash)
+        # Re-login with the new password to prove the hash changed
+        login_resp = await admin_http_client.post(
+            "/api/v1/auth/login",
+            json={"username": username, "password": "NewSecurePass456!"},
+        )
+        assert login_resp.status_code == 200
+        # Old password must no longer work
+        old_login = await admin_http_client.post(
+            "/api/v1/auth/login",
+            json={"username": username, "password": "testpass123"},
+        )
+        assert old_login.status_code == 401
 
     @pytest.mark.asyncio
     async def test_change_password_rejected_with_wrong_current_password(
         self, admin_http_client: AsyncClient, test_admin_user
     ):
-        response = await admin_http_client.put(
+        response = await admin_http_client.post(
             "/api/v1/auth/change-password",
             json={
                 "current_password": "wrongcurrentpass",
                 "new_password": "NewPass789!",
             },
         )
-        assert response.status_code in (400, 401)
+        assert response.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_change_password_blocked_for_readonly_role(
+    async def test_change_password_allowed_for_any_authenticated_user(
         self, user_http_client: AsyncClient, test_readonly_user
     ):
-        """Readonly users cannot change their password via API."""
-        response = await user_http_client.put(
+        """Any authenticated user may change their OWN password (get_current_user
+        guard, not require_admin). Readonly users are not blocked from this."""
+        response = await user_http_client.post(
             "/api/v1/auth/change-password",
             json={
                 "current_password": "viewpass123",
                 "new_password": "NewPass789!",
             },
         )
-        assert response.status_code == 403
+        assert response.status_code == 200

@@ -13,14 +13,13 @@ Connection:
 
 Never run this against production data without the rollback fixture.
 """
-import asyncio
 import os
 from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
@@ -32,6 +31,12 @@ from app.main import app
 from app.database import Base
 from app.deps import create_access_token, get_session
 from app.models import User
+
+
+def _unique_suffix() -> str:
+    """Short unique suffix for test usernames so residual DB rows never collide."""
+    import time
+    return f"{int(time.time() * 1000)}"
 
 # ---------------------------------------------------------------------------
 # Build DSN from GitHub Actions secrets / environment
@@ -57,19 +62,19 @@ engine = create_async_engine(
 
 
 # ── Create tables in the test database ──────────────────────────────────────
-@pytest.fixture(scope="session", autouse=True)
-def event_loop():
-    """Create test database tables once per session."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def _create_test_tables():
+    """Create test database tables once per session (native pytest-asyncio loop).
 
-    async def init():
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
-    loop.run_until_complete(init())
-    yield loop
-    loop.close()
+    A custom event_loop fixture was previously used; a session-scoped loop
+    mismatched function-scoped async fixtures and caused random hangs on the
+    users-table connection. With pytest.ini's asyncio_default_*_loop_scope=session,
+    everything shares one loop and the asyncpg connections are awaited on the
+    loop that created them.
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
 
 
 # ---------------------------------------------------------------------------
@@ -122,29 +127,56 @@ async def async_client(test_app) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest_asyncio.fixture
-async def admin_http_client(test_app, test_admin_user: User) -> AsyncGenerator[AsyncClient, None]:
+async def admin_http_client(test_app, db_session) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Authenticated admin client. The admin user is created INSIDE the rollback
+    db_session (not via a separate committed connection), so the fixture never
+    contends with db_session's uncommitted INSERTs on the users unique index —
+    a transactionid deadlock occurred previously when both were active.
+
+    A unique username avoids collisions with rows left behind by older runs.
+    """
     from passlib.context import CryptContext
     pwd = CryptContext(schemes=["bcrypt"])
-    hashed = pwd.hash("testpass123")
+    user = User(
+        username=f"test_admin_http_{_unique_suffix()}",
+        name="Test Admin HTTP",
+        hashed_password=pwd.hash("testpass123"),
+        role="admin",
+        is_active=True,
+    )
+    db_session.add(user)
+    await db_session.flush()
 
-    # Ensure user exists with correct hash in the test DB
-    async with engine.begin() as conn:
-        await conn.execute(text("""
-            INSERT INTO users (username, name, hashed_password, role, is_active)
-            VALUES (:uname, :name, :pwd, 'admin', true)
-            ON CONFLICT (username) DO UPDATE SET hashed_password = :pwd
-        """), {"uname": test_admin_user.username, "name": test_admin_user.name, "pwd": hashed})
+    token = create_access_token(user_id=user.id, role="admin")
 
     async with AsyncClient(
         transport=ASGITransport(app=test_app),
         base_url="http://test",
+        cookies={"epm_token": token},
     ) as client:
         yield client
 
 
 @pytest_asyncio.fixture
-async def user_http_client(test_app) -> AsyncGenerator[AsyncClient, None]:
-    token = create_access_token(user_id=2, role="readonly")
+async def user_http_client(test_app, db_session) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Authenticated readonly client. Same rollback-session pattern as
+    admin_http_client to avoid the users-table index deadlock.
+    """
+    from passlib.context import CryptContext
+    pwd = CryptContext(schemes=["bcrypt"])
+    user = User(
+        username=f"test_viewer_http_{_unique_suffix()}",
+        name="Test Viewer HTTP",
+        hashed_password=pwd.hash("viewpass123"),
+        role="readonly",
+        is_active=True,
+    )
+    db_session.add(user)
+    await db_session.flush()
+
+    token = create_access_token(user_id=user.id, role="readonly")
     async with AsyncClient(
         transport=ASGITransport(app=test_app),
         base_url="http://test",
@@ -209,8 +241,9 @@ async def test_live_holding(db_session: AsyncSession, test_company):
     holding = Holding(
         company_id=test_company.id,
         num_shares=100,
-        avg_purchase_price="450.00",
-        status="live",
+        average_cost_basis=450.00,
+        total_cost=45000.00,
+        holding_type="active",
     )
     db_session.add(holding)
     await db_session.flush()
@@ -233,8 +266,9 @@ async def test_draft_holding(db_session: AsyncSession, test_company):
     holding = Holding(
         company_id=company2.id,
         num_shares=50,
-        avg_purchase_price="200.00",
-        status="draft",
+        average_cost_basis=200.00,
+        total_cost=10000.00,
+        holding_type="draft",
     )
     db_session.add(holding)
     await db_session.flush()

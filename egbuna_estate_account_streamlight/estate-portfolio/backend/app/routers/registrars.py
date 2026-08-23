@@ -479,8 +479,9 @@ async def delete_registrar(
     registrar = await session.get(Registrar, id)
     if not registrar or registrar.deleted_at:
         raise HTTPException(404, "Registrar not found")
-        
-    registrar.deleted_at = datetime.now(timezone.utc)
+
+    # registrars.deleted_at is a naive timestamp column — store naive UTC.
+    registrar.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await session.commit()
     return _envelope({"id": id, "message": "Deleted"})
 

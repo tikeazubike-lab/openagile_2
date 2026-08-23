@@ -34,7 +34,7 @@ class TestPriceIntegration:
         # Verify audit record exists in DB
         from sqlalchemy import select, text
         result = await db_session.execute(
-            text("SELECT COUNT(*) FROM price_audit WHERE company_id = :cid"),
+            text("SELECT COUNT(*) FROM price_audits WHERE company_id = :cid"),
             {"cid": test_company.id},
         )
         count = result.scalar_one()
@@ -58,8 +58,8 @@ class TestPriceIntegration:
         from sqlalchemy import text
         result = await db_session.execute(
             text(
-                "SELECT old_price, new_price FROM price_audit "
-                "WHERE company_id = :cid ORDER BY changed_at DESC LIMIT 1"
+                "SELECT old_price, new_price FROM price_audits "
+                "WHERE company_id = :cid ORDER BY id DESC LIMIT 1"
             ),
             {"cid": test_company.id},
         )
@@ -86,7 +86,7 @@ class TestPriceIntegration:
         # Get audit record ID
         from sqlalchemy import text
         result = await db_session.execute(
-            text("SELECT id FROM price_audit WHERE company_id = :cid ORDER BY changed_at DESC LIMIT 1"),
+            text("SELECT id FROM price_audits WHERE company_id = :cid ORDER BY id DESC LIMIT 1"),
             {"cid": test_company.id},
         )
         audit_id = result.scalar_one()
@@ -224,7 +224,7 @@ class TestNavHistoryIntegration:
     async def test_nav_snapshot_inserts_row_into_nav_history(
         self, admin_http_client: AsyncClient, db_session
     ):
-        response = await admin_http_client.post("/api/v1/nav-history/snapshot")
+        response = await admin_http_client.post("/api/v1/nav-history/snapshot", json={})
         assert response.status_code in (200, 201)
 
         from sqlalchemy import text
@@ -239,11 +239,11 @@ class TestNavHistoryIntegration:
         self, admin_http_client: AsyncClient, db_session
     ):
         """Running snapshot twice on same day must not raise or duplicate."""
-        r1 = await admin_http_client.post("/api/v1/nav-history/snapshot")
-        r2 = await admin_http_client.post("/api/v1/nav-history/snapshot")
+        r1 = await admin_http_client.post("/api/v1/nav-history/snapshot", json={})
+        r2 = await admin_http_client.post("/api/v1/nav-history/snapshot", json={})
 
         assert r1.status_code in (200, 201)
-        assert r2.status_code in (200, 200)  # second call is OK (upsert)
+        assert r2.status_code in (200, 201)  # second call is OK (upsert)
 
         from sqlalchemy import text
         result = await db_session.execute(
@@ -256,5 +256,5 @@ class TestNavHistoryIntegration:
     async def test_nav_snapshot_blocked_for_readonly(
         self, user_http_client: AsyncClient
     ):
-        response = await user_http_client.post("/api/v1/nav-history/snapshot")
+        response = await user_http_client.post("/api/v1/nav-history/snapshot", json={})
         assert response.status_code == 403
