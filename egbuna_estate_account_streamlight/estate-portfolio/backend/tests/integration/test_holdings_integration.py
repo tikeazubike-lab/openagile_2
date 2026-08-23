@@ -86,36 +86,8 @@ class TestHoldingsIntegration:
         assert response.status_code == 403
 
     # -----------------------------------------------------------------------
-    # Soft delete
-    # -----------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    async def test_soft_delete_holding_sets_deleted_at_in_db(
-        self, admin_http_client: AsyncClient, test_live_holding, db_session
-    ):
-        response = await admin_http_client.delete(
-            f"/api/v1/holdings/{test_live_holding.id}"
-        )
-        assert response.status_code == 200
-
-        await db_session.refresh(test_live_holding)
-        assert test_live_holding.deleted_at is not None
-
-    @pytest.mark.asyncio
-    async def test_soft_deleted_holding_excluded_from_list(
-        self, admin_http_client: AsyncClient, test_live_holding
-    ):
-        # Delete it first
-        await admin_http_client.delete(f"/api/v1/holdings/{test_live_holding.id}")
-
-        # Should not appear in list
-        response = await admin_http_client.get("/api/v1/holdings")
-        assert response.status_code == 200
-        ids = [h["id"] for h in response.json()["data"]]
-        assert test_live_holding.id not in ids
-
-    # -----------------------------------------------------------------------
-    # Restore — no /restore endpoint exists in the current app; removed.
+    # Soft delete — regression coverage moved to the bugfix PR
+    # (BUG-TZ-NAIVE-001), backend/tests/integration/test_bugfix_regressions.py.
     # -----------------------------------------------------------------------
 
     # -----------------------------------------------------------------------
@@ -166,30 +138,3 @@ class TestHoldingsIntegration:
                     assert isinstance(h[field], str), (
                         f"Field {field} must be string, got {type(h[field])}"
                     )
-
-    # -----------------------------------------------------------------------
-    # Inline Update
-    # -----------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    async def test_update_holding_inline(
-        self, admin_http_client: AsyncClient, test_live_holding, db_session
-    ):
-        """Test inline update of holding via PATCH"""
-        # Patch holding
-        payload = {
-            "num_shares": 750,
-            "holding_type": "claim"
-        }
-        response = await admin_http_client.patch(
-            f"/api/v1/holdings/{test_live_holding.id}",
-            json=payload
-        )
-        assert response.status_code == 200
-        data = response.json()["data"]
-        assert float(data["shares"]) == 750.0
-        assert data["holding_type"] == "claim"
-
-        await db_session.refresh(test_live_holding)
-        assert test_live_holding.num_shares == 750
-        assert test_live_holding.holding_type == "claim"

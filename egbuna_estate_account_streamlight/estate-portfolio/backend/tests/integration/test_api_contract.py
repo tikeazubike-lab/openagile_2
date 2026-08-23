@@ -203,19 +203,9 @@ class TestAPIContract:
 
     # -----------------------------------------------------------------------
     # Soft delete & draft record exclusion
+    # NOTE: soft-delete regression coverage moved to the bugfix PR
+    # (BUG-TZ-NAIVE-001), test_bugfix_regressions.py.
     # -----------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    async def test_soft_deleted_records_absent_from_default_responses(
-        self, admin_http_client: AsyncClient, test_live_holding
-    ):
-        # Soft delete the holding
-        await admin_http_client.delete(f"/api/v1/holdings/{test_live_holding.id}")
-
-        # Should not appear in list
-        response = await admin_http_client.get("/api/v1/holdings")
-        ids = [h["id"] for h in response.json()["data"]]
-        assert test_live_holding.id not in ids
 
     @pytest.mark.asyncio
     async def test_draft_records_absent_from_readonly_role_responses(
