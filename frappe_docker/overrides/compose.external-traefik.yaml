@@ -30,18 +30,11 @@ services:
       - "traefik.http.routers.erpnext-education.tls.certresolver=cloudflare"
       - "traefik.http.routers.erpnext-education.service=erpnext-frontend"
       
-      # Tutor Marketplace site
-      - "traefik.http.routers.erpnext-tutor.rule=Host(`tutor.zubbystudio.site`)"
-      - "traefik.http.routers.erpnext-tutor.entrypoints=websecure"
-      - "traefik.http.routers.erpnext-tutor.tls=true"
-      - "traefik.http.routers.erpnext-tutor.tls.certresolver=cloudflare"
-      - "traefik.http.routers.erpnext-tutor.service=erpnext-frontend"
-      
       # Service definition (shared by all sites)
       - "traefik.http.services.erpnext-frontend.loadbalancer.server.port=8080"
       
       # HTTP to HTTPS redirect
-      - "traefik.http.routers.erpnext-http.rule=Host(`erpnext.zubbystudio.site`) || Host(`library.erpnext.zubbystudio.site`) || Host(`edu.erpnext.zubbystudio.site`) || Host(`tutor.zubbystudio.site`)"
+      - "traefik.http.routers.erpnext-http.rule=Host(`erpnext.zubbystudio.site`) || Host(`library.erpnext.zubbystudio.site`) || Host(`edu.erpnext.zubbystudio.site`)"
       - "traefik.http.routers.erpnext-http.entrypoints=web"
       - "traefik.http.routers.erpnext-http.middlewares=redirect-to-https"
       

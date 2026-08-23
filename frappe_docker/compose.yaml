@@ -55,10 +55,6 @@ services:
         env/bin/pip install -q -e apps/library_management 2>/dev/null || true
         env/bin/pip install -q -e apps/education 2>/dev/null || true
         env/bin/pip install -q -e apps/edu_theme 2>/dev/null || true
-        env/bin/pip install -q -e apps/tutor_hub 2>/dev/null || true
-        echo ">>> Patching Frappe v16 is_ajax compatibility..."
-        sed -i 's|frappe\.local\.is_ajax = request\.headers\.get("X-Requested-With") == "XMLHttpRequest"|# is_ajax removed in v16|' apps/frappe/frappe/app.py 2>/dev/null || true
-        sed -i 's|(frappe\.local\.is_ajax or|(False or|g' apps/frappe/frappe/app.py 2>/dev/null || true
         echo ">>> Custom apps installed. Starting Frappe..."
         exec start.sh
     volumes:
