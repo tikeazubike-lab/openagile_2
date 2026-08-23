@@ -241,7 +241,7 @@ async def delete_user(
             detail="User not found",
         )
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)  # users.deleted_at is a naive column
+    now = datetime.now(timezone.utc)
     user.deleted_at = now
     user.is_active = False
     await session.commit()

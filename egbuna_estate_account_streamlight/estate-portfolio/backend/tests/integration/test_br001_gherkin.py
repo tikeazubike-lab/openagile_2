@@ -324,19 +324,8 @@ class TestPriceDataEntry:
         assert response.status_code == 422
         assert "100,000" in response.text or "sanity" in response.text.lower()
 
-    @pytest.mark.asyncio
-    async def test_sc012_pdf_upload_skips_unknown_tickers(
-        self, admin_http_client: AsyncClient
-    ):
-        """Spec: price_entry.feature | SC-012"""
-        import io
-        fake_pdf_content = b"%PDF-1.4 fake content"
-        files = {"file": ("ngx_daily.pdf", io.BytesIO(fake_pdf_content), "application/pdf")}
-        response = await admin_http_client.post(
-            "/api/v1/prices/upload-pdf", files=files
-        )
-        # Spec: SC-012 | Then no crash occurs (422 acceptable for unparseable PDF)
-        assert response.status_code in (200, 422)
+    # SC-012 (PDF upload) regression coverage moved to the bugfix PR
+    # (BUG-PDF-UPLOAD-500-001), test_bugfix_regressions.py.
 
     @pytest.mark.asyncio
     async def test_sc013_price_revert_restores_previous_price(

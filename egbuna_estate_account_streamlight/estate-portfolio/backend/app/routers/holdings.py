@@ -132,9 +132,7 @@ async def soft_delete_holding(
     result = await session.execute(select(Holding).where(Holding.id == holding_id))
     h = result.scalar_one_or_none()
     if h:
-        # deleted_at is a naive TIMESTAMP WITHOUT TIME ZONE column — store naive
-        # UTC to avoid asyncpg's offset-aware/offset-naive DataError.
-        h.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        h.deleted_at = datetime.now(timezone.utc)
         await session.commit()
     return _envelope({"id": holding_id, "message": "Deleted"})
 
@@ -251,5 +249,5 @@ async def update_holding(
         "shares": float(h.num_shares),
         "avg_purchase_price": str(h.average_cost_basis),
         "holding_type": h.holding_type,
-        "status": h.holding_type
+        "status": h.status
     })
