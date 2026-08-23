@@ -111,3 +111,33 @@ async def test_africa_prudential_dual_entity(db_session: AsyncSession):
     link = result.scalar_one_or_none()
     assert link is not None
     assert link.role == "primary"
+
+
+@pytest.mark.asyncio
+async def test_seed_company_count(db_session: AsyncSession):
+    """
+    Dynamic company-count relative invariant: the number of companies seeded
+    by seed_companies equals the number of distinct tickers declared in the
+    seed data (COMPANY_GROUPS + UNMAPPED_COMPANIES). A relative invariant,
+    not a hardcoded count — recomputed from the data itself.
+    """
+    from scripts.seed_registrar_mapping import (
+        seed_companies, COMPANY_GROUPS, UNMAPPED_COMPANIES,
+    )
+
+    expected_tickers = set()
+    for _registrar_name, companies in COMPANY_GROUPS:
+        for _name, ticker, _sec_type in companies:
+            if ticker:
+                expected_tickers.add(ticker)
+    for spec in UNMAPPED_COMPANIES:
+        if spec.ticker:
+            expected_tickers.add(spec.ticker)
+
+    result = await seed_companies(db_session)
+    total = result["created"] + result["existing"]
+
+    assert total == len(expected_tickers), (
+        f"Seed produced {total} companies, expected {len(expected_tickers)} "
+        f"(distinct tickers in seed data)"
+    )
