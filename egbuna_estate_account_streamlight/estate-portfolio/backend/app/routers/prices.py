@@ -157,6 +157,12 @@ async def upload_ngx_pdf(
                                 "ticker": company.ticker.upper(),
                                 "reason": f"Could not parse price: {price_str!r}"
                             })
+    except Exception as e:
+        # Unparseable/corrupt PDFs must return a clean 422, not a 500.
+        raise HTTPException(
+            status_code=422,
+            detail=f"Could not parse PDF: {str(e)[:200]}",
+        )
     finally:
         os.unlink(tmp_path)
 
