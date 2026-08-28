@@ -2,3 +2,7 @@
 uploads/
 .env
 .env.test-builder
+
+# .env files are untracked — secrets (HO-140 Item 0)
+.env.v3
+.env.v2
