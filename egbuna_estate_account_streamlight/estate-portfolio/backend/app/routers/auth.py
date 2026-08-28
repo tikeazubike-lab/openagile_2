@@ -117,7 +117,10 @@ async def change_password(
         )
 
     current_user.hashed_password = pwd_context.hash(body.new_password)
-    current_user.updated_at = datetime.now(timezone.utc)
+    # updated_at is a naive TIMESTAMP WITHOUT TIME ZONE column (matches the
+    # baseline migration) — storing an aware datetime raises asyncpg's
+    # "can't subtract offset-naive and offset-aware datetimes" DataError.
+    current_user.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(current_user)
     await session.commit()
 
