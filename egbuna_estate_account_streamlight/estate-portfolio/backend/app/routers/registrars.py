@@ -143,6 +143,212 @@ async def create_registrar(
     return _envelope({"id": registrar.id, "name": registrar.name})
 
 
+# ─── F-026 Dashboard Endpoints (must be before {id} routes) ──────────────────
+
+async def _get_unmapped_companies(session) -> dict:
+    """Companies with security_type='equity' and no company_registrars link."""
+    # Find all company_ids that have a non-deleted company_registrars link
+    linked_ids = await session.execute(
+        select(CompanyRegistrar.company_id).where(
+            CompanyRegistrar.deleted_at.is_(None)
+        )
+    )
+    linked_id_set = {row[0] for row in linked_ids.all()}
+
+    # Find all equity companies not in the linked set
+    all_equity = await session.execute(
+        select(Company).where(
+            Company.deleted_at.is_(None),
+            Company.security_type == "equity",
+        )
+    )
+    unmapped = [
+        {"id": c.id, "ticker": c.ticker, "name": c.name}
+        for c in all_equity.scalars().all()
+        if c.id not in linked_id_set
+    ]
+
+    return {
+        "count": len(unmapped),
+        "companies": unmapped[:20],  # limit to first 20 for response size
+    }
+
+
+@router.get("/registrars/dashboard-summary")
+async def dashboard_summary(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Summary cards for /registrars dashboard."""
+    total_reqs = await session.scalar(
+        select(func.count(RegistrarRequirement.id)).where(
+            RegistrarRequirement.deleted_at.is_(None)
+        )
+    ) or 0
+
+    completed_reqs = await session.scalar(
+        select(func.count(RegistrarDocument.id)).where(
+            RegistrarDocument.status == "completed",
+            RegistrarDocument.deleted_at.is_(None),
+        )
+    ) or 0
+
+    all_reqs = await session.execute(
+        select(RegistrarRequirement).where(RegistrarRequirement.deleted_at.is_(None))
+    )
+    all_req_list = all_reqs.scalars().all()
+
+    pending_count = 0
+    attention_items = []
+    for req in all_req_list:
+        doc_count = await session.scalar(
+            select(func.count(RegistrarDocument.id)).where(
+                RegistrarDocument.registrar_requirement_id == req.id,
+                RegistrarDocument.status == "completed",
+                RegistrarDocument.deleted_at.is_(None),
+            )
+        ) or 0
+        if doc_count == 0:
+            pending_count += 1
+            reg = await session.get(Registrar, req.registrar_id)
+            attention_items.append({
+                "requirement_id": req.id,
+                "task_name": req.task_name,
+                "document_title": req.document_title,
+                "registrar_name": reg.name if reg else "Unknown",
+                "due_date": req.due_date.isoformat() if req.due_date else None,
+                "is_required": req.is_required,
+            })
+
+    attention_items.sort(key=lambda x: (x["due_date"] is None, x["due_date"] or "9999-12-31"))
+    attention_items = attention_items[:5]
+
+    completion_pct = round((completed_reqs / total_reqs * 100), 1) if total_reqs > 0 else 0
+
+    active_registrars = await session.execute(
+        select(Registrar).where(Registrar.deleted_at.is_(None))
+    )
+    registrars_list = active_registrars.scalars().all()
+
+    health = {"complete": 0, "attention": 0, "no_data": 0}
+    for reg in registrars_list:
+        reg_req_count = await session.scalar(
+            select(func.count(RegistrarRequirement.id)).where(
+                RegistrarRequirement.registrar_id == reg.id,
+                RegistrarRequirement.deleted_at.is_(None),
+            )
+        ) or 0
+        if reg_req_count == 0:
+            health["no_data"] += 1
+        else:
+            reg_completed = await session.scalar(
+                select(func.count(RegistrarDocument.id)).where(
+                    RegistrarDocument.registrar_requirement_id.in_(
+                        select(RegistrarRequirement.id).where(
+                            RegistrarRequirement.registrar_id == reg.id,
+                            RegistrarRequirement.deleted_at.is_(None),
+                        )
+                    ),
+                    RegistrarDocument.status == "completed",
+                    RegistrarDocument.deleted_at.is_(None),
+                )
+            ) or 0
+            if reg_completed >= reg_req_count:
+                health["complete"] += 1
+            else:
+                health["attention"] += 1
+
+    return _envelope({
+        "completion_pct": completion_pct,
+        "total_requirements": total_reqs,
+        "completed_requirements": completed_reqs,
+        "pending_requirements": pending_count,
+        "top_action_items": attention_items,
+        "registrar_health": health,
+        "unmapped_companies": await _get_unmapped_companies(session),
+    })
+
+
+@router.get("/registrar-requirements/global-tracker")
+async def global_tracker(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+    page: int = 1,
+    page_size: int = 20,
+):
+    """Global requirements tracker table with pagination."""
+    offset = (page - 1) * page_size
+
+    stmt = (
+        select(RegistrarRequirement)
+        .where(RegistrarRequirement.deleted_at.is_(None))
+        .order_by(RegistrarRequirement.sort_order, RegistrarRequirement.id)
+    )
+    result = await session.execute(stmt)
+    all_reqs = result.scalars().all()
+
+    total = len(all_reqs)
+    paginated_reqs = all_reqs[offset : offset + page_size]
+
+    tracker_rows = []
+    for req in paginated_reqs:
+        latest_doc_stmt = (
+            select(RegistrarDocument)
+            .where(
+                RegistrarDocument.registrar_requirement_id == req.id,
+                RegistrarDocument.deleted_at.is_(None),
+            )
+            .order_by(RegistrarDocument.uploaded_at.desc())
+            .limit(1)
+        )
+        latest_doc = (await session.execute(latest_doc_stmt)).scalar_one_or_none()
+
+        if latest_doc and latest_doc.status == "completed":
+            status = "completed"
+        elif latest_doc and latest_doc.status == "rejected":
+            status = "rejected"
+        elif latest_doc:
+            status = "in_progress"
+        else:
+            status = "pending"
+
+        actions = []
+        if status in ("pending", "rejected"):
+            actions.append("upload")
+        if status == "pending" and req.due_date:
+            actions.append("remind")
+        if status == "in_progress":
+            actions.append("upload")
+
+        reg = await session.get(Registrar, req.registrar_id)
+
+        tracker_rows.append({
+            "requirement_id": req.id,
+            "status": status,
+            "task_name": req.task_name,
+            "document_title": req.document_title,
+            "registrar_name": reg.name if reg else "Unknown",
+            "registrar_id": req.registrar_id,
+            "due_date": req.due_date.isoformat() if req.due_date else None,
+            "is_required": req.is_required,
+            "latest_document": {
+                "id": latest_doc.id,
+                "file_name": latest_doc.file_name,
+                "status": latest_doc.status,
+                "uploaded_at": latest_doc.uploaded_at.isoformat(),
+            } if latest_doc else None,
+            "actions_available": actions,
+        })
+
+    return _envelope({
+        "rows": tracker_rows,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size,
+    })
+
+
 @router.get("/registrars/{id}")
 async def get_registrar(
     id: int,
