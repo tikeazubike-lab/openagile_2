@@ -16,6 +16,7 @@ disaster-recovery gap where init_db.sql was never committed to the repo.
 from typing import Sequence, Union
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 from alembic import op
 
 revision: str = "000"
@@ -212,11 +213,9 @@ def upgrade() -> None:
             sa.Column("payment_status", sa.String(30), server_default="paid", nullable=False),
             sa.Column("source", sa.String(50), server_default="manual", nullable=False),
             sa.Column("obsidian_imported", sa.Boolean(), server_default="false", nullable=False),
-            sa.Column("holding_id", sa.Integer(), nullable=True),
             sa.PrimaryKeyConstraint("id"),
             sa.ForeignKeyConstraint(["company_id"], ["companies.id"]),
             sa.ForeignKeyConstraint(["transaction_id"], ["transactions.id"]),
-            sa.ForeignKeyConstraint(["holding_id"], ["holdings.id"]),
             sa.CheckConstraint(
                 "status IN ('declared','pending','paid','cancelled')",
                 name="chk_dividend_status",
@@ -300,7 +299,7 @@ def upgrade() -> None:
             sa.Column("dividends_new", sa.Integer(), server_default="0", nullable=False),
             sa.Column("dividends_skip", sa.Integer(), server_default="0", nullable=False),
             sa.Column("errors", sa.Integer(), server_default="0", nullable=False),
-            sa.Column("error_details", sa.JSON(), server_default="[]"),
+            sa.Column("error_details", JSONB(), server_default="[]"),
             sa.Column("run_mode", sa.String(20), server_default="manual", nullable=False),
             sa.PrimaryKeyConstraint("id"),
             sa.ForeignKeyConstraint(["run_by"], ["users.id"]),
@@ -437,7 +436,7 @@ def upgrade() -> None:
             sa.Column("user_id", sa.Integer(), nullable=False),
             sa.Column("message", sa.Text(), nullable=False),
             sa.Column("matched_intent", sa.String(100), nullable=True),
-            sa.Column("extracted_entities", sa.JSON(), nullable=True),
+            sa.Column("extracted_entities", JSONB(), nullable=True),
             sa.Column("execution_status", sa.String(20), server_default="matched", nullable=False),
             sa.Column("response", sa.Text(), nullable=False),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
@@ -452,7 +451,7 @@ def upgrade() -> None:
             "checklist_runs",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
             sa.Column("admin_id", sa.Integer(), nullable=False),
-            sa.Column("results_json", sa.JSON(), nullable=False),
+            sa.Column("results_json", JSONB(), nullable=False),
             sa.Column("signoff_markdown", sa.Text(), nullable=False),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
             sa.PrimaryKeyConstraint("id"),
@@ -468,8 +467,8 @@ def upgrade() -> None:
             sa.Column("table_name", sa.String(50), nullable=False),
             sa.Column("record_id", sa.Integer(), nullable=False),
             sa.Column("action", sa.String(10), nullable=False),
-            sa.Column("old_values", sa.JSON(), nullable=True),
-            sa.Column("new_values", sa.JSON(), nullable=True),
+            sa.Column("old_values", JSONB(), nullable=True),
+            sa.Column("new_values", JSONB(), nullable=True),
             sa.Column("changed_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
             sa.Column("changed_by", sa.String(50), server_default="admin"),
             sa.PrimaryKeyConstraint("id"),
@@ -491,8 +490,8 @@ def upgrade() -> None:
             sa.Column("priority", sa.String(10), server_default="medium"),
             sa.Column("follow_up_date", sa.Date(), nullable=True),
             sa.Column("next_action", sa.Text(), nullable=True),
-            sa.Column("tags", sa.JSON(), nullable=True),
-            sa.Column("attachments", sa.JSON(), nullable=True),
+            sa.Column("tags", sa.ARRAY(sa.Text()), nullable=True),
+            sa.Column("attachments", JSONB(), nullable=True),
             sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
             sa.Column("updated_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
             sa.Column("deleted_at", sa.DateTime(), nullable=True),
