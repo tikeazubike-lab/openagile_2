@@ -1,7 +1,7 @@
 """F-026: company_registrars join table, jurisdiction, security_type, due_date
 
 Revision ID: d1e2f3a4b5c6
-Revises: c0d1e2f3a4b5
+Revises: 000
 Create Date: 2026-07-27
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "d1e2f3a4b5c6"
-down_revision: Union[str, None] = "c0d1e2f3a4b5"
+down_revision: Union[str, None] = "000"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
