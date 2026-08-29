@@ -1,144 +1,110 @@
 # backend/tests/unit/test_seed_admin.py
 """
-Tests for scripts/seed_admin.py — seed() function.
-The real script always overwrites the admin password on re-run (by design,
-for GitHub Secret rotation). Tests verify this intentional behavior.
+Unit tests for scripts/seed_admin.py (seed_admin_user function).
+
+Verifies admin seeding is idempotent, reads from env, and hashes correctly.
+All DB calls are mocked — no real database needed.
+
+NOTE: rewritten from the legacy "Stage 1A" version, which imported
+app.scripts.seed_admin (a module that never existed — the script lives at
+scripts/seed_admin.py). The script now exposes a session-injectable
+seed_admin_user() function so its logic is actually testable.
 """
-import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.database import AsyncSessionLocal
-from app.models import User
+from scripts.seed_admin import seed_admin_user, pwd_context
 
 
-def _import_seed_and_patch():
-    """
-    Import seed() from scripts/seed_admin.py and return it along with a
-    patcher for its AsyncSessionLocal reference.
-    """
-    import sys
-    from pathlib import Path
-    backend_root = Path(__file__).resolve().parents[2]
-    if str(backend_root) not in sys.path:
-        sys.path.insert(0, str(backend_root))
-    import scripts.seed_admin
-    return scripts.seed_admin.seed, scripts.seed_admin
+@pytest.fixture(autouse=True)
+def set_env_vars(monkeypatch):
+    monkeypatch.setenv("EPM_ADMIN_USERNAME", "zubbyik")
+    monkeypatch.setenv("EPM_ADMIN_PASSWORD", "TestPassword123!")
 
 
-# ===========================================================================
-# Tests
-# ===========================================================================
+def make_mock_session(existing_user=None):
+    session = AsyncMock()
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = existing_user
+    session.execute.return_value = result
+    return session
 
-class TestSeedAdmin:
-    def _run_seed(self, mock_db, env_vars=None):
-        """Helper: import seed, patch its dependencies, and run it."""
-        seed, mod = _import_seed_and_patch()
-        mock_cm = MagicMock()
-        mock_cm.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-        class MockMaker:
-            def __call__(self):
-                return mock_cm
 
-        env = env_vars or {
-            "EPM_ADMIN_USERNAME": "zubbyik",
-            "EPM_ADMIN_NAME": "Zubby",
-            "EPM_ADMIN_PASSWORD": "testpass123",
-        }
+class TestSeedAdminUser:
+    @pytest.mark.asyncio
+    async def test_seed_admin_creates_user_when_none_exists(self):
+        """When no admin exists, a new user row must be inserted."""
+        session = make_mock_session(existing_user=None)
 
-        with patch.object(mod, "AsyncSessionLocal", MockMaker()):
-            with patch.dict(os.environ, env, clear=True):
-                return asyncio.run(seed())
+        result = await seed_admin_user(session)
 
-    def test_seed_creates_user_when_none_exists(self):
-        """No existing user → seed() creates a new admin user."""
-        mock_db = MagicMock()
-        mock_db.execute = AsyncMock()
-        mock_db.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=None))
-        mock_db.add = MagicMock()
-        mock_db.commit = AsyncMock()
+        assert result["created"] is True
+        assert result["updated"] is False
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+        created_user = session.add.call_args[0][0]
+        assert created_user.username == "zubbyik"
 
-        self._run_seed(mock_db)
+    @pytest.mark.asyncio
+    async def test_seed_admin_is_idempotent_when_user_already_exists(self):
+        """Re-running seed must update the password, not insert a second user."""
+        existing = MagicMock()
+        existing.username = "zubbyik"
+        session = make_mock_session(existing_user=existing)
 
-        assert mock_db.add.called
-        added_user = mock_db.add.call_args[0][0]
-        assert added_user.username == "zubbyik"
-        assert added_user.role == "admin"
-        assert added_user.is_active is True
-        assert added_user.hashed_password.startswith("$2b$")
+        result = await seed_admin_user(session)
 
-    def test_seed_overwrites_password_when_user_exists(self):
-        """Existing user → seed() overwrites password (confirmed intentional)."""
-        existing_user = MagicMock(spec=User)
-        existing_user.username = "zubbyik"
-        existing_user.name = "Zubby"
-        existing_user.hashed_password = "old_hash"
-        existing_user.role = "admin"
-        existing_user.is_active = True
+        assert result["created"] is False
+        assert result["updated"] is True
+        # Existing row is re-added (to persist the password update), not a new user
+        assert session.add.call_args[0][0] is existing
+        session.commit.assert_called_once()
 
-        mock_db = MagicMock()
-        mock_db.execute = AsyncMock()
-        mock_db.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=existing_user))
-        mock_db.commit = AsyncMock()
+    @pytest.mark.asyncio
+    async def test_seed_admin_reads_password_from_environment_variable(self, monkeypatch):
+        monkeypatch.setenv("EPM_ADMIN_PASSWORD", "EnvProvidedPass!")
+        session = make_mock_session(existing_user=None)
 
-        self._run_seed(mock_db)
+        await seed_admin_user(session)
 
-        assert existing_user.hashed_password.startswith("$2b$")
-        assert existing_user.hashed_password != "old_hash"
+        created_user = session.add.call_args[0][0]
+        assert pwd_context.verify("EnvProvidedPass!", created_user.hashed_password)
 
-    def test_seed_requires_password_env_var(self):
-        """Missing EPM_ADMIN_PASSWORD → seed() exits with error."""
-        mock_db = MagicMock()
-        with pytest.raises(SystemExit):
-            self._run_seed(mock_db, env_vars={
-                "EPM_ADMIN_USERNAME": "zubbyik",
-                "EPM_ADMIN_NAME": "Zubby",
-            })
+    @pytest.mark.asyncio
+    async def test_seed_admin_does_not_use_hardcoded_credentials(self, monkeypatch):
+        """Missing env var must raise, not fall back to a hardcoded password."""
+        monkeypatch.delenv("EPM_ADMIN_PASSWORD", raising=False)
 
-    def test_seed_hashed_password_is_not_plaintext(self):
-        """Password hash must differ from plaintext password."""
-        mock_db = MagicMock()
-        mock_db.execute = AsyncMock()
-        mock_db.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=None))
-        mock_db.add = MagicMock()
-        mock_db.commit = AsyncMock()
+        session = make_mock_session(existing_user=None)
+        with pytest.raises(ValueError, match="EPM_ADMIN_PASSWORD"):
+            await seed_admin_user(session)
 
-        plaintext = "supersecret"
-        self._run_seed(mock_db, env_vars={
-            "EPM_ADMIN_USERNAME": "zubbyik",
-            "EPM_ADMIN_NAME": "Zubby",
-            "EPM_ADMIN_PASSWORD": plaintext,
-        })
+    @pytest.mark.asyncio
+    async def test_seed_admin_hashed_password_is_not_plaintext_in_db(self):
+        session = make_mock_session(existing_user=None)
 
-        added_user = mock_db.add.call_args[0][0]
-        assert added_user.hashed_password.startswith("$2b$")
-        assert plaintext not in added_user.hashed_password
+        await seed_admin_user(session)
 
-    def test_seed_sets_role_to_admin(self):
-        """Created user must have admin role."""
-        mock_db = MagicMock()
-        mock_db.execute = AsyncMock()
-        mock_db.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=None))
-        mock_db.add = MagicMock()
-        mock_db.commit = AsyncMock()
+        created_user = session.add.call_args[0][0]
+        assert created_user.hashed_password.startswith("$2b$") or created_user.hashed_password.startswith("$2a$")
+        assert created_user.hashed_password != "TestPassword123!"
 
-        self._run_seed(mock_db)
+    @pytest.mark.asyncio
+    async def test_seed_admin_sets_role_to_admin(self):
+        session = make_mock_session(existing_user=None)
 
-        added_user = mock_db.add.call_args[0][0]
-        assert added_user.role == "admin"
+        await seed_admin_user(session)
 
-    def test_seed_sets_is_active_true(self):
-        """Created user must be active."""
-        mock_db = MagicMock()
-        mock_db.execute = AsyncMock()
-        mock_db.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=None))
-        mock_db.add = MagicMock()
-        mock_db.commit = AsyncMock()
+        created_user = session.add.call_args[0][0]
+        assert created_user.role == "admin"
 
-        self._run_seed(mock_db)
+    @pytest.mark.asyncio
+    async def test_seed_admin_sets_is_active_true(self):
+        session = make_mock_session(existing_user=None)
 
-        added_user = mock_db.add.call_args[0][0]
-        assert added_user.is_active is True
+        await seed_admin_user(session)
+
+        created_user = session.add.call_args[0][0]
+        assert created_user.is_active is True

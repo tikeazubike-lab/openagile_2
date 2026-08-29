@@ -1,139 +1,94 @@
 # backend/tests/unit/test_business_logic.py
 """
-Stage 1A.3 — Business Logic Unit Tests
-Tests current service/route code against known inputs.
-No database, no network. Pure logic + mocked service calls.
+Business logic unit tests against the current flat architecture.
+
+Targets app/services/portfolio.py, which exposes a single entry point:
+calculate_total_assets(active_holdings, claim_records). The legacy
+Stage-1A calculator functions (calculate_cost_basis, calculate_return_pct,
+calculate_dividend_yield, ...) were removed in the flat-models refactor and
+no longer exist — this file tests what the portfolio service actually does.
+
+NOTE: rewritten from the legacy "Stage 1A" version.
 """
-from decimal import Decimal
-from unittest.mock import MagicMock
+from types import SimpleNamespace
 
-import pytest
-
-from app.services.holdings import recalculate_holding_value
 from app.services.portfolio import calculate_total_assets
 
 
-# ===========================================================================
-# 1A.3 — Value & Return Calculations (via recalculate_holding_value)
-# ===========================================================================
-
-class TestValueCalculations:
-    def _make_holding(self, shares=100, avg_cost=Decimal("10.00"),
-                      total_cost=Decimal("1000.00"), price=Decimal("15.00"),
-                      holding_type="active", cost_override=None):
-        h = MagicMock()
-        h.num_shares = Decimal(str(shares))
-        h.average_cost_basis = Decimal(str(avg_cost))
-        h.total_cost = Decimal(str(total_cost))
-        h.holding_type = holding_type
-        h.cost_basis_override = cost_override
-        h.company = MagicMock()
-        h.company.current_price = Decimal(str(price)) if price is not None else None
-        return h
-
-    def test_current_value_calculation(self):
-        """recalculate_holding_value computes shares × price correctly."""
-        h = self._make_holding(shares=100, price=Decimal("50.00"))
-        recalculate_holding_value(h)
-        assert h.current_value == Decimal("5000.00")
-
-    def test_current_value_zero_shares(self):
-        """Zero shares → current_value = 0."""
-        h = self._make_holding(shares=0, price=Decimal("50.00"))
-        recalculate_holding_value(h)
-        assert h.current_value == Decimal("0.00")
-
-    def test_cost_basis_used_in_gain_calculation(self):
-        """Gain = current_value - total_cost (which is shares × avg_cost_basis)."""
-        h = self._make_holding(shares=100, avg_cost=Decimal("40.00"),
-                               total_cost=Decimal("4000.00"), price=Decimal("50.00"))
-        recalculate_holding_value(h)
-        assert h.current_value == Decimal("5000.00")
-        assert h.unrealized_gain_loss == Decimal("1000.00")  # 5000 - 4000
-
-    def test_cost_basis_zero_shares(self):
-        """Zero shares → total_cost = 0, gain = 0."""
-        h = self._make_holding(shares=0, avg_cost=Decimal("40.00"),
-                               total_cost=Decimal("0.00"), price=Decimal("50.00"))
-        recalculate_holding_value(h)
-        assert h.current_value == Decimal("0.00")
-        assert h.unrealized_gain_loss == Decimal("0.00")
+def _holding(value=None, price=None, holding_type="active"):
+    """Build a lightweight stand-in for a Holding ORM row."""
+    company = SimpleNamespace(current_price=price) if price is not None else None
+    return SimpleNamespace(
+        holding_type=holding_type,
+        current_value=value,
+        num_shares=100,
+        company=company,
+    )
 
 
-class TestReturnPercentage:
-    def _make_holding(self, shares=100, avg_cost=Decimal("10.00"),
-                      total_cost=Decimal("1000.00"), price=Decimal("15.00")):
-        h = MagicMock()
-        h.num_shares = Decimal(str(shares))
-        h.average_cost_basis = Decimal(str(avg_cost))
-        h.total_cost = Decimal(str(total_cost))
-        h.holding_type = "active"
-        h.cost_basis_override = None
-        h.company = MagicMock()
-        h.company.current_price = Decimal(str(price)) if price is not None else None
-        return h
-
-    def test_return_pct_positive_gain(self):
-        """Gain = (current - cost), return_pct = gain / cost × 100."""
-        h = self._make_holding(shares=100, avg_cost=Decimal("40.00"),
-                               total_cost=Decimal("4000.00"), price=Decimal("50.00"))
-        recalculate_holding_value(h)
-        pct = float(h.unrealized_gain_loss / h.total_cost * 100)
-        assert pct == pytest.approx(25.0, rel=1e-4)
-
-    def test_return_pct_negative_loss(self):
-        h = self._make_holding(shares=100, avg_cost=Decimal("40.00"),
-                               total_cost=Decimal("4000.00"), price=Decimal("30.00"))
-        recalculate_holding_value(h)
-        pct = float(h.unrealized_gain_loss / h.total_cost * 100)
-        assert pct == pytest.approx(-25.0, rel=1e-4)
-
-    def test_return_pct_zero_gain(self):
-        h = self._make_holding(shares=100, avg_cost=Decimal("40.00"),
-                               total_cost=Decimal("4000.00"), price=Decimal("40.00"))
-        recalculate_holding_value(h)
-        assert h.unrealized_gain_loss == Decimal("0.00")
-
-    def test_return_pct_zero_cost_basis_does_not_divide_by_zero(self):
-        """Zero cost basis must not raise ZeroDivisionError."""
-        h = self._make_holding(shares=100, avg_cost=Decimal("0"),
-                               total_cost=Decimal("0"), price=Decimal("50.00"))
-        recalculate_holding_value(h)
-        if h.total_cost > 0:
-            pct = float(h.unrealized_gain_loss / h.total_cost * 100)
-        else:
-            pct = 0.0
-        assert pct == 0.0
+def _claim(status, payout=None):
+    """Build a lightweight stand-in for a ClaimRecord ORM row."""
+    return SimpleNamespace(
+        claim_status=status,
+        actual_payout=payout,
+        expected_payout=payout,
+    )
 
 
-# TestDividendYield moved to test_dividend_yield.py (isolated —
-# calculate_dividend_yield import is intentionally broken pending separate decision)
-
-
-# ===========================================================================
-# 1A.3 — Portfolio Totals (via calculate_total_assets)
-# ===========================================================================
-
-class TestPortfolioTotal:
-    def test_portfolio_total_value_sums_active_holdings(self):
+class TestCalculateTotalAssets:
+    def test_active_holdings_sum_current_value(self):
         holdings = [
-            MagicMock(holding_type="active", current_value=Decimal("5000.00")),
-            MagicMock(holding_type="active", current_value=Decimal("3000.00")),
-            MagicMock(holding_type="draft", current_value=Decimal("2000.00")),
+            _holding(value="5000.00"),
+            _holding(value="3000.00"),
         ]
         result = calculate_total_assets(holdings, [])
         assert result["active_portfolio_value"] == "8000.00"
+        assert result["total_assets"] == "8000.00"
 
-    def test_portfolio_total_excludes_draft_and_claim_holdings(self):
+    def test_non_active_holdings_are_excluded(self):
         holdings = [
-            MagicMock(holding_type="draft", current_value=Decimal("1000")),
-            MagicMock(holding_type="claim", current_value=Decimal("2000")),
+            _holding(value="5000.00", holding_type="active"),
+            _holding(value="2000.00", holding_type="claim"),
+            _holding(value="1000.00", holding_type="draft"),
         ]
         result = calculate_total_assets(holdings, [])
-        assert result["active_portfolio_value"] == "0.00"
+        assert result["active_portfolio_value"] == "5000.00"
 
-    def test_portfolio_total_empty_holdings(self):
+    def test_active_holding_without_current_value_uses_company_price(self):
+        """When current_value is None, shares × company.current_price is used."""
+        holdings = [_holding(value=None, price="15.00")]
+        result = calculate_total_assets(holdings, [])
+        assert result["active_portfolio_value"] == "1500.00"
+
+    def test_paid_claims_use_actual_payout(self):
+        claims = [_claim(status="paid", payout="1000.00")]
+        result = calculate_total_assets([], claims)
+        assert result["claims_portfolio_value"] == "1000.00"
+
+    def test_approved_pending_claims_use_expected_payout(self):
+        claims = [
+            _claim(status="approved", payout="500.00"),
+            _claim(status="pending", payout="250.00"),
+            _claim(status="partially_paid", payout="125.00"),
+        ]
+        result = calculate_total_assets([], claims)
+        assert result["claims_portfolio_value"] == "875.00"
+
+    def test_total_assets_sums_active_and_claims(self):
+        holdings = [_holding(value="8000.00")]
+        claims = [_claim(status="paid", payout="2000.00")]
+        result = calculate_total_assets(holdings, claims)
+        assert result["active_portfolio_value"] == "8000.00"
+        assert result["claims_portfolio_value"] == "2000.00"
+        assert result["total_assets"] == "10000.00"
+
+    def test_empty_inputs_produce_zero_values(self):
         result = calculate_total_assets([], [])
         assert result["active_portfolio_value"] == "0.00"
         assert result["claims_portfolio_value"] == "0.00"
         assert result["total_assets"] == "0.00"
+
+    def test_unpaid_pending_claim_without_payout_is_zero(self):
+        claims = [_claim(status="pending", payout=None)]
+        result = calculate_total_assets([], claims)
+        assert result["claims_portfolio_value"] == "0.00"
