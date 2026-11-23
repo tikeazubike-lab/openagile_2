@@ -35,7 +35,7 @@ function RegistrarsSettingsPage() {
   );
 }
 
-function TestSendCard() {
+export function TestSendCard() {
   const queryClient = useQueryClient();
   const [result, setResult] = useState<{ status: string; detail?: string } | null>(null);
 
@@ -95,7 +95,7 @@ function TestSendCard() {
   );
 }
 
-function ReminderLogCard() {
+export function ReminderLogCard() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
