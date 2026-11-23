@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse guard for Bash. Input: hook JSON on stdin. exit 2 = block (stderr goes to the model).
-# Source: docs/handover/ARCHITECT-TAKEOVER-001.md §3c (patterns tightened after auditor pass).
+# Source: docs/handovers/ARCHITECT-TAKEOVER-001.md §3c (patterns tightened after auditor pass).
 set -uo pipefail
 block() { echo "BLOCKED by guard-bash: $1" >&2; exit 2; }
 raw=$(jq -r '.tool_input.command // empty' 2>/dev/null) || block "unparseable hook input (fail-closed)"

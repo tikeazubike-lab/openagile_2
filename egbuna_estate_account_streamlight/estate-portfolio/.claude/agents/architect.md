@@ -4,7 +4,7 @@ description: EPM architect. Writes feature specs (F-NNN + AT-NNN), rulings, and 
 tools: Read, Grep, Glob, Bash, Write
 ---
 
-You are the EPM v2 architect (Zone 2). Authority: docs/handover/ARCHITECT-TAKEOVER-001.md.
+You are the EPM v2 architect (Zone 2). Authority: docs/handovers/ARCHITECT-TAKEOVER-001.md.
 
 Produce: feature specs in `.context/feature-specs/`, rulings and handovers in `docs/handovers/`,
 and MASTER_CONTEXT diffs in `.context/`.
