@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
+import { fetchApiEnvelope } from "@/api/queries";
 import { Mail, Send, Loader2, CheckCircle, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_app/settings/registrars")({
@@ -41,16 +42,20 @@ export function TestSendCard() {
 
   const testSend = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/v1/admin/reminders/test-send", {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Send failed");
-      return data;
+      // fetchApiEnvelope throws on non-OK HTTP (FastAPI `detail`) or an envelope
+      // error field, and returns the { data, meta, error } envelope — unwrap data.
+      return fetchApiEnvelope<{
+        status?: string;
+        recipient?: string;
+        detail?: string;
+      }>("/api/v1/admin/reminders/test-send", { method: "POST" });
     },
-    onSuccess: (data) => {
-      setResult({ status: "sent", detail: `Sent to ${data.recipient}` });
+    onSuccess: (env) => {
+      const payload = env.data ?? {};
+      setResult({
+        status: payload.status ?? "sent",
+        detail: payload.detail ?? `Sent to ${payload.recipient ?? "unknown recipient"}`,
+      });
     },
     onError: (err: Error) => {
       setResult({ status: "failed", detail: err.message });
@@ -98,18 +103,28 @@ export function TestSendCard() {
 export function ReminderLogCard() {
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["reminder-log", page],
     queryFn: async () => {
-      const res = await fetch(`/api/v1/admin/reminders/log?page=${page}&page_size=10`, {
-        credentials: "include",
-      });
-      return res.json();
+      // fetchApiEnvelope throws on !res.ok and on an envelope error field, so
+      // 4xx/5xx surface as isError below instead of the empty state.
+      const env = await fetchApiEnvelope<any>(
+        `/api/v1/admin/reminders/log?page=${page}&page_size=10`,
+      );
+      // As built in registrars.py, rows + pagination are nested inside the
+      // envelope's data field: { data: { data: rows, meta: pagination }, ... }.
+      const payload = env.data;
+      const rows = Array.isArray(payload) ? payload : (payload?.data ?? []);
+      const meta =
+        payload && !Array.isArray(payload) && payload.meta
+          ? payload.meta
+          : (env.meta ?? {});
+      return { rows, meta };
     },
   });
 
-  const logs = data?.data || [];
-  const meta = data?.meta || {};
+  const logs = data?.rows ?? [];
+  const meta = data?.meta ?? {};
 
   return (
     <div className="rounded-lg border border-border/30 bg-card p-4">
@@ -119,6 +134,11 @@ export function ReminderLogCard() {
       </h3>
       {isLoading ? (
         <div className="text-sm text-muted-foreground py-4">Loading...</div>
+      ) : isError ? (
+        <div className="text-sm text-red-500 py-4">
+          Failed to load reminder log:{" "}
+          {error instanceof Error ? error.message : "Unknown error"}
+        </div>
       ) : logs.length === 0 ? (
         <div className="text-sm text-muted-foreground py-4">No reminders sent yet.</div>
       ) : (
