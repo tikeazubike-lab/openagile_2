@@ -11,6 +11,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { fetchApiEnvelope } from "@/api/queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,31 +79,6 @@ interface TrackerPage {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-
-/**
- * Fetch with the same auth pattern as _app.settings.registrars.tsx (cookie auth
- * via credentials: "include"), then unwrap the { data, meta, error } envelope the
- * way that file does (data?.data) — tolerant of unwrapped bodies too.
- */
-async function fetchEnvelopeData<T>(path: string): Promise<T> {
-  const res = await fetch(path, { credentials: "include" });
-  let body: unknown = null;
-  try {
-    body = await res.json();
-  } catch {
-    /* non-JSON body */
-  }
-  if (!res.ok) {
-    const detail =
-      body && typeof body === "object" && "detail" in body
-        ? String((body as { detail: unknown }).detail)
-        : `Request failed (${res.status})`;
-    throw new Error(detail);
-  }
-  const wrapped = body as { data?: T; error?: string | null } | null;
-  if (wrapped?.error) throw new Error(wrapped.error);
-  return wrapped?.data ?? (body as T);
-}
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   completed: "default",
@@ -396,16 +372,22 @@ export function RegistrarsDashboard() {
 
   const summaryQuery = useQuery({
     queryKey: ["registrars-dashboard-summary"],
+    // fetchApiEnvelope (src/api/queries) covers cookie auth (credentials:
+    // "include") and throws on non-OK HTTP (FastAPI `detail`) or an envelope
+    // error field; unwrap the { data, meta, error } envelope here — tolerant of
+    // unwrapped bodies, as the previous local helper was.
     queryFn: () =>
-      fetchEnvelopeData<DashboardSummary>("/api/v1/registrars/dashboard-summary"),
+      fetchApiEnvelope<DashboardSummary>("/api/v1/registrars/dashboard-summary").then(
+        (env) => (env.data ?? env) as DashboardSummary,
+      ),
   });
 
   const trackerQuery = useQuery({
     queryKey: ["registrar-global-tracker", page],
     queryFn: () =>
-      fetchEnvelopeData<TrackerPage>(
+      fetchApiEnvelope<TrackerPage>(
         `/api/v1/registrar-requirements/global-tracker?page=${page}&page_size=20`,
-      ),
+      ).then((env) => (env.data ?? env) as TrackerPage),
   });
 
   return (
