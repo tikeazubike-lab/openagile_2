@@ -197,8 +197,10 @@ describe("RegistrarsDashboard (F-026)", () => {
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
   });
 
-  // Spec: F-026-registrar-dashboard.md | AC-5 | Then requests to both endpoints are
-  // cookie-authenticated (credentials: "include")
+  // Supporting test (not a spec AC): both endpoints are requested with cookie auth
+  // (credentials: "include"). F-026 AC-5 is the 401-for-unauthenticated contract,
+  // which is covered by the backend integration tests — this pins only the
+  // client-side auth plumbing.
   it("sends cookie-authenticated requests to both endpoints", async () => {
     renderDashboard();
 

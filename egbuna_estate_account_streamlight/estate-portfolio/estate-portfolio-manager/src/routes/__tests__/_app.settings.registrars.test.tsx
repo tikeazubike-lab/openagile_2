@@ -51,8 +51,9 @@ describe("Registrar reminder settings (F-026b)", () => {
     expect(await screen.findByText("Sent to ops@example.com")).toBeTruthy();
   });
 
-  // Spec: F-026-email-reminder-infrastructure.md | AC-6 | Then a failing log query
-  // shows an error state instead of the empty-state message
+  // Supporting test (not a spec AC): a failing reminder-log query shows the error
+  // state instead of the empty-state message. F-026b AC-6 is the sanitized 502 on
+  // test-send, not this log-view state; no AC covers this UI state.
   it("shows an error state when the reminder log query fails", async () => {
     vi.stubGlobal(
       "fetch",
