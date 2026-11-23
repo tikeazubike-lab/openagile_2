@@ -58,3 +58,38 @@ editing `opencode.json` / `.claude/` / `.git/`, network fetches, money as float,
 
 ## Report back
 What changed, raw test output, full 40-char SHAs, what was NOT done, anything you had to decide.
+
+## Part C — F-026 registrar dashboard UI (role: frontend) — added 2026-11-23
+Product Owner decision: **rebuild from spec** (no recovery from the running container).
+Spec: `.context/feature-specs/F-026-registrar-dashboard.md` §3 (API contract) and §5 (frontend).
+Scope: `estate-portfolio-manager/src/` only.
+
+1. Create `src/components/registrars/RegistrarsDashboard.tsx`:
+   - Data: `GET /api/v1/registrars/dashboard-summary` and
+     `GET /api/v1/registrar-requirements/global-tracker?page=&page_size=20` via `@tanstack/react-query`,
+     using the same fetch/auth pattern as `src/routes/_app.settings.registrars.tsx`
+     (responses may be wrapped in the `{data, meta, error}` envelope — unwrap the way that file does).
+   - Summary tiles (`components/ui/card`): completion % (`completion_pct`, show 1 dp + `%`),
+     total / completed / pending requirements, registrar health (complete / attention / no data).
+   - "Needs attention" list from `top_action_items` (task, document, registrar, due date or "—").
+   - Unmapped companies: count + up to 20 tickers/names.
+   - Global tracker: TanStack Table, server-side pagination (`page`, `total_pages`), columns:
+     task, document, registrar, status badge, due date, latest document file + status.
+     Follow the table pattern in `src/routes/_app.companies.tsx`.
+   - Loading (`components/ui/skeleton`) and error states. Read-only: no inline edit controls.
+2. Render it at the top of `/registrars` from `src/components/registrars/RegistrarsLayout.tsx`
+   (above the existing list/details layout). Keep the existing behaviour unchanged.
+3. Test: `src/components/registrars/__tests__/RegistrarsDashboard.test.tsx` (vitest + Testing Library),
+   mocking `fetch` for both endpoints; assert tiles, an attention item, and a tracker row render (AT-026 AC-7).
+   Trace comment: `// Spec: F-026-registrar-dashboard.md | AC-7 | Then ...`.
+   Note: 4 of 9 existing vitest files fail to import because `@testing-library/jest-dom` is missing
+   (AUDIT R10). Do not install packages; if your test needs jest-dom matchers, use plain
+   `expect(...).toBeTruthy()` / `getByText` instead, and report it.
+4. Verify: `npx tsc --noEmit -p tsconfig.json` — no errors in files you touched; `npx vitest run` raw summary.
+5. Commit; report SHAs. Do not touch backend code.
+6. Architect ruling on Part B escalation 2 (fix it, in a separate commit): in
+   `src/routes/_app.settings.registrars.tsx`, unwrap the `{data, meta, error}` envelope for both
+   test-send (`recipient`, `status`, `detail`) and the reminder log, check `res.ok` on the log query and
+   show an error state instead of "No reminders sent yet." on 4xx/5xx. Prefer the existing helper in
+   `src/api/queries` (`fetchApiEnvelope`) if it fits. Byte-for-byte parity with `test` no longer applies.
+   Rename the admin sidebar label to "Reminder Settings" to avoid two "Registrars" entries.
