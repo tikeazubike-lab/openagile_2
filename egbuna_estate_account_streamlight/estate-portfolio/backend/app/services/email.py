@@ -57,10 +57,17 @@ def send_email(
         logger.info("Email sent to %s: %s", to, subject)
         return {"status": "sent"}
 
-    except Exception as e:
-        error_msg = str(e)[:200]  # Sanitize — no raw stack traces
-        logger.error("Email send failed: %s", error_msg)
-        return {"status": "failed", "detail": error_msg}
+    except Exception:
+        # AC-6: exception text must NEVER reach the API response. Libraries
+        # routinely stuff absolute file paths, credentials-in-config snippets
+        # and even traceback text into str(e), and truncation does not stop
+        # that (Part E finding). Keep the full detail for operators — with the
+        # traceback — on the server side only, and hand callers a generic,
+        # non-sensitive detail string (architect ruling, Part F1 option b).
+        logger.error(
+            "Email send failed to %s (subject=%r)", to, subject, exc_info=True
+        )
+        return {"status": "failed", "detail": "SMTP send failed — see server logs"}
 
 
 def send_test_email(to: str) -> dict:

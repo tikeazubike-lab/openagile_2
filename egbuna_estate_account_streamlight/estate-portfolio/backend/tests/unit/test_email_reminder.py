@@ -6,6 +6,7 @@ no reminder_log table) and pass against the current implementation.
 """
 import pytest
 import asyncio
+import logging
 import os
 from unittest.mock import patch, MagicMock
 
@@ -42,8 +43,12 @@ class TestSendEmail:
             mock_server.login.assert_called_once()
             mock_server.sendmail.assert_called_once()
 
-    def test_send_email_returns_failed_on_error(self):
-        """SMTP error → returns {'status': 'failed', 'detail': ...} with sanitized error."""
+    def test_send_email_returns_failed_on_error(self, caplog):
+        """SMTP error → {'status': 'failed'} with a GENERIC detail (AC-6).
+
+        The exception text stays server-side: it is logged with traceback and
+        never echoed into the returned detail (architect ruling, Part F1).
+        """
         from app.services.email import send_email
 
         smtp_env = {
@@ -60,16 +65,23 @@ class TestSendEmail:
             mock_smtp.return_value.__exit__ = MagicMock(return_value=False)
             mock_server.login.side_effect = Exception("Connection refused")
 
-            result = send_email(
-                to="test@example.com",
-                subject="Test",
-                body="Hello",
-            )
+            with caplog.at_level(logging.ERROR, logger="email"):
+                result = send_email(
+                    to="test@example.com",
+                    subject="Test",
+                    body="Hello",
+                )
             assert result["status"] == "failed"
-            assert "detail" in result
-            assert "Connection refused" in result["detail"]
-            # No raw stack trace
-            assert "Traceback" not in result["detail"]
+            # AC-6: the caller gets a fixed, non-sensitive detail — never the
+            # exception text itself.
+            assert result["detail"] == "SMTP send failed — see server logs"
+            assert "Connection refused" not in result["detail"]
+            # The real error (with traceback) is still available to operators,
+            # but only in the server-side log.
+            assert "Connection refused" in caplog.text
+            assert "Traceback" in caplog.text
+            # No raw stack trace anywhere in the payload
+            assert "Traceback" not in str(result)
 
     def test_send_email_returns_failed_when_config_incomplete(self):
         """Missing SMTP config → returns {'status': 'failed', 'detail': ...}."""
