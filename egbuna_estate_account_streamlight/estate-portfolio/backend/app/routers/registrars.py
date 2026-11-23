@@ -249,8 +249,14 @@ async def dashboard_summary(
         if reg_req_count == 0:
             health["no_data"] += 1
         else:
+            # A registrar is "complete" only when EVERY one of its live
+            # requirements has >= 1 completed, non-deleted document — so count
+            # distinct requirement ids, not documents (same rule as the
+            # completed_requirements figure above). Counting documents lets two
+            # completed docs on req A mask an untouched req B and mislabel the
+            # registrar "complete".
             reg_completed = await session.scalar(
-                select(func.count(RegistrarDocument.id)).where(
+                select(func.count(func.distinct(RegistrarDocument.registrar_requirement_id))).where(
                     RegistrarDocument.registrar_requirement_id.in_(
                         select(RegistrarRequirement.id).where(
                             RegistrarRequirement.registrar_id == reg.id,

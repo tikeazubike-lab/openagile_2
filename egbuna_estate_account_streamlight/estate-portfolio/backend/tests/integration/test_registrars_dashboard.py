@@ -132,6 +132,68 @@ async def test_dashboard_summary_second_completed_doc_on_same_requirement_counts
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="NOT RUN — requires an epm_test run (Part F2); builder does not touch databases"
+)
+async def test_registrar_health_two_completed_docs_on_one_req_is_attention(
+    admin_http_client: AsyncClient,
+    seeded_registrars,
+    db_session: AsyncSession,
+):
+    """Part F2: a registrar is "complete" only if EVERY requirement is covered.
+
+    # Spec: F-026-registrar-dashboard.md | AC-1 | Then the dashboard reflects
+    # the data — the registrar's health is "attention", not "complete".
+
+    Registrar "Partial" has req A with TWO completed documents and req B with
+    none. Counting documents (2 >= 2) mislabels it "complete"; counting
+    distinct covered requirements (1 of 2) correctly yields "attention".
+    """
+    # Spec: F-026-registrar-dashboard.md | AC-1 | Then the dashboard reflects the data — the registrar is "attention", not "complete".
+    reg_partial = Registrar(
+        name="Partial Registrar", jurisdiction="nigeria"
+    )
+    db_session.add(reg_partial)
+    await db_session.flush()
+
+    req_a = RegistrarRequirement(
+        registrar_id=reg_partial.id, task_name="Task P1", document_title="Doc P1",
+        is_required=True, sort_order=0,
+    )
+    req_b = RegistrarRequirement(
+        registrar_id=reg_partial.id, task_name="Task P2", document_title="Doc P2",
+        is_required=True, sort_order=1,
+    )
+    db_session.add_all([req_a, req_b])
+    await db_session.flush()
+
+    # Two completed documents on req A, ZERO on req B.
+    db_session.add_all([
+        RegistrarDocument(
+            registrar_requirement_id=req_a.id, file_name="p1a.pdf",
+            file_path="/tmp/p1a.pdf", file_size=100,
+            mime_type="application/pdf", status="completed",
+        ),
+        RegistrarDocument(
+            registrar_requirement_id=req_a.id, file_name="p1b.pdf",
+            file_path="/tmp/p1b.pdf", file_size=120,
+            mime_type="application/pdf", status="completed",
+        ),
+    ])
+    await db_session.flush()
+
+    response = await admin_http_client.get("/api/v1/registrars/dashboard-summary")
+    assert response.status_code == 200
+    health = response.json()["data"]["registrar_health"]
+
+    # Baseline seeded_registrars = 1 complete, 1 attention, 1 no_data.
+    # The new registrar adds ONE attention (never a second "complete").
+    assert health["complete"] == 1
+    assert health["attention"] == 2
+    assert health["no_data"] == 1
+
+
+@pytest.mark.asyncio
 async def test_global_tracker_pagination(
     admin_http_client: AsyncClient,
     seeded_registrars,

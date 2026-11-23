@@ -128,3 +128,83 @@ def test_dashboard_with_no_requirements_reports_zero_pct():
     assert data["total_requirements"] == 0
     assert data["completed_requirements"] == 0
     assert data["completion_pct"] == 0
+
+
+# ===========================================================================
+# AC-1 — registrar_health: a registrar is complete only if EVERY requirement
+# has a completed document (distinct-requirement counting, Part F2)
+# ===========================================================================
+
+class _FakeHealthSession:
+    """Feeds dashboard_summary one registrar with N requirements.
+
+    The top-level requirement list is empty (so the attention-item loop never
+    runs) and only the registrar_health loop is exercised:
+
+      scalar 1  count(registrar_requirements.id)                      -> 3 (total)
+      scalar 2  count(DISTINCT ...registrar_requirement_id)           -> 2 (completed)
+      scalar 3  count(registrar_requirements.id) WHERE registrar_id   -> reg_req_count
+      scalar 4  count(DISTINCT ...registrar_requirement_id) in reg    -> reg_completed
+    """
+
+    def __init__(self, reg_req_count: int, reg_completed: int):
+        self.reg_req_count = reg_req_count
+        self.reg_completed = reg_completed
+        self.scalar_statements = []
+        self.execute_statements = []
+
+    async def scalar(self, stmt):
+        sql = _compile(stmt)
+        self.scalar_statements.append(sql)
+        if "registrar_documents" in sql:
+            # Global completed count (no registrar scoping) vs per-registrar
+            # count (restricted to this registrar's requirements via subquery).
+            return self.reg_completed if "registrar_requirements.registrar_id" in sql else 2
+        if "registrar_requirements.registrar_id" in sql:
+            return self.reg_req_count
+        return 3  # global total requirements
+
+    async def execute(self, stmt):
+        sql = _compile(stmt)
+        self.execute_statements.append(sql)
+        if sql.lstrip().startswith("SELECT registrars.id"):
+            return _FakeResult([SimpleNamespace(id=7, name="Partial Registrar")])
+        return _FakeResult()  # empty requirement list / unmapped-company lists
+
+
+def test_registrar_health_counts_distinct_requirements_not_documents():
+    # Spec: F-026-registrar-dashboard.md | AC-1 | Then ... the dashboard
+    # reflects the data — a registrar is "complete" only when EVERY one of its
+    # requirements has >= 1 completed, non-deleted document (Part F2).
+    # Two completed docs on req A and none on req B => "attention", never
+    # "complete", so the per-registrar count must be DISTINCT requirement ids.
+    session = _FakeHealthSession(reg_req_count=2, reg_completed=1)
+    data = _run_summary(session)
+
+    health_queries = [
+        s for s in session.scalar_statements
+        if "registrar_documents" in s and "registrar_requirements.registrar_id" in s
+    ]
+    assert len(health_queries) == 1, "exactly one per-registrar document count"
+    sql = health_queries[0]
+
+    # The fix under test: distinct requirement ids, never raw document ids.
+    assert "count(distinct(registrar_documents.registrar_requirement_id))" in sql
+    assert "count(registrar_documents.id)" not in sql
+    # Soft-delete, status and registrar scoping must remain in place.
+    assert "registrar_documents.status" in sql
+    assert "registrar_documents.deleted_at IS NULL" in sql
+    assert "registrar_requirements.registrar_id" in sql
+
+    # 1 of 2 requirements complete -> attention, not complete.
+    assert data["registrar_health"] == {"complete": 0, "attention": 1, "no_data": 0}
+
+
+def test_registrar_health_complete_when_all_requirements_covered():
+    # Spec: F-026-registrar-dashboard.md | AC-1 | Then ... the dashboard
+    # reflects the data — every requirement covered by a completed document
+    # still classifies the registrar as "complete".
+    session = _FakeHealthSession(reg_req_count=2, reg_completed=2)
+    data = _run_summary(session)
+
+    assert data["registrar_health"] == {"complete": 1, "attention": 0, "no_data": 0}
