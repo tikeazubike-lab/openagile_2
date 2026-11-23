@@ -135,7 +135,13 @@ def test_test_send_invalid_smtp_returns_502_without_traceback():
     }), patch(
         "app.services.email.send_email",
         return_value={"status": "failed", "detail": sanitized},
-    ):
+    ), patch(
+        # The test-send tool must not touch reminder_log on the failure path
+        # either: construct no ReminderLog(...) (same proof as AC-5). Replaces
+        # mock_db.add.call_count == 0, which was tautological — the handler
+        # never references session (review finding Aud 4 / Part F3).
+        "app.routers.registrars.ReminderLog",
+    ) as mock_reminder_log:
         response = _client(role="admin").post("/api/v1/admin/reminders/test-send")
 
     assert response.status_code == 502
@@ -145,7 +151,7 @@ def test_test_send_invalid_smtp_returns_502_without_traceback():
     assert "Traceback" not in response.text
     assert 'File "' not in response.text
     assert "smtplib" not in response.text
-    assert mock_db.add.call_count == 0
+    mock_reminder_log.assert_not_called()
 
 
 # ===========================================================================
