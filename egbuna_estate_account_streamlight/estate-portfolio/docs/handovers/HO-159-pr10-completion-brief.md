@@ -174,3 +174,20 @@ Reviewer (DeepSeek v4 Pro, advisory): **SHIP**. Every finding is answered below.
   in `test_reminders_router.py` (or replace it with a meaningful assertion), same reasoning as AC-5.
 - Scope: `backend/app/services/email.py`, `backend/app/routers/registrars.py` (F2 block only), `backend/tests/`.
 - Commit F1, F2 and F3 separately. Final unit run must be fully green.
+
+## Final audit of fix rounds (26e82958..958100ef) and closing rulings
+Auditor: **ALIGNED (conditional)**: nothing blocks the push. Unit run: 130 passed, 4 xfailed.
+The fix-round limit (2) is reached, so the remaining minor items are follow-ups, not a third round.
+
+| # | Finding | Ruling |
+|---|---|---|
+| 1 | `completed_requirements` doesn't exclude docs on soft-deleted requirements. The clamp caps it, but the % can be overstated | **Follow-up FU-1**: reuse F2's live-requirement subquery in E1 |
+| 2 | `reminder_log.error_detail` now always holds the generic message | **Accepted as is.** Security (AC-6) takes priority over convenience. Full errors stay in the server log (`exc_info=True`). The F1 text "keep error_detail" is superseded by this ruling |
+| 3 | `SMTP_PORT` int-parse sits outside the try. A bad value gives a 500 on test-send and crashes the cron (AC-1). This predates PR #10 (ca956a56) | **Follow-up FU-2**: parse inside the guarded config check and treat a bad value as "config incomplete" |
+| 4 | New E1/F2 integration tests are unconditionally skipped | **Follow-up FU-3**: replace with a skip only when epm_test is unreachable, as part of the epm_test run decision |
+
+Open for Zubbyik at PR review:
+- **(a) Integration tests:** they have not been run, and that needs a decision on epm_test access.
+- **(b) Regenerated route tree:** it also exposes `/claims` and `/companies/$id`, with the same tree as `test`.
+
+Follow-ups FU-1..FU-3 get their own HO from the approved block after PR #10 merges.
