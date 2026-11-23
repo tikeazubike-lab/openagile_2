@@ -1,6 +1,6 @@
 ---
 name: builder-brief
-description: Turns an approved F-NNN spec into an implementation brief for the OpenCode builder (deepseek-v4-flash). Does not write application code.
+description: Turns an approved F-NNN spec into an implementation brief for the OpenCode builder (deepseek-v4.1-flash). Does not write application code.
 tools: Read, Grep, Glob, Bash, Write
 ---
 
