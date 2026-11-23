@@ -16,6 +16,7 @@ test_idempotency_query_structure) that only checked imports / query syntax.
 """
 import logging
 import os
+import re
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -246,10 +247,16 @@ async def test_cron_with_missing_smtp_config_logs_failure_and_sends_nothing(
     assert exit_code == 0
     # Sends nothing: with incomplete config send_email bails before SMTP.
     mock_smtp.assert_not_called()
-    # The failure is logged (summary line) rather than raised.
-    assert "failed=" in caplog.text
+    # The failure is logged (summary line) rather than raised. Assert on the
+    # LOGGED COUNT instead of the always-true substring "failed=" (Aud 3);
+    # other due requirements in shared epm_test only raise this count, so
+    # >= 1 is deterministic while "failed=" matched every run.
+    summary = re.search(r"completed: sent=\d+, skipped=\d+, failed=(\d+)", caplog.text)
+    assert summary, "cron completion summary line missing from logs"
+    assert int(summary.group(1)) >= 1
 
-    # The failed attempt is persisted for troubleshooting with the sanitized reason.
+    # The failed attempt is persisted for troubleshooting with the sanitized
+    # reason — scoped to THIS fixture's requirement id, never a global count.
     async with cron_session_factory() as session:
         rows = (
             await session.execute(
@@ -280,9 +287,18 @@ async def test_cron_marks_past_due_requirement_as_overdue(
         exit_code = await main()
 
     assert exit_code == 0
-    assert mock_send.call_count == 1
-    assert "Overdue" in mock_send.call_args.kwargs["subject"]
+    # Scope the call assertions to THIS fixture's requirement (its subject
+    # carries the fixture's document_title). epm_test is shared, so a global
+    # call_count == 1 would break whenever another due requirement exists (Aud 2).
+    fixture_title = "Cron Test Overdue Document"  # fixture's document_title
+    fixture_calls = [
+        c for c in mock_send.call_args_list
+        if fixture_title in (c.kwargs.get("subject") or "")
+    ]
+    assert len(fixture_calls) == 1
+    assert "Overdue" in fixture_calls[0].kwargs["subject"]
 
+    # reminder_log rows for THIS fixture's requirement id only.
     async with cron_session_factory() as session:
         rows = (
             await session.execute(
