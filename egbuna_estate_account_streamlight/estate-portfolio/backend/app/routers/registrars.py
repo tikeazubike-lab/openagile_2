@@ -186,12 +186,20 @@ async def dashboard_summary(
         )
     ) or 0
 
+    # Count REQUIREMENTS with at least one non-deleted completed document —
+    # counting documents inflates the figure (two completed docs on one
+    # requirement would count twice and push completion_pct past 100).
     completed_reqs = await session.scalar(
-        select(func.count(RegistrarDocument.id)).where(
+        select(func.count(func.distinct(RegistrarDocument.registrar_requirement_id))).where(
             RegistrarDocument.status == "completed",
             RegistrarDocument.deleted_at.is_(None),
         )
     ) or 0
+    # A document can outlive a soft-deleted requirement, so the distinct count
+    # may still exceed total_requirements (which counts live requirements only).
+    # Clamp here so completed_requirements <= total_requirements and
+    # completion_pct can never exceed 100 (F-026 AC-1).
+    completed_reqs = min(completed_reqs, total_reqs)
 
     all_reqs = await session.execute(
         select(RegistrarRequirement).where(RegistrarRequirement.deleted_at.is_(None))

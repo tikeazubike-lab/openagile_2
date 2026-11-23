@@ -91,6 +91,47 @@ async def test_dashboard_summary_registrar_health(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="NOT RUN — requires an epm_test run (Part E1); builder does not touch databases"
+)
+async def test_dashboard_summary_second_completed_doc_on_same_requirement_counts_once(
+    admin_http_client: AsyncClient,
+    seeded_registrars,
+    db_session: AsyncSession,
+):
+    """Two completed documents on one requirement must count it once (E1).
+
+    Spec: F-026-registrar-dashboard.md | AC-1 | Then counts and completion_pct
+    match the data — a duplicate completed document must not inflate
+    completed_requirements or push completion_pct to 100.
+    """
+    # Spec: F-026-registrar-dashboard.md | AC-1 | Then counts and completion_pct match the data.
+    req1 = seeded_registrars["req1"]
+    duplicate_completed_doc = RegistrarDocument(
+        registrar_requirement_id=req1.id,
+        file_name="a-second.pdf",
+        file_path="/tmp/a-second.pdf",
+        file_size=111,
+        mime_type="application/pdf",
+        status="completed",
+    )
+    db_session.add(duplicate_completed_doc)
+    await db_session.flush()
+
+    response = await admin_http_client.get("/api/v1/registrars/dashboard-summary")
+    assert response.status_code == 200
+    data = response.json()["data"]
+
+    # req1 now has two completed documents but still counts as ONE
+    # completed requirement: 2 of 3 = 66.7%, not 3 of 3 = 100%.
+    assert data["total_requirements"] == 3
+    assert data["completed_requirements"] == 2
+    assert data["completion_pct"] == 66.7
+    assert data["completed_requirements"] <= data["total_requirements"]
+    assert data["completion_pct"] <= 100
+
+
+@pytest.mark.asyncio
 async def test_global_tracker_pagination(
     admin_http_client: AsyncClient,
     seeded_registrars,
