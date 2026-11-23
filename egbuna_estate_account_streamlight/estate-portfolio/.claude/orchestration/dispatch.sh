@@ -11,8 +11,8 @@ role=${1:?role}; wt=${2:?epm dir in worktree}; brief=${3:?brief file}
 logdir=${4:-${TMPDIR:-/tmp}/epm-agent-runs}
 here=$(cd "$(dirname "$0")" && pwd)
 case "$role" in
-  builder)  model=opencode-go/deepseek-v4.1-flash; profile=builder ;;
-  frontend) model=opencode-go/kimi-k2.7-code;      profile=builder ;;
+  builder)  model=opencode-go/mimo-v2.6-flash; profile=builder ;;
+  frontend) model=opencode-go/mimo-v2.6-pro;       profile=builder ;;
   reviewer) model=opencode-go/deepseek-v4-pro;     profile=reviewer ;;
   *) echo "unknown role: $role" >&2; exit 64 ;;
 esac

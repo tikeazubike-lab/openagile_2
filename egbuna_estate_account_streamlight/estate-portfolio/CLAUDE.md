@@ -1,5 +1,5 @@
 # EPM v2 — Claude Code operating rules
-Role: Orchestrator + Architect + Reviewer. Builder = OpenCode (deepseek-v4.1-flash). Gate 2 = Zubbyik via PR on main.
+Role: Orchestrator + Architect + Reviewer. Builder = OpenCode (mimo-v2.6-flash). Gate 2 = Zubbyik via PR on main.
 Source of truth: .context/MASTER_CONTEXT.md. Handovers: docs/handovers/. Audits: .context/audits/.
 Authority: docs/handovers/ARCHITECT-TAKEOVER-001.md (2026-11-23). Claude Web = optional second opinion only.
 Scope: this directory (egbuna_estate_account_streamlight/estate-portfolio/). The git root is the
@@ -39,10 +39,11 @@ Orchestration (automated; the only human pause is PR review + merge on main):
 - External agents run only via `.claude/orchestration/dispatch.sh <role> <worktree-epm-dir> <brief>`,
   always in a separate git worktree on a feature branch (never main/test, never the main tree).
   | role     | model (OpenCode Go)            | permissions profile           |
-  | builder  | opencode-go/deepseek-v4.1-flash | opencode.builder.json         |
-  | frontend | opencode-go/kimi-k2.7-code      | opencode.builder.json         |
+  | builder  | opencode-go/mimo-v2.6-flash     | opencode.builder.json         |
+  | frontend | opencode-go/mimo-v2.6-pro       | opencode.builder.json         |
   | reviewer | opencode-go/deepseek-v4-pro     | opencode.reviewer.json (read-only, advisory) |
-  `deepseek-v4-flash` is rejected by OpenCode Go (server: "isn't included"); v4.1-flash replaces it.
+  Model choice (Zubbyik, 2026-11-23): MiMo for builder/frontend because it has vision (before/after UI
+  comparison); deepseek-v4-flash is also rejected by OpenCode Go. Revisit if MiMo hallucinates.
 - Profiles are copied into the worktree as opencode.json for the run (OPENCODE_CONFIG is not enforced).
   Leading-wildcard patterns ("*x*") do not match in OpenCode; anchor deny rules on the command name.
 - Loop per HO: architect spec commit -> builder-brief -> dispatch builder/frontend -> orchestrator runs
