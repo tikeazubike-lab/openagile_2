@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| From / To | Claude Code (architect/orchestrator) → OpenCode builder (Part A: deepseek-v4.1-flash; Part B: kimi-k2.7-code) |
+| From / To | Claude Code (architect/orchestrator) → OpenCode builder (Part A: deepseek-v4.1-flash, run before the model change; Part B: mimo-v2.6-pro) |
 | Date | 2026-11-23 |
 | Branch | `feature/f-026-dashboard-and-f-026b-reminders` (PR #10), base head `ca5ff5c792fa354bc1501a77e428558a40fa98f7` |
 | Specs | `.context/feature-specs/F-026-email-reminder-infrastructure.md` (F-026b), `.context/feature-specs/F-026-registrar-dashboard.md` (F-026) |
