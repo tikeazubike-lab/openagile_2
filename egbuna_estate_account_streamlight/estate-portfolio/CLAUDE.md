@@ -1,7 +1,7 @@
 # EPM v2 — Claude Code operating rules
 Role: Architect + Reviewer. Builder = OpenCode (deepseek-v4-flash). Gate 2 = Zubbyik via PR on main.
 Source of truth: .context/MASTER_CONTEXT.md. Handovers: docs/handovers/. Audits: .context/audits/.
-Authority: docs/handover/ARCHITECT-TAKEOVER-001.md (2026-11-23). Claude Web = optional second opinion only.
+Authority: docs/handovers/ARCHITECT-TAKEOVER-001.md (2026-11-23). Claude Web = optional second opinion only.
 Scope: this directory (egbuna_estate_account_streamlight/estate-portfolio/). The git root is the
 openagile_2 workspace; do not touch other subprojects.
 
