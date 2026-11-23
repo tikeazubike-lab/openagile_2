@@ -265,9 +265,9 @@ function GlobalTrackerCard({
     data: rows,
     columns: trackerColumns,
     getCoreRowModel: getCoreRowModel(),
-    // Server-side pagination: page/page_size/total_pages come from the API.
-    manualPagination: true,
-    pageCount: tracker.total_pages,
+    // Pagination is server-side, driven by the Pagination component below — the
+    // table instance renders only the current page's rows (no pagination model),
+    // so manualPagination/pageCount would be inert here.
   });
 
   return (
