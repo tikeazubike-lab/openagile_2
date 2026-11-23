@@ -20,7 +20,7 @@ case "$base" in
   .env|.env.*|*.env|.envrc) block "writes to .env files (secrets)" ;;
 esac
 case "$path" in
-  "$root"/*|/tmp/*) ;;
+  "$root"/*|/tmp/*|"$HOME"/.claude/plans/*|"$HOME"/.claude/projects/*/memory/*) ;;
   *) block "outside EPM project scope ($root)" ;;
 esac
 case "$path" in
