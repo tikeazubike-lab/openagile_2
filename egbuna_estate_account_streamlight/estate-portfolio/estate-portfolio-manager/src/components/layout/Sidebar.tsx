@@ -39,7 +39,7 @@ const MAIN = [
 
 const ADMIN = [
   { to: "/settings/users", label: "User Management", icon: Users },
-  { to: "/settings/registrars", label: "Registrars", icon: ClipboardList },
+  { to: "/settings/registrars", label: "Reminder Settings", icon: ClipboardList },
   { to: "/settings/price-entry", label: "Price Entry", icon: Zap, accent: true },
   { to: "/settings/data-upload", label: "Data Upload", icon: Upload },
 ] as const;
