@@ -191,3 +191,36 @@ Open for Zubbyik at PR review:
 - **(b) Regenerated route tree:** it also exposes `/claims` and `/companies/$id`, with the same tree as `test`.
 
 Follow-ups FU-1..FU-3 get their own HO from the approved block after PR #10 merges.
+
+## Part G — tabs on /registrars (role: frontend) — 2026-11-24
+**Why:** Playwright on testdrive (1440x900, logged in) showed the registrar list squeezed to 32px and its
+scroll area to 0px under the 804px dashboard; the 36 registrars could not be seen or clicked. Auditor
+finding Aud 8 (nested scroll column) flagged this and was wrongly rejected as cosmetic; that rejection
+is withdrawn. Product Owner chose tabs (spec F-026 §9, AC-7 reworded, AC-8 and AC-9 new).
+
+Scope: `estate-portfolio-manager/src/components/registrars/RegistrarsLayout.tsx` and
+`estate-portfolio-manager/src/components/registrars/__tests__/RegistrarsLayout.test.tsx` only.
+- **G1 (RED first):** rewrite `RegistrarsLayout.test.tsx`:
+  - AC-8: on render, a tab named "Registrars" is selected, the list heading "Registrars" and
+    "Select a registrar to view details" are shown, "Registrar Dashboard" is NOT in the document, and
+    `fetch` was NOT called for `dashboard-summary` or `global-tracker`.
+  - AC-7: after activating the "Dashboard" tab, "Registrar Dashboard" and the tile value ("62.5%") render.
+    Radix tabs activate on `mouseDown` (left button) or keyboard, not on `click`; `@testing-library/user-event`
+    is NOT installed, so use `fireEvent.mouseDown(tab, { button: 0 })` (or focus + keyDown). Do not add packages.
+  - Trace comments: `// Spec: F-026-registrar-dashboard.md | AC-8 | Then ...` / `AC-7`.
+  - Run it and confirm it fails against the current layout; commit the RED test on its own.
+- **G2 (GREEN):** in `RegistrarsLayout.tsx` use the existing `@/components/ui/tabs`
+  (`Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`), `defaultValue="registrars"`, local state only:
+  - outer container: `flex h-[calc(100vh-4rem)] flex-col bg-background`, no `overflow-y-auto` on it;
+  - `TabsList` row: `shrink-0`, with a small top/left padding;
+  - Registrars `TabsContent`: `flex-1 min-h-0 mt-0` and inside it the ORIGINAL pre-F-026 list/details layout
+    (left panel `md:w-[320px] border-r flex flex-col`, right panel `flex-1 overflow-y-auto bg-muted/20`), filling
+    `h-full`; no fixed `h-[calc(...)]` inside the tab;
+  - Dashboard `TabsContent`: `flex-1 min-h-0 overflow-y-auto mt-0`, renders `<RegistrarsDashboard />`.
+    Radix unmounts inactive content by default; keep that (no `forceMount`), so the dashboard queries run on demand.
+  - Keep `selectedId` state in the layout so the selected registrar survives a tab switch.
+- Do not touch `RegistrarsDashboard.tsx`, `RegistrarList.tsx`, backend, routes or config.
+- Run `npx vitest run` and `npx tsc --noEmit -p tsconfig.json`; paste raw summaries. Expected baseline:
+  4 files fail on missing jest-dom (pre-existing); tsc errors only in Navbar, claims, companies.$id, price-history.
+- Commit G1 and G2 separately. Do not push.
+- AC-9 (real layout at three viewports) is verified by the orchestrator with Playwright on a real build; not your job.

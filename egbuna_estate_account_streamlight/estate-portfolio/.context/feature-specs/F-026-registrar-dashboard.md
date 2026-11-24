@@ -47,8 +47,10 @@ what needs attention next, and which companies have no registrar mapped.
 - Soft-deleted rows (`deleted_at` not null) are excluded.
 
 ## 5. Frontend requirements (to build)
-- `estate-portfolio-manager/src/components/registrars/RegistrarsDashboard.tsx`, shown at the top of
-  `/registrars` (rendered by `RegistrarsLayout.tsx`):
+- **Amended 2026-11-24 (Product Owner, see §9):** `/registrars` has two tabs, **Registrars**
+  (default) and **Dashboard**. The dashboard is no longer stacked above the list.
+- `estate-portfolio-manager/src/components/registrars/RegistrarsDashboard.tsx`, shown in the
+  Dashboard tab of `/registrars` (rendered by `RegistrarsLayout.tsx`):
   - summary tiles: completion %, total / completed / pending, registrar health counts
   - "Needs attention" list from `top_action_items`
   - unmapped-companies count with the first 20 names
@@ -66,7 +68,9 @@ what needs attention next, and which companies have no registrar mapped.
 | AC-4 | a requirement whose latest document is `rejected` | GET global-tracker | its row `status` is `attention` (or the as-built equivalent) |
 | AC-5 | unauthenticated request | either endpoint | 401 |
 | AC-6 | migration run twice on a DB that already has the objects | `alembic upgrade` | no error (guards hold); upgrade path contains no drop/alter |
-| AC-7 | `/registrars` page | loads | dashboard tiles and tracker render from the two endpoints; no inline edit controls |
+| AC-7 | `/registrars` page, Dashboard tab selected | it renders | dashboard tiles and tracker render from the two endpoints; no inline edit controls |
+| AC-8 | `/registrars` page | it loads | the Registrars tab is active; the registrar list and details panel use the full remaining height (as before F-026); the dashboard is not rendered and its two endpoints are not requested |
+| AC-9 | `/registrars` at 1280x720, 1440x900 and 1920x1080 against real data | it loads | the registrar list is visible on the first screen and at least 300px tall; the first registrar card is clickable and opens its details; switching to Dashboard shows the tiles. Verified by Playwright on a real build (jsdom cannot measure layout) |
 
 ## 7. Tests
 - Backend: `backend/tests/integration/test_registrars_dashboard.py` (8 tests, existing) — map them
@@ -79,3 +83,11 @@ breaking the spec-first rule. Ratified by the Product Owner on 2026-11-23 becaus
 already in production (`alembic_version = e1f2a3b4c5d6`). Logged for the Decision Log in
 MASTER_CONTEXT v4.11. The F-026b spec (`ca956a563bc09ffd0db565809b78cc6f51e5ad86`) arrived in
 the same commit as its code; ratified on the same basis.
+
+## 9. Amendment 2026-11-24: tabs (Product Owner choice "2")
+Defect found on testdrive by Playwright at 1440x900: stacking the dashboard (804px) above the
+list inside one fixed-height column squeezed the list area to 32px and its scroll area to 0px,
+so the 36 registrars could not be seen or clicked. The Product Owner chose tabs over a
+one-class `shrink-0` fix. Decided: Registrars tab first and default, Dashboard second.
+Architect's calls: tab state is local component state (no URL parameter); the Dashboard tab
+content mounts only when selected, so its queries run on demand. New AC-8, AC-9; AC-7 reworded.
