@@ -22,6 +22,15 @@ main_tree=$(git -C "$here" rev-parse --show-toplevel)
 branch=$(git -C "$wt" branch --show-current)
 [[ "$branch" != main && "$branch" != test ]] || { echo "refusing: builder may not work on $branch" >&2; exit 65; }
 
+# Handover rule (Zubbyik, 2026-11-24): every artefact passed to an agent lives in docs/handovers/,
+# HO-prefixed, committed before dispatch. The agent's report is saved next to it (see the end).
+wt_root=$(git -C "$wt" rev-parse --show-toplevel)
+ho_dir=$(realpath "$wt/docs/handovers"); brief_abs=$(realpath "$brief")
+[[ "$brief_abs" == "$ho_dir"/HO-* ]] || { echo "refusing: brief must be $ho_dir/HO-<nnn>-....md (handover rule)" >&2; exit 66; }
+rel=${brief_abs#"$wt_root"/}
+{ git -C "$wt_root" ls-files --error-unmatch -- "$rel" && git -C "$wt_root" diff --quiet HEAD -- "$rel"; } >/dev/null 2>&1 \
+  || { echo "refusing: commit the brief before dispatch ($rel)" >&2; exit 66; }
+
 mkdir -p "$logdir"; ts=$(date +%Y%m%d-%H%M%S); log="$logdir/$ts-$role.jsonl"
 cp "$here/opencode.$profile.json" "$wt/opencode.json"
 trap 'rm -f "$wt/opencode.json"' EXIT
@@ -37,3 +46,17 @@ echo "== errors:"; grep -o '"type":"error".\{0,200\}' "$log" | head -3 || true
 echo "== new commits:"; git -C "$wt" log --format='  %H %s' "$start"..HEAD
 echo "== uncommitted:"; git -C "$wt" status --short | sed 's/^/  /'
 echo "== final report:"; jq -r 'select(.part.type=="text") | .part.text' "$log" 2>/dev/null | tail -60
+
+# Save the full report beside the brief: HO-159-brief-partG.md -> HO-159-report-partG[-<ts>].md
+name=$(basename "$brief_abs" .md); rname=${name/-brief-/-report-}
+[[ "$rname" != "$name" ]] || rname="$name-report"
+report="$ho_dir/$rname.md"; [[ ! -e "$report" ]] || report="$ho_dir/$rname-$ts.md"
+{
+  echo "# Agent report: $role ($model), run $ts"
+  echo "Brief: $rel  |  Branch: $branch  |  Start: $start  |  End: $(git -C "$wt" rev-parse HEAD)"
+  echo; echo "## Denied tool calls"
+  jq -r 'select(.part.type=="tool" and (.part.state.error // "" | test("Permission denied"))) | "- " + (.part.state.input.command // .part.state.input.filePath // "?")' "$log" 2>/dev/null || true
+  echo; echo "## New commits"; git -C "$wt" log --format='- %H %s' "$start"..HEAD
+  echo; echo "## Final report"; jq -r 'select(.part.type=="text") | .part.text' "$log" 2>/dev/null
+} > "$report"
+echo "== report saved: ${report#"$wt_root"/} (orchestrator: commit it with the HO)"

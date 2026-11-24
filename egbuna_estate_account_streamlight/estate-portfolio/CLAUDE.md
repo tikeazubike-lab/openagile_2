@@ -49,6 +49,11 @@ Orchestration (automated; the only human pause is PR review + merge on main):
 - Loop per HO: architect spec commit -> builder-brief -> dispatch builder/frontend -> orchestrator runs
   unit tests -> auditor subagent + dispatch reviewer -> answer findings in the HO -> fix loop (max 2)
   -> orchestrator pushes branch + opens/updates PR -> STOP for Zubbyik.
+- Handover artefacts (Zubbyik, 2026-11-24): every brief, reviewer/investigation prompt, agent report and
+  PR text passed between agents lives in docs/handovers/, prefixed with its HO number
+  (e.g. HO-159-brief-partG-tabs.md, HO-159-report-partG-tabs.md), listed in HO-<nnn>-INDEX.md, committed
+  and pushed. Never only in a scratchpad; no new HO numbers for attachments. dispatch.sh enforces this:
+  it refuses a brief outside docs/handovers/ or not yet committed, and saves the agent's report beside it.
 Guardrails: .claude/settings.json -> .claude/hooks/guard-bash.sh, guard-write.sh (exit 2 = blocked).
 
 Commands (run from this directory):

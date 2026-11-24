@@ -40,7 +40,11 @@
       "rm *opencode.json*": "deny",
       "mv *opencode.json*": "deny",
       "cp *opencode.json*": "deny",
-      "tee *opencode.json*": "deny"
+      "tee *opencode.json*": "deny",
+      "find /*": "deny",
+      "find ~*": "deny",
+      "find /home*": "deny",
+      "find /tmp*": "deny"
     },
     "bash": {
       "*": "allow",
@@ -81,7 +85,11 @@
       "rm *opencode.json*": "deny",
       "mv *opencode.json*": "deny",
       "cp *opencode.json*": "deny",
-      "tee *opencode.json*": "deny"
+      "tee *opencode.json*": "deny",
+      "find /*": "deny",
+      "find ~*": "deny",
+      "find /home*": "deny",
+      "find /tmp*": "deny"
     },
     "edit": {
       "*": "allow",
