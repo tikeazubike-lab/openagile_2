@@ -224,3 +224,24 @@ Scope: `estate-portfolio-manager/src/components/registrars/RegistrarsLayout.tsx`
   4 files fail on missing jest-dom (pre-existing); tsc errors only in Navbar, claims, companies.$id, price-history.
 - Commit G1 and G2 separately. Do not push.
 - AC-9 (real layout at three viewports) is verified by the orchestrator with Playwright on a real build; not your job.
+
+### Part G review responses (architect, 2026-11-24)
+Built: G1 `8247c1029ce4fda7a54e959d6b05d78bbe4e7838` (RED, verified failing on the pre-G2 layout by the auditor),
+G2 `04fb8910a21a2ded230901db184a221d83d8fc8d`. Orchestrator re-run: vitest `Test Files 4 failed | 8 passed (12)`,
+`Tests 32 passed (32)` (4 = pre-existing jest-dom); tsc 13 errors, only Navbar/claims/companies.$id/price-history.
+**AC-9 (Playwright, real local build of 04fb891, live data, 2026-11-24): PASS** at 1280x720 / 1440x900 / 1920x1080:
+list top 124px; list height 612/792/972px; scroll area 547/727/907px; 36 cards; dashboard not rendered and
+0 dashboard requests before the tab opens; first card opens details; Dashboard tab shows tiles; selection kept.
+Auditor (fresh context): **ALIGNED**, mutation-tested (forceMount and defaultValue="dashboard" both break AC-8).
+Reviewer (DeepSeek v4 Pro, advisory): **SHIP**.
+
+| Source # | Finding | Response |
+|---|---|---|
+| Aud 1 | tab bar uses margins, spans full width with centred triggers | **Accepted as is.** Cosmetic; confirmed in screenshots, readable. Product Owner can request a restyle |
+| Aud 2 | no unit test for selection kept across tab switch | **Accepted as is.** Covered by the AC-9 Playwright run; not a spec AC |
+| Aud 3 / Rev 3 | below md: stacked list can crowd details; `h-full` inside a flex item | **Accepted as is.** Byte-identical to pre-F-026 mobile behaviour; `h-full` verified working at three viewports |
+| Aud 4 / Rev 2 | jsdom cannot assert heights | **Accepted.** That is why AC-9 exists and was run in a real browser |
+| Rev 1 | AC-7 layout test checks tiles only, not tracker / no inline edit | **Accepted as is.** Tracker render and no-inline-edit are asserted in `RegistrarsDashboard.test.tsx` (:169, :252) |
+| Rev 4 | "Registrars" is both the tab label and the list heading; no tablist aria-label | **Follow-up FU-4** (a11y nit), with FU-1..FU-3 |
+
+No fix round needed. Aud 8 (Part E) rejection is withdrawn; the defect it predicted is fixed by Part G.
