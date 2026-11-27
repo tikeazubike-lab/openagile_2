@@ -40,3 +40,36 @@
 
 ## 4. Work log
 (appended as the loop runs: builder report, test output, auditor + reviewer findings and responses, SHAs)
+
+### 4.1 Builder runs
+- Run 1 (mimo-v2.6-flash, 50 min, timed out): step 1 only, `184c4580dcae60c72cd2d2fa5bee3d28562f6b97` (RED unit tests + fixture).
+  ~20 min went on documentation lookups; the continuation brief answered those questions directly.
+- Run 2 (55 min, timed out): integration tests `02ec830efc5ace7300c34277b2af412abb0f17dc`; the script was left uncommitted and
+  committed unchanged by the orchestrator as `5e53a50a7f7330719780cd61d8c80a81a34dff57` (attributed to the builder). One test was written
+  after the timeout and committed unchanged as `ddcf3a7077ddfd69765c966ed8a2cd9f449169c1`. The run-2 log was truncated, so
+  `HO-160-report-builder-run2.md` is partial.
+- Orchestrator code change (disclosed): `b76b66c158291b7fadab315148bd8b67ce5a56f8` adds one `CompanyRow(UNVCO)` to the unit snapshot.
+  No assertion changed. The auditor confirmed this.
+- Unit suite after run 2: `177 passed, 4 xfailed` (auditor run).
+
+### 4.2 Production preview (Product Owner approved, read-only)
+`HO-160-preview-prod-2026-11-27.md`: `transaction_read_only = on`, db `estate_portfolio`. Product Owner decision on integration tests
+against epm_test: **not approved**, so apply/undo SQL is unproven on a real DB.
+
+### 4.3 Auditor pass 1: DEVIATED. Responses
+| # | Finding | Response |
+|---|---|---|
+| 1 | Duplicate ops inflate counts; stale "before" values | **Accepted**: spec A-6, fix round 1 |
+| 2 | Undo file is written only after COMMIT; the relative path lands inside the container | **Accepted**: spec A-7 (`--undo-out`, written before COMMIT, stdout markers for container runs) |
+| 3 | Integration tests not run; AC-1 test doesn't call the preview path; AC-13 doesn't round-trip JSON | **Partly accepted**: the tests are fixed in round 1. Running them needs the Product Owner's approval (declined so far) and is raised again at the PR |
+| 4 | Merge leaves no active link when K's row is soft-deleted | **Accepted** (spec gap): A-1 |
+| 5 | Reactivation doesn't set role='primary' | **Accepted**: A-2 |
+| 6 | Idempotency depends on the data | **Accepted**: A-3 |
+| 7 | Head office sort_order=1 ignores existing fields | **Accepted**: A-4 |
+| 8 | Trailing-slash URL duplicates | **Accepted**: A-5 |
+| 9 | Stale registrar in soft-delete line | **Accepted**: same fix as #1 |
+| 10 | Process artefacts outside backend/ | **No action**: these are HO artefacts, by rule |
+
+### 4.4 DeepSeek review
+Dispatched, then **stopped by Claude Code because the host was low on memory** (llama-server + whisper-cli were using about 5.7 GB of 7.8 GB).
+Not restarted without the Product Owner's go. Advisory only, so it does not block.
