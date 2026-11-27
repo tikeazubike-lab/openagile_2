@@ -161,3 +161,24 @@ There is **no** production run before the PR passes auditor review and the Produ
 - United Securities duplicates (20, 60) and the other non-file records (not in the research file).
 - Retiring `companies.registrar_id` from the detail page code (F1 drift; MASTER_CONTEXT says the column is
   unused, but the code still reads and writes it). Log it for v4.11.
+
+## 9. Amendment 2026-11-28 (after auditor pass 1, HO-160)
+- A-1 (§4.1.1 gap, audit #4): if K's existing row for a company is soft-deleted and D's row is active, **reactivate
+  K's row** (keeping D's role) and soft-delete D's row. A merge must never leave a company with fewer active links.
+- A-2 (§4.4, audit #5): reactivating a (company, K) row for a firm mapping sets `role='primary'` as well as
+  `deleted_at=NULL`.
+- A-3 (§4.2/§4.3 idempotency, audit #6): a legacy column is filled from the file only with a value that is also stored
+  (or already present) as a visible field on K. The §4.3 "Entered manually" copy skips any legacy value that matches
+  an existing or planned field.
+- A-4 (§4.2 order, audit #7): new fields are numbered after K's existing active fields: base = max(existing sort_order),
+  head office = base+10, then the rest in steps of 10.
+- A-5 (§4.1.4 normalisation, audit #8): for websites and portals, also strip one trailing "/" before comparing.
+- A-6 (plan integrity, audit #1/#9): planning runs against a working copy of the snapshot that each planned op updates.
+  No row/column is changed by two ops; every "before" value in the plan is the value at that point in the plan, and
+  the counts count distinct rows.
+- A-7 (undo safety, audit #2): `--apply` requires `--undo-out <path|->`. The undo record is complete before COMMIT.
+  It is written to the path (or printed to stdout between `=== F026C UNDO JSON BEGIN ===` / `=== F026C UNDO JSON END ===`
+  for `-`) **before** COMMIT; if that fails, roll back. Applies to production runs in the container, where only stdout
+  reaches the host.
+- New AC-16: preview of the production-shaped unit snapshot has no row/column changed twice, and counts equal distinct
+  rows. AC-17: if writing the undo record fails, apply rolls back.
