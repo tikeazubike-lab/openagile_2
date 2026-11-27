@@ -166,6 +166,19 @@ def test_parse_research_reads_the_single_json_block():
     assert len(research.without_contact_record) == 1
 
 
+def test_parse_research_reads_the_same_result_from_research_text():
+    # Spec: F-026c-registrar-research-import.md | AC-1
+    """cli(argv, research_text=...) parses the file content instead of the
+    path (container preview, stdin only): the Research is identical either way
+    (``source`` is excluded from the comparison — it only says where the text
+    came from)."""
+    from_text = parse_research(text=FIXTURE.read_text(encoding="utf-8"))
+    from_path = parse_research(FIXTURE)
+    assert from_text == from_path
+    assert from_text.registrars == from_path.registrars
+    assert from_text.without_contact_record == from_path.without_contact_record
+
+
 @pytest.mark.parametrize("body", [
     "no fenced block at all",
     "```json\n{\"a\": 1}\n```\n\n```json\n{\"b\": 2}\n```\n",
