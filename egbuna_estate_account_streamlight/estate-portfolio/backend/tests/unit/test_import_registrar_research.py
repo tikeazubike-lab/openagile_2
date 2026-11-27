@@ -10,10 +10,15 @@ Trace on every test:
   # Spec: F-026c-registrar-research-import.md | AC-N
 """
 import asyncio
+import json
 from pathlib import Path
 
 import pytest
 
+# `imp` gives the tests the module object itself: A-6/A-7 helpers that do not
+# exist yet are reached through it (imp.apply_ops_to_snapshot, imp._write_undo),
+# so those tests fail on their own instead of breaking the whole file at import.
+import scripts.import_registrar_research as imp
 from scripts.import_registrar_research import (
     ConfirmDatabaseError,
     CompanyRow,
@@ -35,6 +40,7 @@ from scripts.import_registrar_research import (
     Snapshot,
     SoftDeleteLinkOp,
     SoftDeleteRegistrarOp,
+    UndoRecord,
     UpdateCompanyOp,
     UpdateRegistrarOp,
     amain,
@@ -121,6 +127,37 @@ def _snapshot():
             RequirementRow(id=301, registrar_id=3, deleted_at=None),
         ],
     )
+
+
+def _snapshot_ghost():
+    """_snapshot() plus the rows audits #1 and #4 were about (A-1/A-6):
+
+    * ``GHOST`` (company 105) is firmly mapped to canonical #1 by the file,
+      duplicate #3 still holds its ACTIVE link, and canonical #1's own row for
+      the company is soft-deleted — the merge must reactivate #1's row
+      (audit #4) and the firm mapping must not add a second change (audit #1).
+    * ``OTHERCO`` (company 106) is not in the file at all: its link to the
+      duplicate is active with role ``co_registrar`` while #1's row is
+      soft-deleted — A-1 reactivates #1's row keeping D's role.
+    """
+    snapshot = _snapshot()
+    snapshot.companies.extend([
+        CompanyRow(id=105, ticker="GHOST", name="Ghost Co Plc",
+                   registrar_id=3, deleted_at=None),
+        CompanyRow(id=106, ticker="OTHERCO", name="Other Co Plc",
+                   registrar_id=3, deleted_at=None),
+    ])
+    snapshot.links.extend([
+        LinkRow(id=204, company_id=105, registrar_id=3, role="primary",
+                deleted_at=None),
+        LinkRow(id=205, company_id=105, registrar_id=1, role="primary",
+                deleted_at=True),
+        LinkRow(id=206, company_id=106, registrar_id=3, role="co_registrar",
+                deleted_at=None),
+        LinkRow(id=207, company_id=106, registrar_id=1, role="primary",
+                deleted_at=True),
+    ])
+    return snapshot
 
 
 def _build():
@@ -350,26 +387,29 @@ def test_ac7_head_office_from_the_file_gets_the_confirm_suffix():
     assert len(head) == 1
     assert head[0].field_type == "address"
     assert head[0].label == "Head office (please confirm)"
-    assert head[0].sort_order == 1
+    # A-4: the head office sorts base+10, base = max(existing sort_order) = 10
+    assert head[0].sort_order == 20
 
 
 def test_field_sort_orders_step_by_10_after_existing_fields():
     # Spec: F-026c-registrar-research-import.md | AC-7
-    """Head office address sorts first (1); everything else steps by 10
-    after the existing fields (the existing max sort_order on #1 is 10)."""
+    """A-4: every new field is numbered after K's existing active fields —
+    base = max(existing sort_order), head office = base+10, the rest in steps
+    of 10 (the existing max sort_order on #1 is 10, and the moved field of
+    the duplicate only sorts 1)."""
     plan = _build()
     alpha = _fields(plan, 1)
     head = [op for op in alpha if op.field_value == "1 Alpha Way, Lagos"][0]
     rest = [op.sort_order for op in alpha if op is not head]
     assert rest == sorted(rest)
     assert all(order % 10 == 0 for order in rest)
-    assert min(rest) == 20                       # existing fields end at 10
+    assert min(rest) == 30                       # base 10 -> head 20 -> 30
 
     newbies = _fields(plan, ("new", "newbies"))
     head2 = [op for op in newbies
              if op.field_value == "5 Newbie Close, Ikeja, Lagos"][0]
     rest2 = [op.sort_order for op in newbies if op is not head2]
-    assert min(rest2) == 10                      # no pre-existing fields
+    assert min(rest2) == 20                      # base 0 -> head 10 -> 20
 
 
 def test_ac10_weak_mappings_are_held_back_and_get_no_link_change():
@@ -564,12 +604,422 @@ def test_ac14_confirm_db_must_equal_the_connected_database():
 
 def test_ac1_refuses_to_run_without_database_url(monkeypatch):
     # Spec: F-026c-registrar-research-import.md | AC-1
+    """A-7: --undo-out is now part of a legal --apply invocation, so the flag
+    is given here too and the refusal is still about DATABASE_URL."""
     monkeypatch.delenv("DATABASE_URL", raising=False)
-    rc = asyncio.run(amain(["--apply", "--confirm-db", "epm_test"]))
+    rc = asyncio.run(amain(["--apply", "--undo-out", "-", "--confirm-db", "epm_test"]))
     assert rc != 0
 
 
 def test_apply_without_confirm_db_refuses_before_touching_anything():
     # Spec: F-026c-registrar-research-import.md | AC-14
-    rc = asyncio.run(amain(["--apply"]))
+    """A-7: --undo-out is given so the check that fires is the missing
+    --confirm-db (AC-14), not the new A-7 flag rule."""
+    rc = asyncio.run(amain(["--apply", "--undo-out", "-"]))
     assert rc != 0
+
+
+# ─── A-1: a merge never leaves a company with fewer active links ──────────────
+
+def test_a1_merge_reactivates_the_canonicals_soft_deleted_row():
+    # Spec: F-026c-registrar-research-import.md | AC-8
+    """A-1 (audit #4): K's row for the company is soft-deleted and D's row is
+    active => the plan reactivates K's row keeping D's role and soft-deletes
+    D's row, so the company keeps exactly one active link to the canonical."""
+    plan = build_plan(_research(), _snapshot_ghost(), _resolution_table())
+    reactivations = {op.link_id: op for op in _ops(plan, EnsurePrimaryLinkOp)}
+    assert sorted(reactivations) == [205, 207]
+    # the reactivated row keeps D's role
+    assert reactivations[205].role == "primary"        # D link 204 is a primary
+    assert reactivations[207].role == "co_registrar"    # D link 206 is a co_registrar
+    # D's rows are soft-deleted exactly once each (nothing else touches them)
+    assert sorted(op.link_id for op in _ops(plan, SoftDeleteLinkOp)) == [203, 204, 206]
+
+    # after the plan has run both companies still have one active link, to #1
+    state = imp.apply_ops_to_snapshot(_snapshot_ghost(), plan.ops)
+    for company_id, link_id, role in ((105, 205, "primary"),
+                                      (106, 207, "co_registrar")):
+        active = [l for l in state.links
+                  if l.company_id == company_id and not l.deleted_at]
+        assert [(l.id, l.registrar_id, l.role) for l in active] == [
+            (link_id, 1, role)]
+
+
+# ─── A-2: a firm reactivation sets role='primary' ─────────────────────────────
+
+def test_a2_firm_reactivation_sets_role_primary():
+    # Spec: F-026c-registrar-research-import.md | AC-8
+    """A-2 (audit #5): reactivating the (company, K) row for a firm mapping
+    sets deleted_at=NULL AND role='primary' in the same operation."""
+    snapshot = _snapshot()
+    snapshot.links[0].deleted_at = True      # link 201: #1's row for ALPHA
+    plan = build_plan(_research(), snapshot, _resolution_table())
+    reactivations = [op for op in _ops(plan, EnsurePrimaryLinkOp)
+                     if op.company_id == 101]
+    assert len(reactivations) == 1
+    assert reactivations[0].link_id == 201
+    assert reactivations[0].role == "primary"
+    # the reactivation is the only other link change for company 101:
+    # the foreign primary (link 203) is retired, no row is created
+    assert [op.link_id for op in _ops(plan, SoftDeleteLinkOp)] == [203]
+    assert not any(isinstance(op, CreateLinkOp) and op.company_id == 101
+                    for op in plan.ops)
+
+
+# ─── A-3: legacy fills keep the plan idempotent ───────────────────────────────
+
+def _research_with_hidden_primary_email():
+    """The same fixture with alpha's primary email hidden from the page
+    (show_on_page: false): filling the NULL legacy column with it would store a
+    value that has no visible field, and the NEXT run would then copy that
+    column back as an "Entered manually" field — audit #6."""
+    research = _research()
+    for email in research.registrars[0]["emails"]:
+        if email["address"] == "desk@alpha.example":
+            email["show_on_page"] = False
+    return research
+
+
+def test_a3_a_legacy_column_is_filled_only_with_a_visible_value():
+    # Spec: F-026c-registrar-research-import.md | AC-12
+    """A-3 clause 1: the file may fill a NULL legacy column only with a value
+    that is also stored (or already present) as a visible field on K."""
+    plan = build_plan(_research_with_hidden_primary_email(),
+                      _snapshot(), _resolution_table())
+    fills = {op.registrar_key: set(op.changes)
+             for op in _ops(plan, UpdateRegistrarOp)
+             if set(op.changes) & {"email", "phone", "address", "website"}}
+    # the primary email is not visible on the page => the column stays NULL
+    assert "email" not in fills.get(1, set())
+    # the head office address is visible => the NULL address column may take it
+    assert "address" in fills.get(1, set())
+
+
+def test_a3_second_plan_on_the_post_apply_state_plans_zero_ops():
+    # Spec: F-026c-registrar-research-import.md | AC-12
+    """A-3/audit #6: build the plan, apply it to the snapshot (the same working
+    copy the planner updates, A-6), build the plan again on the post-apply
+    state and get an empty plan."""
+    research = _research_with_hidden_primary_email()
+    first = build_plan(research, _snapshot(), _resolution_table())
+    state = imp.apply_ops_to_snapshot(_snapshot(), first.ops)
+    second = build_plan(research, state, _resolution_table())
+    assert second.ops == [], second.lines
+    assert all(value == 0 for value in second.counts.values()), second.counts
+
+
+# ─── A-4: sort_order is numbered after K's existing fields ────────────────────
+
+def test_a4_new_fields_are_numbered_after_the_existing_ones():
+    # Spec: F-026c-registrar-research-import.md | AC-7
+    """A-4 (audit #7): base = max(existing active sort_order), head office =
+    base+10, then the rest in steps of 10."""
+    plan = _build()
+    alpha = {op.field_value: op.sort_order for op in _fields(plan, 1)}
+    assert alpha["1 Alpha Way, Lagos"] == 20            # base 10 + 10
+    rest = sorted(order for value, order in alpha.items()
+                  if value != "1 Alpha Way, Lagos")
+    assert rest[0] == 30
+    assert rest == list(range(30, 30 + 10 * len(rest), 10))
+
+    newbies = {op.field_value: op.sort_order
+               for op in _fields(plan, ("new", "newbies"))}
+    assert newbies["5 Newbie Close, Ikeja, Lagos"] == 10   # base 0 + 10
+    rest2 = sorted(order for value, order in newbies.items()
+                   if value != "5 Newbie Close, Ikeja, Lagos")
+    assert rest2[0] == 20
+    assert rest2 == list(range(20, 20 + 10 * len(rest2), 10))
+
+
+# ─── A-5: a trailing slash does not duplicate a website/portal ────────────────
+
+def test_a5_a_trailing_slash_does_not_create_a_second_field():
+    # Spec: F-026c-registrar-research-import.md | AC-5
+    """A-5 (audit #8): for websites and portals one trailing "/" is stripped
+    before the values are compared."""
+    snapshot = _snapshot()
+    snapshot.fields.extend([
+        FieldRow(id=103, registrar_id=1, field_type="website",
+                 field_value="https://alpha.example/", label="web",
+                 sort_order=20, deleted_at=None),
+        FieldRow(id=104, registrar_id=1, field_type="other",
+                 field_value="https://portal.alpha.example/", label="portal",
+                 sort_order=30, deleted_at=None),
+    ])
+    plan = build_plan(_research(), snapshot, _resolution_table())
+    created = _field_values(_fields(plan, 1))
+    # the file carries both URLs without the slash: no second copy of either
+    assert "https://alpha.example" not in created
+    assert "https://portal.alpha.example" not in created
+    assert "https://portal.alpha.example/" not in created
+    # and the normalisation itself is the rule the amendment asks for
+    assert normalise("https://alpha.example/") == normalise("https://alpha.example")
+    assert normalise("https://alpha.example/", "website") == normalise("https://alpha.example")
+    assert normalise("https://portal.alpha.example/") == normalise("https://portal.alpha.example")
+
+
+# ─── A-6 / AC-16: plan integrity ──────────────────────────────────────────────
+
+def _touches(op):
+    """(table, row_id, column) of every column of an EXISTING row the op
+    changes. Insert operations are left out: they cannot collide with a
+    second op, and a ("new", slug) key names a row that does not exist yet."""
+    if isinstance(op, (CreateRegistrarOp, CreateFieldOp, CreateLinkOp)):
+        return []
+    if isinstance(op, RenameRegistrarOp):
+        return [("registrars", op.registrar_id, "name")]
+    if isinstance(op, UpdateRegistrarOp):
+        if not isinstance(op.registrar_key, int):
+            return []                            # writes a row the apply created
+        return [("registrars", op.registrar_key, col) for col in op.changes]
+    if isinstance(op, SoftDeleteRegistrarOp):
+        return [("registrars", op.registrar_id, "deleted_at")]
+    if isinstance(op, MoveFieldOp):
+        return [("registrar_contact_fields", op.field_id, "registrar_id")]
+    if isinstance(op, SoftDeleteLinkOp):
+        return [("company_registrars", op.link_id, "deleted_at")]
+    if isinstance(op, EnsurePrimaryLinkOp):
+        if op.link_id is None:
+            return []                            # resolved at apply time
+        return [("company_registrars", op.link_id, "deleted_at"),
+                ("company_registrars", op.link_id, "role")]
+    if isinstance(op, RepointLinkOp):
+        return [("company_registrars", op.link_id, "registrar_id")]
+    if isinstance(op, RepointRequirementOp):
+        return [("registrar_requirements", op.requirement_id, "registrar_id")]
+    if isinstance(op, UpdateCompanyOp):
+        if not isinstance(op.company_id, int):
+            return []
+        return [("companies", op.company_id, col) for col in op.changes]
+    raise AssertionError(f"unhandled plan operation: {op!r}")
+
+
+@pytest.mark.parametrize("snapshot_factory", [_snapshot, _snapshot_ghost])
+def test_ac16_no_row_or_column_is_changed_twice_and_counts_are_distinct(
+        snapshot_factory):
+    # Spec: F-026c-registrar-research-import.md | AC-16
+    """A-6: no row/column is changed by two ops, and every count equals the
+    number of distinct rows it claims to cover."""
+    plan = build_plan(_research(), snapshot_factory(), _resolution_table())
+    seen = set()
+    for op in plan.ops:
+        for touch in _touches(op):
+            assert touch not in seen, (
+                f"{touch} changed twice: {plan.lines}")
+            seen.add(touch)
+
+    assert plan.counts["registrars_soft_deleted"] == len(
+        {op.registrar_id for op in _ops(plan, SoftDeleteRegistrarOp)})
+    assert plan.counts["fields_moved"] == len(
+        {op.field_id for op in _ops(plan, MoveFieldOp)})
+    assert plan.counts["fields_added"] == len(_ops(plan, CreateFieldOp))
+    assert plan.counts["links_created"] == len(_ops(plan, CreateLinkOp))
+    assert plan.counts["links_repointed"] == len(
+        {op.link_id for op in _ops(plan, RepointLinkOp)})
+    assert plan.counts["links_reactivated"] == len(
+        {op.link_id for op in _ops(plan, EnsurePrimaryLinkOp)
+         if op.link_id is not None})
+    assert plan.counts["links_soft_deleted"] == len(
+        {op.link_id for op in _ops(plan, SoftDeleteLinkOp)})
+    assert plan.counts["requirements_repointed"] == len(
+        {op.requirement_id for op in _ops(plan, RepointRequirementOp)})
+    assert plan.counts["companies_registrar_changed"] == len(
+        {op.company_id for op in _ops(plan, UpdateCompanyOp)})
+
+
+def test_a6_merged_company_that_is_also_firm_mapped_gets_one_consistent_before():
+    # Spec: F-026c-registrar-research-import.md | AC-16
+    """A-6/audit #1: company 105 is merged (link of duplicate #3) AND firmly
+    mapped to canonical #1 by the file. Its companies.registrar_id must be
+    changed exactly once — the merge — and the firm mapping must add no second
+    change, no second soft-delete and no stale "before" value."""
+    snapshot = _snapshot_ghost()
+    plan = build_plan(_research(), snapshot, _resolution_table())
+
+    company_ops = [op for op in _ops(plan, UpdateCompanyOp)
+                   if op.company_id == 105]
+    assert [op.changes for op in company_ops] == [{"registrar_id": 1}]
+    # the "before" value the plan line shows is the value in the snapshot
+    assert [line for line in plan.lines
+            if line.startswith("company #105:")] == [
+        "company #105: registrar_id #3 -> #1"]
+    # every link op on company 105 belongs to the merge, once
+    assert sorted(op.link_id for op in _ops(plan, SoftDeleteLinkOp)
+                  if op.link_id in (204, 205)) == [204]
+    assert [op.link_id for op in _ops(plan, EnsurePrimaryLinkOp)
+            if op.link_id in (204, 205)] == [205]
+    assert not any(isinstance(op, CreateLinkOp) and op.company_id == 105
+                    for op in plan.ops)
+
+
+# ─── A-7 / AC-17: the undo record is written before COMMIT ────────────────────
+
+class _FakeResult:
+    def scalar_one(self):
+        return "epm_test"
+
+
+class _FakeTransaction:
+    """Records the order of begin / commit / rollback; never swallows errors."""
+
+    def __init__(self, events):
+        self.events = events
+
+    async def __aenter__(self):
+        self.events.append("begin")
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.events.append("rollback" if exc_type else "commit")
+        return False
+
+
+class _FakeSession:
+    def __init__(self, events):
+        self.events = events
+
+    def begin(self):
+        return _FakeTransaction(self.events)
+
+    async def close(self):
+        self.events.append("close")
+
+    async def execute(self, statement, *args, **kwargs):
+        return _FakeResult()          # current_database() -> "epm_test"
+
+
+class _FakeConnection:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakeEngine:
+    def __init__(self, events):
+        self.events = events
+
+    def connect(self):
+        self.events.append("connect")
+        return _FakeConnection()
+
+    async def dispose(self):
+        self.events.append("dispose")
+
+
+def _fake_cli(monkeypatch, events):
+    """cli() wired to a fake engine and a fake session, with the snapshot,
+    the plan and the undo record faked too — the transaction ORDER of an
+    --apply is then observable without any database (AC-17)."""
+    monkeypatch.setattr(imp, "create_async_engine",
+                        lambda *args, **kwargs: _FakeEngine(events))
+    monkeypatch.setattr(imp, "AsyncSession",
+                        lambda **kwargs: _FakeSession(events))
+    monkeypatch.setattr(imp, "RESOLUTION_TABLE", _resolution_table())
+
+    async def fake_load_snapshot(session):
+        events.append("load_snapshot")
+        return _snapshot()
+
+    async def fake_apply_plan(session, plan):
+        events.append("apply_plan")
+        return UndoRecord(
+            database="epm_test", applied_at="2026-11-28T00:00:00+00:00",
+            counts=dict(plan.counts),
+            entries=[{"table": "registrars", "id": 1,
+                      "previous": {"name": "old name"}}],
+        )
+
+    monkeypatch.setattr(imp, "load_snapshot", fake_load_snapshot)
+    monkeypatch.setattr(imp, "apply_plan", fake_apply_plan)
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql+asyncpg://epm:secret@example.test/epm_test",
+    )
+    return imp
+
+
+def test_ac17_apply_without_undo_out_exits_non_zero(monkeypatch, capsys):
+    # Spec: F-026c-registrar-research-import.md | AC-17
+    """A-7: --apply refuses to run without --undo-out <path|->, before it
+    even looks at DATABASE_URL."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    rc = asyncio.run(amain(["--apply", "--confirm-db", "epm_test"]))
+    assert rc != 0
+    assert "--undo-out" in capsys.readouterr().err
+
+
+def test_ac17_the_undo_record_is_written_before_the_commit(
+        monkeypatch, tmp_path, capsys):
+    # Spec: F-026c-registrar-research-import.md | AC-17
+    """A-7: the undo writer runs inside the transaction, before COMMIT."""
+    events = []
+    mod = _fake_cli(monkeypatch, events)
+    real_write = mod._write_undo
+
+    def spy(record, undo_out):
+        events.append("write_undo")
+        return real_write(record, undo_out)
+
+    monkeypatch.setattr(mod, "_write_undo", spy)
+    undo_path = tmp_path / "undo.json"
+    rc = asyncio.run(mod.cli(
+        ["--apply", "--confirm-db", "epm_test", "--undo-out", str(undo_path)],
+        research_text=FIXTURE.read_text(encoding="utf-8"),
+    ))
+    assert rc == 0, capsys.readouterr().err
+    assert "apply_plan" in events and "write_undo" in events and "commit" in events
+    assert events.index("apply_plan") < events.index("write_undo")
+    assert events.index("write_undo") < events.index("commit")
+    assert "rollback" not in events
+
+    payload = json.loads(undo_path.read_text(encoding="utf-8"))
+    assert payload["feature"] == "F-026c"
+    assert payload["database"] == "epm_test"
+    assert payload["entries"] == [
+        {"table": "registrars", "id": 1, "previous": {"name": "old name"}}]
+
+
+def test_ac17_a_failing_undo_writer_rolls_the_apply_back(
+        monkeypatch, tmp_path, capsys):
+    # Spec: F-026c-registrar-research-import.md | AC-17
+    """A-7: if writing the undo record fails, the transaction rolls back —
+    nothing is committed and the CLI exits non-zero."""
+    events = []
+    mod = _fake_cli(monkeypatch, events)
+    blocker = tmp_path / "not-a-directory"
+    blocker.write_text("x", encoding="utf-8")     # mkdir() over this fails
+    undo_path = blocker / "undo.json"
+
+    rc = asyncio.run(mod.cli(
+        ["--apply", "--confirm-db", "epm_test", "--undo-out", str(undo_path)],
+        research_text=FIXTURE.read_text(encoding="utf-8"),
+    ))
+    assert rc != 0
+    assert "rollback" in events                   # the transaction rolled back
+    assert "commit" not in events                  # ... and never committed
+    assert not undo_path.exists()
+    assert "error:" in capsys.readouterr().err
+
+
+def test_a7_undo_out_dash_prints_the_json_between_the_markers(
+        monkeypatch, capsys):
+    # Spec: F-026c-registrar-research-import.md | AC-17
+    """A-7: ``--undo-out -`` prints the record on stdout between the two
+    markers (the production container run, where only stdout reaches the host)."""
+    events = []
+    mod = _fake_cli(monkeypatch, events)
+    rc = asyncio.run(mod.cli(
+        ["--apply", "--confirm-db", "epm_test", "--undo-out", "-"],
+        research_text=FIXTURE.read_text(encoding="utf-8"),
+    ))
+    assert rc == 0, capsys.readouterr().err
+    out = capsys.readouterr().out
+    begin, end = ("=== F026C UNDO JSON BEGIN ===",
+                  "=== F026C UNDO JSON END ===")
+    assert begin in out and end in out
+    payload = json.loads(out.split(begin, 1)[1].split(end, 1)[0])
+    assert payload["feature"] == "F-026c"
+    assert payload["database"] == "epm_test"
+    assert payload["entries"][0]["id"] == 1
