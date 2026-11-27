@@ -115,6 +115,7 @@ def _snapshot():
             CompanyRow(id=101, ticker="ALPHA", registrar_id=1, deleted_at=None),
             CompanyRow(id=102, ticker="WEAKCO", registrar_id=3, deleted_at=None),
             CompanyRow(id=103, ticker="NEWBIE", registrar_id=None, deleted_at=None),
+            CompanyRow(id=104, ticker="UNVCO", registrar_id=None, deleted_at=None),
         ],
         requirements=[
             RequirementRow(id=301, registrar_id=3, deleted_at=None),
