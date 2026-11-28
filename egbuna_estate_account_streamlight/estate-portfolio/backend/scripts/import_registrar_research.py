@@ -77,17 +77,21 @@ from sqlalchemy.pool import NullPool
 __all__ = [
     # errors
     "ResearchImportError", "ParseError", "ResolutionError", "ConfirmDatabaseError",
+    "TickerAliasError", "RetireBlockedError", "PlaceholderMismatchError",
     # pure layer
     "Research", "Snapshot", "RegistrarRow", "FieldRow", "LinkRow", "CompanyRow",
     "RequirementRow", "ResolutionEntry", "RESOLUTION_TABLE", "Plan", "UndoRecord",
     "parse_research", "classify", "normalise", "phone_label", "email_label",
     "website_field", "portal_field", "office_label", "build_plan", "format_plan",
     "apply_ops_to_snapshot", "check_confirm_db",
+    # §12 (HO-160 §4.9) product-owner tables
+    "TICKER_ALIASES", "DUPLICATE_COMPANIES", "FLAGGED_COMPANIES",
+    "PLACEHOLDER_CONTACTS", "REF_COUNT_TABLES",
     # ops (needed by tests and by apply_plan)
     "CreateRegistrarOp", "RenameRegistrarOp", "UpdateRegistrarOp",
     "SoftDeleteRegistrarOp", "MoveFieldOp", "CreateFieldOp", "SoftDeleteLinkOp",
     "EnsurePrimaryLinkOp", "CreateLinkOp", "RepointLinkOp", "RepointRequirementOp",
-    "UpdateCompanyOp",
+    "UpdateCompanyOp", "RetireCompanyOp",
     # DB layer
     "load_snapshot", "apply_plan", "undo",
     # CLI
@@ -111,6 +115,21 @@ class ResolutionError(ResearchImportError):
 
 class ConfirmDatabaseError(ResearchImportError):
     """--confirm-db is missing or does not match the connected database."""
+
+
+class TickerAliasError(ResearchImportError):
+    """§12 D-3: an alias target is not an active company."""
+
+
+class RetireBlockedError(ResearchImportError):
+    """§12 D-4: a company listed for retirement is still referenced by a
+    holding, transaction, dividend or registrar document — or the row it
+    keeps the data for is missing."""
+
+
+class PlaceholderMismatchError(ResearchImportError):
+    """§12 D-6: a legacy column does not hold the placeholder it is listed
+    with, so the script refuses to clear it."""
 
 
 # ─── snapshot rows (plain dataclasses: no DB access) ───────────────────────────
@@ -174,6 +193,10 @@ class Snapshot:
     links: list = field(default_factory=list)
     companies: list = field(default_factory=list)
     requirements: list = field(default_factory=list)
+    # §12 D-4: company_id -> {"holdings": n, "transactions": n, ...}, the
+    # read-only reference counts load_snapshot() gathers so a retire candidate
+    # that is still referenced can abort the plan before any write.
+    refs: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -183,6 +206,10 @@ class ResolutionEntry:
     canonical: int | None
     duplicates: tuple = ()
     final_name: str | None = None
+    # §12 D-2: extra words a name of this row may hold instead of the slug's
+    # first word — registrar #15 is "GTL-Registrars-Limited" and is Greenwich
+    # ("Greenwich Registrars (GTL)" in the research file).
+    extra_name_words: tuple = ()
 
 
 @dataclass
@@ -274,15 +301,56 @@ class UpdateCompanyOp:
     changes: dict
 
 
+@dataclass
+class RetireCompanyOp:
+    """§12 D-4: soft-delete a duplicate company row (planned action MERGE).
+    Its active links go with it; undo restores the row."""
+    company_id: int
+
+
 COUNT_KEYS = (
     "registrars_created", "registrars_merged", "registrars_soft_deleted",
     "registrars_renamed", "fields_added", "fields_moved",
     "legacy_columns_filled", "links_created", "links_reactivated",
     "links_soft_deleted", "links_repointed", "requirements_repointed",
-    "companies_registrar_changed",
+    "companies_registrar_changed", "companies_retired",
 )
 
 LEGACY_COLUMNS = ("email", "phone", "address", "website")
+
+# ─── §12 (HO-160 §4.9): the Product Owner's fixed tables ─────────────────────
+
+# D-3: research ticker -> EPM ticker, applied BEFORE ticker matching.
+TICKER_ALIASES: dict = {"MEYER": "DNMEYER"}
+
+# D-4: keep ticker -> retire ticker. The duplicate row (and its active links)
+# is soft-deleted; the kept row keeps the data, price history included.
+DUPLICATE_COMPANIES: dict = {
+    "OKOMUOIL": "OKOMOILP",
+    "TRANSEXPR": "TRANSEX",
+    "WEMABANK": "WEMA",
+    "LEARNAFRCA": "LEARNAFR",
+    "LIVESTOCK": "LIVESTOK",
+    "TRANSPOWER": "TRANSCORPPOWER",
+    "DNMEYER": "MEYER",
+}
+
+# D-4: listed as FLAG, never retired — Access Bank records are reconciled
+# separately (HO-160 reconciliation brief §4).
+FLAGGED_COMPANIES: tuple = ("ACCESS",)
+
+# D-4: the reference tables that make a retire abort at plan time. The price
+# history/audits are deliberately NOT among them (§12: they stay attached).
+REF_COUNT_TABLES: tuple = ("holdings", "transactions", "dividends",
+                           "registrar_documents")
+
+# D-6: slug -> {legacy column: the exact placeholder value to clear to NULL}.
+PLACEHOLDER_CONTACTS: dict = {
+    "meristem": {"phone": "+234-1-345-6789",
+                 "email": "registrar@meristem.com.ng"},
+    "unity": {"phone": "+234-1-234-5678",
+              "email": "info@unityregistrars.com"},
+}
 
 
 @dataclass
@@ -295,7 +363,6 @@ class Plan:
         "held_back": 0, "unmatched": 0, "without_contact_record": 0,
     })
     held_back: list = field(default_factory=list)
-    held_back_co_registrar: list = field(default_factory=list)   # A-9 / AC-18
     unmatched: list = field(default_factory=list)
     without_contact_record: list = field(default_factory=list)
 
@@ -318,6 +385,7 @@ class Plan:
              f"soft-deleted={c['links_soft_deleted']} repointed={c['links_repointed']}"),
             f"requirements repointed={c['requirements_repointed']}",
             f"companies.registrar_id changed={c['companies_registrar_changed']}",
+            f"companies retired={c['companies_retired']}",
             f"held back (weak)={r['held_back']}",
             f"unmatched={r['unmatched']}",
             f"without contact record={r['without_contact_record']}",
@@ -415,6 +483,8 @@ class _WorkCopy:
             links=[replace(row) for row in snapshot.links],
             companies=[replace(row) for row in snapshot.companies],
             requirements=[replace(row) for row in snapshot.requirements],
+            refs={company_id: dict(counts)
+                  for company_id, counts in snapshot.refs.items()},
         )
         self.created: dict = {}             # ("new", slug) -> synthetic id
         existing_ids = (
@@ -520,6 +590,9 @@ class _WorkCopy:
             row = self._find(self.snap.companies, op.company_id)
             for column, value in op.changes.items():
                 setattr(row, column, self._value(value))
+        elif isinstance(op, RetireCompanyOp):        # §12 D-4
+            self._find(self.snap.companies, op.company_id).deleted_at = \
+                _planned_deleted_at()
         else:                                            # pragma: no cover
             raise ResearchImportError(
                 f"working copy: unknown operation {op!r}")
@@ -680,10 +753,10 @@ def check_confirm_db(confirm_db, connected_db) -> None:
 
 # ─── §3 resolution table (authoritative; the script never guesses) ─────────────
 
-def _entry(slug, canonical, duplicates, final_name):
+def _entry(slug, canonical, duplicates, final_name, extra_name_words=()):
     return ResolutionEntry(
         slug=slug, canonical=canonical, duplicates=tuple(duplicates),
-        final_name=final_name,
+        final_name=final_name, extra_name_words=tuple(extra_name_words),
     )
 
 
@@ -692,8 +765,10 @@ RESOLUTION_TABLE: dict = {
     "meristem": _entry("meristem", 2, (9, 57), "Meristem Registrars"),
     "africa-prudential": _entry("africa-prudential", 50, (6,), None),
     "first-registrars": _entry("first-registrars", 52, (11,), None),
-    "greenwich": _entry("greenwich", 8, (3, 56),
-                        "Greenwich Registrars & Data Solutions Limited"),
+    # §12 D-2: registrar #15 is GTL Registrars = Greenwich, so 15 joins 3, 56
+    "greenwich": _entry("greenwich", 8, (3, 56, 15),
+                        "Greenwich Registrars & Data Solutions Limited",
+                        ("gtl",)),
     "coronation": _entry("coronation", 51, (12,), None),
     "cardinalstone": _entry("cardinalstone", 55, (21,), None),
     "veritas": _entry("veritas", 13, (53,), "Veritas Registrars Limited"),
@@ -736,6 +811,10 @@ class _Planner:
         # filled in by _merge_duplicates() before the first merge runs
         self.firm_targets: dict = {}
         self._merged = 0
+        # §12 D-6: legacy placeholder columns to clear, one entry per
+        # (slug, row, column); emitted by _contacts_for() once it knows
+        # whether the §4.2 fill writes that column instead
+        self._placeholder_clears: list = []
 
     # ── verification (spec §3 / AC-14) ────────────────────────────────────
     def _verify_table(self) -> None:
@@ -773,10 +852,17 @@ class _Planner:
                 if row is None:
                     raise ResolutionError(
                         f"{slug}: duplicate registrar #{duplicate} does not exist")
-                if word not in row.name.casefold():
+                # §12 D-2: a duplicate may be named after the alias instead of
+                # the slug's word — #15 is "GTL-Registrars-Limited" and is a
+                # Greenwich duplicate.
+                allowed = (word, *entry.extra_name_words)
+                if not any(candidate in row.name.casefold()
+                           for candidate in allowed):
                     raise ResolutionError(
                         f"{slug}: duplicate #{duplicate} name {row.name!r} "
-                        f"does not contain {word!r}")
+                        f"does not contain {word!r}"
+                        + (f" or {'/'.join(entry.extra_name_words)!r}"
+                           if entry.extra_name_words else ""))
                 # A soft-deleted duplicate is already merged: skipped, not an
                 # error — that is what makes a second --apply plan zero changes.
 
@@ -797,13 +883,92 @@ class _Planner:
     def run(self) -> Plan:
         self._verify_table()
         self._resolve_targets()
+        # §12 D-4 first: its plan-time abort must fire before anything else
+        # is planned, and a retired company must not be touched by a later step
+        self._retire_duplicate_companies()
         self._create_new_registrars()
         self._rename_canonicals()
         self._merge_duplicates()
+        # §12 D-6 after the merge (it clears the canonical AND the duplicates
+        # the merge folded in) and before the contacts that read those columns
+        self._clear_placeholder_contacts()
         self._build_contacts()
         self._build_links()
         self._finish()
         return self.plan
+
+    # ── §12 D-4: retire the duplicate company rows ─────────────────────────
+    def _retire_duplicate_companies(self) -> None:
+        """Soft-delete the duplicate company rows the Product Owner listed
+        (planned action MERGE) together with their active links: the row and
+        its links get ``deleted_at``, the price history stays attached, and
+        undo restores everything. Never a hard DELETE.
+
+        * the kept row of each pair is reported as RETAIN;
+        * the obsolete ACCESS row is reported as FLAG and never retired
+          (Access Bank is reconciled separately);
+        * at plan time a retire candidate that still carries a holding,
+          transaction, dividend or registrar document aborts the run
+          (``snapshot.refs``, read-only counts from ``load_snapshot``);
+        * a pair whose keep row is not an active company also aborts: there
+          would be nothing left to keep the data for.
+
+        Runs before every other step, so a retired company is never relinked,
+        repointed or re-merged afterwards (one op per row, A-8)."""
+        by_ticker = {str(company.ticker).upper(): company
+                     for company in self.snap.companies
+                     if not company.deleted_at and company.ticker}
+        for keep_ticker, retire_ticker in DUPLICATE_COMPANIES.items():
+            keep = by_ticker.get(keep_ticker.upper())
+            retire = by_ticker.get(retire_ticker.upper())
+            if keep is not None:
+                self.plan.report_lines.append(
+                    f"RETAIN: company {keep_ticker} (id {keep.id}) — the row of "
+                    f"the pair that keeps the data")
+            if retire is None:
+                continue                      # already retired / not present
+            if keep is None:
+                raise RetireBlockedError(
+                    f"{retire_ticker} (id {retire.id}) is listed for retirement "
+                    f"but the row to keep ({keep_ticker}) is not an active "
+                    "company in the snapshot")
+            blocking = {name: total for name, total in
+                        (self.snap.refs.get(retire.id) or {}).items() if total}
+            if blocking:
+                raise RetireBlockedError(
+                    f"{retire_ticker} (id {retire.id}) cannot be retired: still "
+                    "referenced by " + ", ".join(
+                        f"{name}={total}"
+                        for name, total in sorted(blocking.items())))
+            active_links = [link for link in self.snap.links
+                            if link.company_id == retire.id
+                            and not link.deleted_at]
+            for link in active_links:
+                self._add(
+                    SoftDeleteLinkOp(link_id=link.id),
+                    f"MERGE: company {retire_ticker}: soft-delete link "
+                    f"#{link.id} (registrar #{link.registrar_id})",
+                )
+            self._add(
+                RetireCompanyOp(company_id=retire.id),
+                f"MERGE: company {retire_ticker} (id {retire.id}) -> keep "
+                f"{keep_ticker} (id {keep.id}): soft-delete the duplicate row",
+            )
+            self.plan.report_lines.append(
+                f"MERGE: company {retire_ticker} (id {retire.id}) -> "
+                f"{keep_ticker} (id {keep.id}) — row and its "
+                f"{len(active_links)} active link(s) soft-deleted, price "
+                "history stays attached")
+        for ticker in FLAGGED_COMPANIES:
+            company = next(
+                (row for row in self.snap.companies
+                 if row.ticker and str(row.ticker).upper() == ticker.upper()),
+                None)
+            if company is None:
+                continue
+            self.plan.report_lines.append(
+                f"FLAG: company {ticker} (id {company.id}) — not retired; "
+                "Access Bank records are reconciled separately (§12 D-4)")
 
     # ── the working copy (A-6) ────────────────────────────────────────────
     def _add(self, op, line: str) -> None:
@@ -867,6 +1032,23 @@ class _Planner:
                 f"registrar #{row.id}: rename {row.name!r} -> {entry.final_name!r}",
             )
 
+    def _match_company(self, ticker, by_ticker) -> CompanyRow | None:
+        """§12 D-3: the fixed alias table is applied BEFORE ticker matching,
+        so the research file's ``MEYER`` is matched against the EPM ticker
+        ``DNMEYER``. An alias whose target is not an ACTIVE company aborts the
+        run (``by_ticker`` only holds active rows); a ticker with no alias
+        matches exactly as before."""
+        key = str(ticker).upper()
+        alias = TICKER_ALIASES.get(key)
+        if alias is None:
+            return by_ticker.get(key)
+        company = by_ticker.get(str(alias).upper())
+        if company is None:
+            raise TickerAliasError(
+                f"ticker alias {key} -> {alias}: the snapshot has no active "
+                f"company with ticker {alias}")
+        return company
+
     def _firm_targets(self) -> dict:
         """A-8: company id -> its final target for every FIRM mapping in the
         file, computed before the first merge runs.
@@ -874,8 +1056,9 @@ class _Planner:
         The merge step skips these companies entirely (their links and their
         ``companies.registrar_id``): the firm step then gives each of them its
         single, final operation, so no row is written by both steps. The match
-        uses the §4.4 rules the firm step itself uses (exact upper-cased ticker
-        against an active company), so the two steps always agree."""
+        uses the §4.4 rules the firm step itself uses (the §12 D-3 alias first,
+        then exact upper-cased ticker against an active company), so the two
+        steps always agree."""
         by_ticker = {
             str(company.ticker).upper(): company
             for company in self.snap.companies
@@ -888,7 +1071,7 @@ class _Planner:
                 ticker = client.get("ticker")
                 if not ticker or classify(client) == "weak":
                     continue
-                company = by_ticker.get(str(ticker).upper())
+                company = self._match_company(ticker, by_ticker)
                 if company is not None:
                     targets[company.id] = self._key_id(key)
         return targets
@@ -1187,7 +1370,7 @@ class _Planner:
                         "registrar": slug, "reason": "no ticker in the file",
                     })
                     continue
-                company = by_ticker.get(str(ticker).upper())
+                company = self._match_company(ticker, by_ticker)
                 if company is None:
                     self.plan.unmatched.append({
                         "ticker": ticker, "company": company_name,
@@ -1207,36 +1390,29 @@ class _Planner:
     def _firm_link(self, company: CompanyRow, key, slug: str = "") -> None:
         resolved = self._key_id(key)
 
-        # A-9 (audit-2 #5): the firm target's own ACTIVE row for the company
-        # is a co_registrar. §4.4 ("the firm mapping becomes the company's only
-        # active primary") and "co_registrar rows are never touched" cannot both
-        # hold, so the company is held back: NOTHING is written for it — no
-        # link op, no registrar_id op — and it is listed for the Product Owner.
-        # Touching nothing keeps exactly the active primary it already has.
-        target_row = self._row_for(company.id, key)
-        if (target_row is not None and not target_row.deleted_at
-                and target_row.role == "co_registrar"):
-            self.plan.held_back_co_registrar.append({
-                "ticker": company.ticker, "company": company.name,
-                "registrar": slug or _fmt_key(key),
-            })
-            return
-
-        # 1. the canonical's own active primary row stays; every other active
-        #    primary of the company is retired (§4.4). The lookup goes through
-        #    the working copy, so a row an earlier op repointed or reactivated
-        #    is already excluded here (A-6: no second change on one row).
-        active_primaries = [link for link in self.snap.links
-                            if link.company_id == company.id
-                            and not link.deleted_at and link.role == "primary"]
-        for link in active_primaries:
-            if link.registrar_id == resolved:
-                continue                    # already points at the canonical
-            self._add(
-                SoftDeleteLinkOp(link_id=link.id),
-                f"company #{company.id}: soft-delete primary link #{link.id} "
-                f"(registrar #{link.registrar_id})",
-            )
+        # §12 D-1 (replaces A-9, closes G-1 and G-2): a firm mapping makes K
+        # the company's ONLY active link — every other active link, of any
+        # role, is soft-deleted. There is no hold-back any more: when K's own
+        # row is a co_registrar it is promoted to ``primary``, because §12 D-1
+        # says co_registrar is not modelled.
+        # The lookup goes through the working copy, so a row an earlier op
+        # repointed, retired or reactivated is already reflected here (A-6: no
+        # second change on one row).
+        for link in [row for row in self.snap.links
+                     if row.company_id == company.id and not row.deleted_at]:
+            if link.registrar_id != resolved:
+                self._add(
+                    SoftDeleteLinkOp(link_id=link.id),
+                    f"company #{company.id}: soft-delete {link.role} link "
+                    f"#{link.id} (registrar #{link.registrar_id})",
+                )
+            elif link.role != "primary":
+                self._add(
+                    EnsurePrimaryLinkOp(company_id=company.id, registrar_key=key,
+                                        link_id=link.id, role="primary"),
+                    f"company #{company.id}: promote link #{link.id} to primary "
+                    f"-> {_fmt_key(key)}",
+                )
 
         # 2. the company must hold one active (company, K) row: reactivate the
         #    soft-deleted one (A-2: deleted_at=NULL and role='primary' land in
