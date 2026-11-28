@@ -515,8 +515,10 @@ def test_legacy_columns_are_filled_only_when_null():
              for op in _ops(plan, UpdateRegistrarOp)
              if set(op.changes) & legacy_cols}
     # #1: phone is hand-entered (never overwritten), website is not safe_to_link
+    # and the file's email is NOT imported: §12 D-5 lets duplicate #3's hand
+    # email ("old@alpha.example") win over every researched email of that type,
+    # so a value with no visible field may not fill the NULL column (A-3)
     assert fills[1] == {
-        "email": "desk@alpha.example",
         "address": "1 Alpha Way, Lagos",
     }
     # the brand new registrar gets every NULL column filled, website included
@@ -670,16 +672,25 @@ def test_a2_firm_reactivation_sets_role_primary():
 class _RecordingSession:
     """The smallest session ``apply_plan`` accepts: every statement is kept,
     so a test can read back the UPDATE the database would have received —
-    no connection is ever made (A-2 at the SQL layer)."""
+    no connection is ever made (A-2 at the SQL layer).
 
-    def __init__(self):
+    ``previous`` maps ``(table, row_id)`` onto the values the fake database
+    holds *before* the statement: ``_previous_values()`` then reads the real
+    pre-apply value back, which is how AC-19/AC-22/AC-24 check that an undo
+    record carries the value undo has to restore."""
+
+    def __init__(self, previous=None):
         self.statements = []
+        self.previous = previous or {}
 
     async def execute(self, statement, *args, **kwargs):
         self.statements.append(statement)
-        if statement.__class__.__name__ == "TextClause":
+        kind = statement.__class__.__name__
+        if kind == "TextClause":
             return _ScalarResult()             # current_database()
-        return _FakeSelectResult()             # _previous_values
+        if kind == "Select":
+            return _SelectResult(statement, self.previous)   # _previous_values
+        return _FakeSelectResult()             # INSERT ... RETURNING id
 
     async def flush(self):
         self.statements.append("flush")
@@ -698,6 +709,42 @@ class _FakeSelectResult:
 
     def first(self):
         return None
+
+    def mappings(self):
+        return self
+
+    def scalar_one(self):
+        return 9000                       # the id an INSERT ... RETURNING gives
+
+
+class _SelectResult:
+    """The ``_previous_values()`` select, answered from the test's own
+    ``previous`` mapping instead of a database."""
+
+    def __init__(self, statement, previous):
+        self.statement = statement
+        self.previous = previous
+
+    def one(self):
+        table, row_id, columns = _select_key(self.statement)
+        stored = self.previous.get((table, row_id), {})
+        return type("Row", (), {
+            "_mapping": {name: stored.get(name) for name in columns}})()
+
+    def first(self):
+        return None
+
+    def mappings(self):
+        return self
+
+
+def _select_key(statement):
+    """(table name, row id, column names) of the select _previous_values runs."""
+    columns = list(statement.selected_columns)
+    table = columns[0].table.name if columns else None
+    # ``where(table.c.id == row_id)`` is a BinaryExpression: right carries the id
+    row_id = getattr(getattr(statement.whereclause, "right", None), "value", None)
+    return table, row_id, [column.name for column in columns]
 
 
 def test_a2_apply_writes_deleted_at_and_role_in_one_statement():
@@ -845,6 +892,8 @@ def _touches(op):
         if not isinstance(op.company_id, int):
             return []
         return [("companies", op.company_id, col) for col in op.changes]
+    if isinstance(op, imp.RetireCompanyOp):        # §12 D-4
+        return [("companies", op.company_id, "deleted_at")]
     raise AssertionError(f"unhandled plan operation: {op!r}")
 
 
@@ -1118,37 +1167,41 @@ def test_a8_two_duplicates_merge_their_values_into_one_registrar_op():
     assert plan.counts["registrars_merged"] == 2
 
 
-def test_ac18_co_registrar_at_the_firm_target_holds_the_company_back():
-    # Spec: F-026c-registrar-research-import.md | AC-18
-    """A-9: COREG is firmly mapped to #2, whose active row for it is a
-    co_registrar. Nothing at all is changed for the company — no link op, no
-    registrar_id op — and it is listed for the Product Owner as
-    ``held back (co_registrar at target)``."""
+def test_d1_replaces_a9_co_registrar_at_the_firm_target_is_not_held_back():
+    # Spec: F-026c-registrar-research-import.md | AC-18 (superseded by §12 D-1) | AC-19
+    """§12 D-1 replaces A-9 (and with it AC-18's hold-back): nothing is held
+    back any more. COREG is firmly mapped to #2, whose own row for it is a
+    ``co_registrar`` — D-1 makes that row the company's ONLY active link
+    (promoted to ``primary``, because co_registrar is not modelled), retires
+    its other active link (#1) and points ``companies.registrar_id`` at #2."""
     plan = _round2_plan()
+    # no "held back (co_registrar at target)" report line any more
     assert not any(
-        isinstance(op, UpdateCompanyOp) and op.company_id == 109
-        for op in plan.ops), plan.lines
-    assert not any(
-        isinstance(op, (SoftDeleteLinkOp, EnsurePrimaryLinkOp, RepointLinkOp))
-        and op.link_id in (211, 212)
-        for op in plan.ops), plan.lines
-    assert not any(isinstance(op, CreateLinkOp) and op.company_id == 109
-                   for op in plan.ops), plan.lines
-
-    assert any(
         line.startswith("held back (co_registrar at target): COREG")
         for line in plan.report_lines), plan.report_lines
-    # the weak list keeps exactly the weak mappings (A-9 does not fold them in)
+
+    company_ops = [op for op in _ops(plan, UpdateCompanyOp)
+                   if op.company_id == 109]
+    assert [op.changes for op in company_ops] == [{"registrar_id": 2}], plan.lines
+    # link 211 (the old primary on #1) is retired, link 212 is promoted
+    assert 211 in [op.link_id for op in _ops(plan, SoftDeleteLinkOp)]
+    assert [(op.link_id, op.role) for op in _ops(plan, EnsurePrimaryLinkOp)
+            if op.link_id == 212] == [(212, "primary")]
+    assert not any(isinstance(op, CreateLinkOp) and op.company_id == 109
+                    for op in plan.ops), plan.lines
+
+    # the weak list keeps exactly the weak mappings (D-1 does not fold them in)
     assert [h["ticker"] for h in plan.held_back] == ["WEAKCO", "UNVCO"]
 
-    # the snapshot rows of COREG survive untouched, one active primary included
+    # after the plan COREG has exactly one active link — on the firm target —
+    # and its companies.registrar_id points there too
     state = imp.apply_ops_to_snapshot(_snapshot_round2(), plan.ops)
     active = [link for link in state.links
               if link.company_id == 109 and not link.deleted_at]
     assert [(link.id, link.registrar_id, link.role) for link in active] == [
-        (211, 1, "primary"), (212, 2, "co_registrar")]
+        (212, 2, "primary")]
     company = next(c for c in state.companies if c.id == 109)
-    assert company.registrar_id == 1
+    assert company.registrar_id == 2
 
 
 # ─── A-7 / AC-17: the undo record is written before COMMIT ────────────────────
@@ -1322,3 +1375,397 @@ def test_a7_undo_out_dash_prints_the_json_between_the_markers(
     assert payload["feature"] == "F-026c"
     assert payload["database"] == "epm_test"
     assert payload["entries"][0]["id"] == 1
+
+
+# ─── §12 (HO-160 §4.9): Product Owner decisions D-1..D-6 → AC-19..AC-24 ──────
+
+def _active_links(state, company_id):
+    """The active company_registrars rows a company holds after the plan."""
+    return [link for link in state.links
+            if link.company_id == company_id and not link.deleted_at]
+
+
+# ─── AC-19 / D-1: a firm mapping retires every other active link ─────────────
+
+def _snapshot_ac19():
+    """``_snapshot()`` plus ALPHA's ``co_registrar`` link to Gamma #4 — a
+    registrar the file does not map at all. ALPHA is firm-mapped to canonical
+    #1, so §12 D-1 has to retire that co_registrar link too (D-1 replaces A-9,
+    which never touched a co_registrar row)."""
+    snapshot = _snapshot()
+    snapshot.registrars[4] = RegistrarRow(
+        id=4, name="Gamma Registrars Limited",
+        status="active", jurisdiction="nigeria", deleted_at=None,
+    )
+    snapshot.links.append(LinkRow(
+        id=204, company_id=101, registrar_id=4,
+        role="co_registrar", deleted_at=None,
+    ))
+    return snapshot
+
+
+def test_ac19_a_firm_mappings_co_registrar_link_is_soft_deleted_and_restorable():
+    # Spec: F-026c-registrar-research-import.md | AC-19
+    """D-1: the firm mapping makes K the company's only active link — ALPHA's
+    co_registrar link is soft-deleted like every other non-K link, the company
+    ends with exactly one active link (on #1), and the undo record carries the
+    link's previous ``deleted_at``, which is what undo restores."""
+    plan = build_plan(_research(), _snapshot_ac19(), _resolution_table())
+    assert sorted(op.link_id for op in _ops(plan, SoftDeleteLinkOp)) == [203, 204]
+
+    state = imp.apply_ops_to_snapshot(_snapshot_ac19(), plan.ops)
+    assert [(link.id, link.registrar_id, link.role)
+            for link in _active_links(state, 101)] == [(201, 1, "primary")]
+
+    session = _RecordingSession(previous={
+        ("company_registrars", 204): {"deleted_at": None},
+    })
+    record = asyncio.run(imp.apply_plan(session, plan))
+    entry = next(e for e in record.entries
+                 if e["table"] == "company_registrars" and e["id"] == 204)
+    assert entry["previous"]["deleted_at"] is None      # undo reactivates it
+
+
+# ─── AC-20 / D-2 + AC-21 / D-3: GTL is Greenwich, MEYER is DNMEYER ───────────
+
+def _research_greenwich(clients):
+    """A research file that holds only the greenwich slug (the production one,
+    same shape)."""
+    return imp.Research(registrars=[{"slug": "greenwich", "clients": clients}])
+
+
+def _table_greenwich():
+    """The production §3 row for greenwich, straight out of RESOLUTION_TABLE —
+    so this test fails if D-2's registrar #15 (or the GTL name allowance) is
+    missing from the shipped table."""
+    return {"greenwich": imp.RESOLUTION_TABLE["greenwich"]}
+
+
+def _snapshot_greenwich(*, with_dn_meyer=True, with_meyer=False):
+    """The production shape of the two HO-160 reports: canonical #8, the
+    Greenwich duplicates #3 and #56 and #15 ``GTL-Registrars-Limited`` (D-2);
+    DNMEYER (registrar FK 15) and NESTLE both carry a link to #15, and the
+    look-alike MEYER row is a §12 D-4 retire candidate."""
+    snapshot = Snapshot(
+        registrars={
+            8: RegistrarRow(
+                id=8, name="Greenwich Registrars & Data Solutions Limited",
+                status="active", jurisdiction="nigeria", deleted_at=None),
+            3: RegistrarRow(id=3, name="Greenwich Registrars Limited",
+                            status="active", jurisdiction="nigeria",
+                            deleted_at=None),
+            56: RegistrarRow(id=56, name="Greenwich Data Solutions Limited",
+                             status="active", jurisdiction="nigeria",
+                             deleted_at=None),
+            15: RegistrarRow(id=15, name="GTL-Registrars-Limited",
+                             status="active", jurisdiction="nigeria",
+                             deleted_at=None),
+        },
+        fields=[], links=[], companies=[], requirements=[],
+    )
+    if with_dn_meyer:
+        snapshot.companies.append(CompanyRow(
+            id=12, ticker="DNMEYER", name="DN Meyer PLC",
+            registrar_id=15, deleted_at=None))
+        snapshot.links.append(LinkRow(
+            id=701, company_id=12, registrar_id=15,
+            role="primary", deleted_at=None))
+    snapshot.companies.append(CompanyRow(
+        id=13, ticker="NESTLE", name="Nestle Nigeria PLC",
+        registrar_id=None, deleted_at=None))
+    snapshot.links.append(LinkRow(
+        id=702, company_id=13, registrar_id=15, role="primary", deleted_at=None))
+    if with_meyer:
+        snapshot.companies.append(CompanyRow(
+            id=141, ticker="MEYER", name="MEYER",
+            registrar_id=None, deleted_at=None))
+        snapshot.links.append(LinkRow(
+            id=703, company_id=141, registrar_id=3,
+            role="primary", deleted_at=None))
+    return snapshot
+
+
+def test_ac20_the_gtl_row_merges_into_greenwich_and_both_companies_end_there():
+    # Spec: F-026c-registrar-research-import.md | AC-20
+    """D-2: registrar #15 (GTL Registrars) belongs to the greenwich row of §3
+    and merges into #8. D-3's alias carries the file's MEYER client onto
+    DNMEYER, so after the plan both DNMEYER and NESTLE sit on Greenwich."""
+    # D-2: the shipped §3 row is `greenwich 8 <- 3, 56, 15`
+    assert imp.RESOLUTION_TABLE["greenwich"].duplicates == (3, 56, 15)
+
+    research = _research_greenwich([
+        {"company": "Meyer Plc", "ticker": "MEYER",
+         "mapping_confidence": "Medium", "mapping_flag": "SINGLE-SOURCE"},
+        {"company": "Nestle Nigeria Plc", "ticker": "NESTLE",
+         "mapping_confidence": "High", "mapping_flag": "OK"},
+    ])
+    plan = build_plan(research, _snapshot_greenwich(), _table_greenwich())
+    assert 15 in [op.registrar_id for op in _ops(plan, SoftDeleteRegistrarOp)]
+
+    state = imp.apply_ops_to_snapshot(_snapshot_greenwich(), plan.ops)
+    assert state.registrars[15].deleted_at is not None      # the GTL row merged
+    for company_id in (12, 13):
+        assert [(link.registrar_id, link.role)
+                for link in _active_links(state, company_id)] == [(8, "primary")]
+        company = next(c for c in state.companies if c.id == company_id)
+        assert company.registrar_id == 8
+
+
+def test_ac21_the_meyer_alias_maps_to_dn_meyer_and_a_missing_target_aborts():
+    # Spec: F-026c-registrar-research-import.md | AC-21
+    """D-3: the fixed alias table is applied BEFORE ticker matching — the
+    file's MEYER client lands on DNMEYER (#12) and never on the look-alike
+    MEYER row (which D-4 retires instead). When an alias target is not an
+    active company the plan aborts."""
+    assert imp.TICKER_ALIASES == {"MEYER": "DNMEYER"}
+    research = _research_greenwich([
+        {"company": "Meyer Plc", "ticker": "MEYER",
+         "mapping_confidence": "Medium", "mapping_flag": "SINGLE-SOURCE"},
+    ])
+    plan = build_plan(research, _snapshot_greenwich(with_meyer=True),
+                      _table_greenwich())
+    assert [op.company_id for op in _ops(plan, CreateLinkOp)] == [12]
+    assert not any(isinstance(op, UpdateCompanyOp) and op.company_id == 141
+                    for op in plan.ops), plan.lines
+    # the look-alike MEYER row is retired (D-4), never relinked
+    assert [op.company_id for op in _ops(plan, imp.RetireCompanyOp)] == [141]
+
+    # DNMEYER gone: the alias target is not an active company => abort
+    with pytest.raises(imp.TickerAliasError):
+        build_plan(research,
+                   _snapshot_greenwich(with_dn_meyer=False, with_meyer=True),
+                   _table_greenwich())
+
+
+# ─── AC-22 / D-4: duplicate company rows are retired ──────────────────────────
+
+def _snapshot_dups():
+    """``_snapshot()`` plus one pair of the §12 D-4 duplicate-company table
+    (keep OKOMUOIL → retire OKOMOILP) and the flagged ACCESS row, exactly the
+    shape HO-160's dups report shows."""
+    snapshot = _snapshot()
+    snapshot.registrars[4] = RegistrarRow(
+        id=4, name="Gamma Registrars Limited",
+        status="active", jurisdiction="nigeria", deleted_at=None,
+    )
+    snapshot.companies.extend([
+        CompanyRow(id=401, ticker="OKOMUOIL", name="Okomu Oil Palm Company PLC",
+                   registrar_id=4, deleted_at=None),
+        CompanyRow(id=402, ticker="OKOMOILP", name="Okomu Oil Palm Plc",
+                   registrar_id=4, deleted_at=None),
+        CompanyRow(id=403, ticker="ACCESS", name="Access Holdings Plc",
+                   registrar_id=None, deleted_at=None),
+    ])
+    snapshot.links.extend([
+        LinkRow(id=501, company_id=402, registrar_id=4, role="primary",
+                deleted_at=None),
+        LinkRow(id=502, company_id=401, registrar_id=4, role="primary",
+                deleted_at=None),
+    ])
+    return snapshot
+
+
+def test_ac22_duplicate_company_rows_are_retired_with_their_links():
+    # Spec: F-026c-registrar-research-import.md | AC-22
+    """D-4: the duplicate row (and only it) is soft-deleted together with its
+    active links, the kept row and the flagged ACCESS row are untouched, the
+    plan reports MERGE / RETAIN / FLAG — never a hard DELETE — and the undo
+    record carries every column the retire wrote."""
+    snapshot = _snapshot_dups()
+    plan = build_plan(_research(), snapshot, _resolution_table())
+
+    assert [op.company_id for op in _ops(plan, imp.RetireCompanyOp)] == [402]
+    assert sorted(op.link_id for op in _ops(plan, SoftDeleteLinkOp)
+                  if op.link_id in (501, 502)) == [501]
+    assert any(line.startswith("MERGE: company OKOMOILP (id 402)")
+               for line in plan.lines), plan.lines
+    assert any(line.startswith("RETAIN: company OKOMUOIL (id 401)")
+               for line in plan.report_lines), plan.report_lines
+    assert any(line.startswith("FLAG: company ACCESS (id 403)")
+               for line in plan.report_lines), plan.report_lines
+    assert plan.counts["companies_retired"] == 1
+
+    # A-6/A-8 still hold with the new op: no row or column is written twice
+    seen = set()
+    for op in plan.ops:
+        for touch in _touches(op):
+            assert touch not in seen, f"{touch} changed twice: {plan.lines}"
+            seen.add(touch)
+
+    state = imp.apply_ops_to_snapshot(_snapshot_dups(), plan.ops)
+    by_id = {company.id: company for company in state.companies}
+    assert by_id[402].deleted_at is not None        # retired
+    assert by_id[401].deleted_at is None            # RETAIN
+    assert by_id[403].deleted_at is None            # FLAG: never retired
+    links_by_id = {link.id: link for link in state.links}
+    assert links_by_id[501].deleted_at is not None  # its active link went too
+    assert links_by_id[502].deleted_at is None
+
+    # undo restores both the company row and its link
+    session = _RecordingSession(previous={
+        ("companies", 402): {"deleted_at": None},
+        ("company_registrars", 501): {"deleted_at": None},
+    })
+    record = asyncio.run(imp.apply_plan(session, plan))
+    company_entry = next(e for e in record.entries
+                         if e["table"] == "companies" and e["id"] == 402)
+    assert company_entry["previous"]["deleted_at"] is None
+    link_entry = next(e for e in record.entries
+                      if e["table"] == "company_registrars" and e["id"] == 501)
+    assert link_entry["previous"]["deleted_at"] is None
+
+
+@pytest.mark.parametrize("reference", ["holdings", "transactions",
+                                       "dividends", "registrar_documents"])
+def test_ac22_the_plan_aborts_when_a_retired_row_is_referenced(reference):
+    # Spec: F-026c-registrar-research-import.md | AC-22
+    """At plan time a retire candidate with a holding, transaction, dividend or
+    registrar document aborts the whole run — and a reference to the KEPT row
+    is no reason to abort."""
+    snapshot = _snapshot_dups()
+    snapshot.refs = {402: {reference: 1}}
+    with pytest.raises(imp.RetireBlockedError):
+        build_plan(_research(), snapshot, _resolution_table())
+
+    snapshot = _snapshot_dups()
+    snapshot.refs = {401: {reference: 1}, 402: {key: 0 for key in (
+        "holdings", "transactions", "dividends", "registrar_documents")}}
+    plan = build_plan(_research(), snapshot, _resolution_table())
+    assert [op.company_id for op in _ops(plan, imp.RetireCompanyOp)] == [402]
+
+
+# ─── AC-23 / D-5: the hand-entered value wins per (registrar, type) ───────────
+
+def test_ac23_manual_wins_per_registrar_and_contact_type():
+    # Spec: F-026c-registrar-research-import.md | AC-23
+    """D-5 replaces §4.3's keep-both rule. (a) K's phone "01 555 0100" equals
+    none of the researched phones, so the hand value stays as the "Entered
+    manually" field and no researched phone is imported — they are listed as
+    ``skipped (manual wins)``. (b) a hand website that equals the researched
+    one yields exactly one field (the researched one), with no manual copy."""
+    plan = _build()
+    alpha = _fields(plan, 1)
+    researched_phones = {"+2341000000001", "+2348012345678", "+2341000000002"}
+    created = _field_values(alpha)
+    assert not researched_phones & set(created), created      # (a) suppressed
+    assert any(op.field_type == "phone" and op.field_value == "01 555 0100"
+               and op.label == "Entered manually" for op in alpha)
+    assert any(line.startswith("skipped (manual wins):")
+               and "phone" in line for line in plan.report_lines), plan.report_lines
+
+    # (b) the hand value equals the researched website: a single field
+    snapshot = _snapshot()
+    snapshot.registrars[1].website = "https://alpha.example"
+    plan = build_plan(_research(), snapshot, _resolution_table())
+    matching = [op for op in _fields(plan, 1)
+                if op.field_value == "https://alpha.example"]
+    assert len(matching) == 1, [ (op.field_type, op.label) for op in matching ]
+    assert matching[0].field_type == "other"         # the researched field
+    assert matching[0].label != "Entered manually"
+
+
+# ─── AC-24 / D-6: the placeholder legacy values are dropped ───────────────────
+
+def _research_placeholders():
+    """Only the two slugs §12 D-6 names; no clients, no contact data."""
+    return imp.Research(registrars=[{"slug": "meristem"}, {"slug": "unity"}])
+
+
+def _table_placeholders():
+    """The production §3 rows for the two registrars D-6 names."""
+    return {
+        "meristem": imp.RESOLUTION_TABLE["meristem"],
+        "unity": imp.RESOLUTION_TABLE["unity"],
+    }
+
+
+def _snapshot_placeholders(*, meristem_phone="+234-1-345-6789",
+                           meristem_email="registrar@meristem.com.ng",
+                           unity_phone="+234-1-234-5678",
+                           unity_email="info@unityregistrars.com"):
+    """Registrars 2 (Meristem) and 1 (Unity) with their §3 duplicates, holding
+    the four placeholder legacy values §12 D-6 lists."""
+    return Snapshot(
+        registrars={
+            2: RegistrarRow(id=2, name="Meristem Registrars",
+                            phone=meristem_phone, email=meristem_email,
+                            status="active", jurisdiction="nigeria",
+                            deleted_at=None),
+            9: RegistrarRow(id=9, name="Meristem Old Registrars Limited",
+                            status="active", jurisdiction="nigeria",
+                            deleted_at=None),
+            57: RegistrarRow(id=57, name="Meristem Second Registrars Limited",
+                             status="active", jurisdiction="nigeria",
+                             deleted_at=None),
+            1: RegistrarRow(id=1, name="Unity Registrars",
+                            phone=unity_phone, email=unity_email,
+                            status="active", jurisdiction="nigeria",
+                            deleted_at=None),
+            17: RegistrarRow(id=17, name="Unity Old Registrars Limited",
+                             status="active", jurisdiction="nigeria",
+                             deleted_at=None),
+        },
+        fields=[], links=[], companies=[], requirements=[],
+    )
+
+
+def test_ac24_placeholder_contacts_are_cleared_and_restored_by_undo():
+    # Spec: F-026c-registrar-research-import.md | AC-24
+    """D-6: the four placeholder values are set to NULL with no manual copy,
+    the plan is idempotent, and the undo record carries the exact placeholder
+    values undo has to put back."""
+    assert imp.PLACEHOLDER_CONTACTS == {
+        "meristem": {"phone": "+234-1-345-6789",
+                     "email": "registrar@meristem.com.ng"},
+        "unity": {"phone": "+234-1-234-5678",
+                  "email": "info@unityregistrars.com"},
+    }
+    plan = build_plan(_research_placeholders(), _snapshot_placeholders(),
+                      _table_placeholders())
+    clears = {(op.registrar_key, set(op.changes))
+              for op in _ops(plan, UpdateRegistrarOp)}
+    assert clears == {(2, {"phone", "email"}), (1, {"phone", "email"})}, plan.lines
+    assert all(value is None for op in _ops(plan, UpdateRegistrarOp)
+               for value in op.changes.values())
+    # no "Entered manually" copy of a placeholder
+    assert not [op for op in _ops(plan, CreateFieldOp)
+                if op.field_value in ("+234-1-345-6789", "registrar@meristem.com.ng",
+                                      "+234-1-234-5678", "info@unityregistrars.com")]
+
+    state = imp.apply_ops_to_snapshot(_snapshot_placeholders(), plan.ops)
+    assert (state.registrars[2].phone, state.registrars[2].email) == (None, None)
+    assert (state.registrars[1].phone, state.registrars[1].email) == (None, None)
+
+    # a second plan on the post-clear state plans nothing (AC-12)
+    again = build_plan(_research_placeholders(), state, _table_placeholders())
+    assert again.ops == [], again.lines
+
+    # undo restores the exact values that were cleared
+    session = _RecordingSession(previous={
+        ("registrars", 2): {"phone": "+234-1-345-6789",
+                            "email": "registrar@meristem.com.ng"},
+        ("registrars", 1): {"phone": "+234-1-234-5678",
+                            "email": "info@unityregistrars.com"},
+    })
+    record = asyncio.run(imp.apply_plan(session, plan))
+    for row_id, phone, email in ((2, "+234-1-345-6789",
+                                  "registrar@meristem.com.ng"),
+                                 (1, "+234-1-234-5678",
+                                  "info@unityregistrars.com")):
+        entry = next(e for e in record.entries
+                     if e["table"] == "registrars" and e["id"] == row_id)
+        assert entry["previous"]["phone"] == phone
+        assert entry["previous"]["email"] == email
+
+
+def test_ac24_a_placeholder_value_that_differs_aborts():
+    # Spec: F-026c-registrar-research-import.md | AC-24
+    """D-6 matches each placeholder exactly: a registrar holding anything else
+    in that column aborts the run before a single row is written."""
+    snapshot = _snapshot_placeholders(meristem_phone="01 555 0100")
+    with pytest.raises(imp.PlaceholderMismatchError):
+        build_plan(_research_placeholders(), snapshot, _table_placeholders())
+
+    snapshot = _snapshot_placeholders(unity_email="info@unity.example")
+    with pytest.raises(imp.PlaceholderMismatchError):
+        build_plan(_research_placeholders(), snapshot, _table_placeholders())
