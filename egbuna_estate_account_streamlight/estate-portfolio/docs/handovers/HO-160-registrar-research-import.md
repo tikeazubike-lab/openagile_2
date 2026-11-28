@@ -106,3 +106,14 @@ Pass-1 #2, #4–#9 are confirmed fixed by the auditor.
   Flagged for the Product Owner; the service was not touched.
 - The restart run found the work done. It proved RED against `886eda2^` (5 failed) and ran the suite: `195 passed, 4 xfailed`.
 - Production preview #3 (read-only): `HO-160-preview-prod-2026-11-28-r2.md`. `registrar_id changed=132` (132 distinct), no link row in two ops, no co_registrar-at-target case.
+
+### 4.8 Auditor pass 3: DEVIATED (narrow). Fix loop exhausted (2/2). Responses
+| # | Finding | Response |
+|---|---|---|
+| 1 | `registrars` rows get 2–3 ops (rename + merge values + fill); AC-16's literal text says one op per row | **Ruled** (spec §11): A-8 covers the companies/link rows of the merge and firm steps. No column is written twice. No code change |
+| 2 | An A-9 held-back company on a duplicate stays on the soft-deleted duplicate | **Accepted as known gap G-1**: zero A-9 cases in preview #3, so it can't happen today |
+| 3 | A firm-mapped company's co_registrar link on a duplicate is left on the soft-deleted duplicate | **Accepted as known gap G-2**: an apply precondition (§11). My read-only check of the one prod co_registrar row was blocked by guard-bash (the inline script reads DATABASE_URL), and the guard was not bypassed |
+| 4 | Firm step prints the old registrar_id without "#" | Nit, deferred |
+| 5 | No counts line for A-9 hold-backs | Nit, deferred (0 in production) |
+| 6 | A ticker firm-mapped under two registrars | Nit: none in the file (`in >1 registrar: []`) |
+Pass-2 #1–#5 are confirmed fixed. RED proof was reproduced by the auditor. End-state probe on all three fixtures: no duplicate pairs, no multi-primary, no stale links/FKs, 2nd run = 0 ops.

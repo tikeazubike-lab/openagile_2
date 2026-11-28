@@ -200,3 +200,13 @@ There is **no** production run before the PR passes auditor review and the Produ
   New AC-18: a co_registrar row at the firm target leaves the company unchanged and listed as held back.
 - §7 note (audit-2 #7): with `--undo-out -`, the undo record printed before a COMMIT that then fails is discarded. The run
   log shows the exit code, and only a run that exits 0 produces an undo file to commit.
+
+## 11. Clarification 2026-11-28 (after auditor pass 3, HO-160)
+- A-8 scope: "one op per (table, id) row" applies to `companies` and `company_registrars` rows changed by the merge and firm
+  steps, which is where audit pass 2 found the inflated counts. A `registrars` row may get a rename, a merge-values op and a fill op,
+  provided **no column is written twice**; the column-level check in AC-16 still covers every step.
+- Known gaps G-1 and G-2, unreachable in the current data and **fixed before any re-import**:
+  - G-1: a company held back by A-9 that sits on a duplicate keeps its link and registrar_id on that duplicate.
+  - G-2: a firm-mapped company's non-primary link on a duplicate is neither repointed nor retired.
+  Precondition for the production apply (§7): the Product Owner or orchestrator confirms the one production `co_registrar`
+  row is not on a duplicate registrar listed in §3. Preview #3 reports no A-9 case.
