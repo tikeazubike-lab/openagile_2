@@ -19,8 +19,9 @@ be tested against a real database inside a rollback:
    never commit and never create engines.
 3. **CLI**: owns the engine and the transaction — ``SET TRANSACTION READ ONLY``
    as the first statement of the preview transaction, ``--confirm-db``
-   (compared with ``select current_database()``), commit/rollback and the undo
-   JSON file under ``docs/registrars/import-runs/``.
+   (compared with ``select current_database()``), and the undo record that
+   A-7 writes **before** the COMMIT (``--undo-out <path|->``, the ``-`` form
+   printing it on stdout between the ``F026C UNDO JSON`` markers).
 
 Usage::
 
@@ -28,8 +29,14 @@ Usage::
     python scripts/import_registrar_research.py
     python scripts/import_registrar_research.py --research PATH
 
-    # apply: one transaction, all or nothing, writes an undo file
-    python scripts/import_registrar_research.py --apply --confirm-db epm_test
+    # apply: one transaction, all or nothing; the undo record is written
+    # BEFORE the commit, and a failing writer rolls the apply back (AC-17)
+    python scripts/import_registrar_research.py --apply --confirm-db epm_test \
+        --undo-out docs/registrars/import-runs/run1.json
+
+    # apply in the container: only stdout reaches the host
+    python scripts/import_registrar_research.py --apply --confirm-db epm_test \
+        --undo-out -
 
     # undo a previous apply, one transaction
     python scripts/import_registrar_research.py \
@@ -541,10 +548,6 @@ def _default_research_path() -> Path:
             return path.resolve().parents[2] / "docs" / "registrars" / \
                 "registrars_contact_details_final.md"
     return Path("docs") / "registrars" / "registrars_contact_details_final.md"
-
-
-def _runs_dir() -> Path:
-    return _default_research_path().parent / "import-runs"
 
 
 def parse_research(source=None, *, text: str | None = None) -> Research:
@@ -1517,11 +1520,18 @@ def _argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--apply", action="store_true",
-        help="write the plan in one transaction (requires --confirm-db)",
+        help="write the plan in one transaction (requires --confirm-db "
+             "and --undo-out)",
     )
     parser.add_argument(
         "--confirm-db", metavar="NAME", default=None,
         help="database name; must equal select current_database()",
+    )
+    parser.add_argument(
+        "--undo-out", metavar="PATH", default=None,
+        help="where the undo record of --apply is written BEFORE the commit; "
+             "'-' prints it between the F026C UNDO JSON markers (container "
+             "runs, where only stdout reaches the host)",
     )
     parser.add_argument(
         "--undo", metavar="FILE", default=None,
@@ -1567,24 +1577,35 @@ async def _run_preview(engine, research: Research,
     return 0
 
 
-async def _run_apply(engine, research: Research, confirm_db: str) -> int:
-    """AC-14/AC-15: one transaction, all or nothing, undo file afterwards."""
-    record = None
+async def _apply_transaction(session, research: Research, confirm_db: str,
+                             undo_out: str):
+    """The whole body of the apply transaction, undo record included (A-7 /
+    AC-17): the record is written while the transaction is still open, so a
+    failing writer makes ``session.begin()`` roll the apply back."""
+    connected = await _connected_database(session)
+    check_confirm_db(confirm_db, connected)                 # before any write
+    snapshot = await load_snapshot(session)
+    plan = build_plan(research, snapshot, RESOLUTION_TABLE)
+    print(format_plan(plan))
+    record = await apply_plan(session, plan)
+    where = _write_undo(record, undo_out)                   # BEFORE the COMMIT
+    return record, where
+
+
+async def _run_apply(engine, research: Research, confirm_db: str,
+                     undo_out: str) -> int:
+    """AC-14/AC-15/AC-17: one transaction, all or nothing."""
     async with engine.connect() as connection:
         session = AsyncSession(bind=connection, expire_on_commit=False)
         try:
             async with session.begin():
-                connected = await _connected_database(session)
-                check_confirm_db(confirm_db, connected)     # before any write
-                snapshot = await load_snapshot(session)
-                plan = build_plan(research, snapshot, RESOLUTION_TABLE)
-                print(format_plan(plan))
-                record = await apply_plan(session, plan)
-            # session.begin() commits here; on any error it rolls back
+                record, where = await _apply_transaction(
+                    session, research, confirm_db, undo_out)
+            # session.begin() commits here — and only because _write_undo
+            # returned; on any error above (including the writer) it rolls back
         finally:
             await session.close()
-    path = _write_undo_file(record)
-    print(f"applied in one transaction to {record.database}; undo file: {path}")
+    print(f"applied in one transaction to {record.database}; undo file: {where}")
     return 0
 
 
@@ -1615,15 +1636,30 @@ async def _run_undo(db_url: str, args) -> int:
     return 0
 
 
-def _write_undo_file(record: UndoRecord) -> Path:
-    runs_dir = _runs_dir()
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    path = runs_dir / f"{stamp}-{record.database}.json"
+UNDO_JSON_BEGIN = "=== F026C UNDO JSON BEGIN ==="
+UNDO_JSON_END = "=== F026C UNDO JSON END ==="
+
+
+def _write_undo(record: UndoRecord, undo_out: str) -> str:
+    """A-7 (audit #2): write the undo record BEFORE the commit of the apply
+    transaction, so every committed run has a record that covers it.
+
+    ``undo_out`` is a file path, or ``-`` for stdout between
+    :data:`UNDO_JSON_BEGIN` / :data:`UNDO_JSON_END` — the production run in
+    the container, where only stdout reaches the host. Any failure here
+    propagates out of the transaction block, which rolls the apply back
+    (AC-17). Returns where the record went, for the final log line."""
     payload = {"feature": "F-026c", **record.to_json()}
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
-                    encoding="utf-8")
-    return path
+    blob = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    if undo_out == "-":
+        print(UNDO_JSON_BEGIN)
+        print(blob, end="")
+        print(UNDO_JSON_END)
+        return "stdout (between the F026C UNDO JSON markers)"
+    path = Path(undo_out)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(blob, encoding="utf-8")
+    return str(path)
 
 
 async def cli(argv: list, research_text: str | None = None) -> int:
@@ -1640,6 +1676,12 @@ async def cli(argv: list, research_text: str | None = None) -> int:
 
     if args.apply and args.undo:
         print("error: --apply and --undo are mutually exclusive", file=sys.stderr)
+        return 2
+    if args.apply and not args.undo_out:
+        # A-7: an apply without a place to put the undo record must not run
+        print("error: --apply requires --undo-out <path|-> "
+              "(the undo record is written before the commit)",
+              file=sys.stderr)
         return 2
     if (args.apply or args.undo) and not args.confirm_db:
         print("error: --confirm-db <dbname> is required with --apply/--undo",
@@ -1658,7 +1700,8 @@ async def cli(argv: list, research_text: str | None = None) -> int:
         research = _load_research(args, research_text)
         engine = create_async_engine(db_url, poolclass=NullPool)
         if args.apply:
-            return await _run_apply(engine, research, args.confirm_db)
+            return await _run_apply(engine, research, args.confirm_db,
+                                    args.undo_out)
         return await _run_preview(engine, research)
     except (ConfirmDatabaseError, ParseError, ResolutionError,
             ResearchImportError) as exc:
