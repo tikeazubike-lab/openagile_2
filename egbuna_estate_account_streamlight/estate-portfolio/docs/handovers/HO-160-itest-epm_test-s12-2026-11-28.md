@@ -1,0 +1,27 @@
+# HO-160 — integration tests on epm_test after §12, 2026-11-28
+
+Run inside estate_portfolio_v3, DB forced to epm_test. Script at 60dba23b10188d6e94f2ea91f3b58e09eba8af7a.
+First run: 16 passed, 2 failed (stale ORM reads in AC-19 / AC-24 tests). After the orchestrator test fix (expire_all before re-reads): 18 passed.
+
+```
+PREFLIGHT current_database = epm_test
+PASSED tests/integration/test_import_registrar_research.py::test_ac1_preview_prints_the_plan_and_counts_and_changes_nothing
+PASSED tests/integration/test_import_registrar_research.py::test_ac2_duplicates_merge_into_the_canonical_without_unique_violation
+PASSED tests/integration/test_import_registrar_research.py::test_ac3_rating_field_requirements_and_documents_move_to_the_canonical
+PASSED tests/integration/test_import_registrar_research.py::test_ac4_legacy_columns_become_entered_manually_fields
+PASSED tests/integration/test_import_registrar_research.py::test_ac8_firm_mapping_makes_the_canonical_the_only_primary
+PASSED tests/integration/test_import_registrar_research.py::test_ac9_co_registrar_link_is_soft_deleted_by_the_firm_mapping
+PASSED tests/integration/test_import_registrar_research.py::test_ac12_second_apply_plans_zero_changes
+PASSED tests/integration/test_import_registrar_research.py::test_ac13_undo_restores_every_touched_row
+PASSED tests/integration/test_import_registrar_research.py::test_ac15_error_mid_apply_rolls_back_everything
+PASSED tests/integration/test_import_registrar_research.py::test_ac19_a_firm_mapping_retires_the_co_registrar_and_undo_restores_it
+PASSED tests/integration/test_import_registrar_research.py::test_ac22_duplicate_company_rows_are_retired_with_their_links
+PASSED tests/integration/test_import_registrar_research.py::test_ac22_the_plan_aborts_when_a_retired_row_is_referenced[holdings]
+PASSED tests/integration/test_import_registrar_research.py::test_ac22_the_plan_aborts_when_a_retired_row_is_referenced[transactions]
+PASSED tests/integration/test_import_registrar_research.py::test_ac22_the_plan_aborts_when_a_retired_row_is_referenced[dividends]
+PASSED tests/integration/test_import_registrar_research.py::test_ac22_the_plan_aborts_when_a_retired_row_is_referenced[registrar_documents]
+PASSED tests/integration/test_import_registrar_research.py::test_ac24_placeholder_contacts_are_cleared_and_restored_by_undo
+PASSED tests/integration/test_import_registrar_research.py::test_ac24_a_placeholder_value_that_differs_aborts[mismatch0]
+PASSED tests/integration/test_import_registrar_research.py::test_ac24_a_placeholder_value_that_differs_aborts[mismatch1]
+18 passed, 2 warnings in 4.61s
+```

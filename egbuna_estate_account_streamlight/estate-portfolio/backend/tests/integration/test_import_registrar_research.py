@@ -674,12 +674,14 @@ async def test_ac19_a_firm_mapping_retires_the_co_registrar_and_undo_restores_it
     assert [(l.registrar_id, l.role) for l in links] == [
         (ids["k"], "primary")], "D-1 left more than one active link"
 
+    db_session.expire_all()  # re-read: apply/undo write through SQL, not the ORM objects
     retired = await _link(db_session, ids["alpha_co"], ids["y"])
     assert retired.deleted_at is not None
     assert retired.role == "co_registrar"          # the row itself is untouched
 
     await undo(db_session, record)
     await db_session.flush()
+    db_session.expire_all()  # re-read: apply/undo write through SQL, not the ORM objects
     restored = await _link(db_session, ids["alpha_co"], ids["y"])
     assert restored.deleted_at is None             # undo reactivates it
     assert restored.role == "co_registrar"
@@ -888,6 +890,7 @@ async def test_ac24_placeholder_contacts_are_cleared_and_restored_by_undo(
 
     await undo(db_session, record)
     await db_session.flush()
+    db_session.expire_all()  # re-read: apply/undo write through SQL, not the ORM objects
     meristem = await _registrar(db_session, ids["m"])
     assert (meristem.phone, meristem.email) == (
         "+234-1-345-6789", "registrar@meristem.com.ng")
