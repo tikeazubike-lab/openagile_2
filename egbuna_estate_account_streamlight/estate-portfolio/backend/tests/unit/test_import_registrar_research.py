@@ -926,6 +926,221 @@ def test_a6_merged_company_that_is_also_firm_mapped_gets_one_consistent_before()
                     for op in plan.ops)
 
 
+# ─── A-8 / A-9 / AC-16 round 2: the production shape of preview #2 ────────────
+
+def _research_round2():
+    """The fixture file plus three FIRM clients under ``newbies`` — K2 in the
+    round-2 table — so the shape production preview #2 showed is in the data."""
+    research = _research()
+    newbies = next(r for r in research.registrars if r["slug"] == "newbies")
+    newbies["clients"] = [
+        {"company": "Firm Mover Plc", "ticker": "FMO",
+         "mapping_confidence": "High", "mapping_flag": "OK"},
+        {"company": "Soft Deleted Row Co Plc", "ticker": "SDCO",
+         "mapping_confidence": "Medium", "mapping_flag": "OK"},
+        {"company": "Co Registrar Plc", "ticker": "COREG",
+         "mapping_confidence": "High", "mapping_flag": "SINGLE-SOURCE"},
+    ] + newbies["clients"]
+    return research
+
+
+def _resolution_table_round2():
+    """The round-2 table: alpha gains a SECOND duplicate (#4) and newbies is an
+    existing canonical (#2), so a company can sit on a duplicate of one
+    canonical (K1 = #1) while the file firmly maps it to another (K2 = #2)."""
+    return {
+        "alpha": ResolutionEntry(
+            slug="alpha", canonical=1, duplicates=(3, 4),
+            final_name="Alpha Registrars Limited",
+        ),
+        "newbies": ResolutionEntry(
+            slug="newbies", canonical=2, duplicates=(), final_name=None,
+        ),
+    }
+
+
+def _snapshot_round2():
+    """``_snapshot()`` plus the shape production preview #2 exposed (AC-16):
+
+    * registrar #4 — a second duplicate of canonical #1, with notes AND a
+      rating of its own: both duplicates merge their values into #1, and those
+      values have to land in ONE op (audit-2 #4);
+    * ``FMO`` (company 107, active duplicate link) and ``SDCO`` (company 108,
+      K1's own row already soft-deleted) sit on duplicate #3 of K1 = #1 while
+      the file firmly maps them to K2 = #2: neither may be re-pointed toward K1
+      by the merge, each gets exactly one ``registrar_id`` op — straight from
+      the snapshot value to K2 — and each link row is handled once (audit-2
+      #1/#2);
+    * ``COREG`` (company 109) is firmly mapped to #2, whose own active row for
+      it is a ``co_registrar``: A-9 holds the whole company back (AC-18).
+    """
+    snapshot = _snapshot()
+    # §3 name check: the canonical of the slug "newbies" must contain it
+    snapshot.registrars[2].name = "Newbies Registrars Limited"
+    snapshot.registrars[4] = RegistrarRow(
+        id=4, name="Alpha Ancient Registrars Limited",
+        email=None, phone=None, address=None, website=None,
+        response_rating=3, notes="second duplicate notes",
+        status="active", jurisdiction="nigeria", deleted_at=None,
+    )
+    snapshot.companies.extend([
+        CompanyRow(id=107, ticker="FMO", name="Firm Mover Plc",
+                   registrar_id=3, deleted_at=None),
+        CompanyRow(id=108, ticker="SDCO", name="Soft Deleted Row Co Plc",
+                   registrar_id=3, deleted_at=None),
+        CompanyRow(id=109, ticker="COREG", name="Co Registrar Plc",
+                   registrar_id=1, deleted_at=None),
+    ])
+    snapshot.links.extend([
+        # 107: the duplicate's link is ACTIVE, K1 has no row for it
+        LinkRow(id=208, company_id=107, registrar_id=3, role="primary",
+                deleted_at=None),
+        # 108: the duplicate's link is ACTIVE and K1's own row is soft-deleted
+        LinkRow(id=209, company_id=108, registrar_id=3, role="primary",
+                deleted_at=None),
+        LinkRow(id=210, company_id=108, registrar_id=1, role="primary",
+                deleted_at=True),
+        # 109: K2's own row for it is an active co_registrar (A-9)
+        LinkRow(id=211, company_id=109, registrar_id=1, role="primary",
+                deleted_at=None),
+        LinkRow(id=212, company_id=109, registrar_id=2, role="co_registrar",
+                deleted_at=None),
+    ])
+    return snapshot
+
+
+def _round2_plan():
+    return build_plan(_research_round2(), _snapshot_round2(),
+                      _resolution_table_round2())
+
+
+def test_ac16_round2_no_row_is_changed_twice_by_the_merge_or_firm_step():
+    # Spec: F-026c-registrar-research-import.md | AC-16
+    """Row-level A-8 on the production-shaped snapshot: no (table, id) appears
+    in two ops of the merge or firm steps, and every count equals its number of
+    distinct rows."""
+    plan = _round2_plan()
+    seen = set()
+    for op in plan.ops:
+        for touch in _merge_firm_rows(op):
+            assert touch not in seen, (
+                f"{touch} changed by two ops: {plan.lines}")
+            seen.add(touch)
+
+    assert plan.counts["registrars_created"] == len(
+        {op.key for op in _ops(plan, CreateRegistrarOp)})
+    assert plan.counts["registrars_soft_deleted"] == len(
+        {op.registrar_id for op in _ops(plan, SoftDeleteRegistrarOp)})
+    assert plan.counts["registrars_renamed"] == len(
+        {op.registrar_id for op in _ops(plan, RenameRegistrarOp)})
+    assert plan.counts["fields_moved"] == len(
+        {op.field_id for op in _ops(plan, MoveFieldOp)})
+    assert plan.counts["fields_added"] == len(_ops(plan, CreateFieldOp))
+    assert plan.counts["links_created"] == len(_ops(plan, CreateLinkOp))
+    assert plan.counts["links_repointed"] == len(
+        {op.link_id for op in _ops(plan, RepointLinkOp)})
+    assert plan.counts["links_reactivated"] == len(
+        {op.link_id for op in _ops(plan, EnsurePrimaryLinkOp)
+         if op.link_id is not None})
+    assert plan.counts["links_soft_deleted"] == len(
+        {op.link_id for op in _ops(plan, SoftDeleteLinkOp)})
+    assert plan.counts["requirements_repointed"] == len(
+        {op.requirement_id for op in _ops(plan, RepointRequirementOp)})
+    assert plan.counts["companies_registrar_changed"] == len(
+        {op.company_id for op in _ops(plan, UpdateCompanyOp)})
+
+
+def test_a8_firm_mapped_company_on_a_duplicate_gets_one_op_straight_to_k2():
+    # Spec: F-026c-registrar-research-import.md | AC-16
+    """A-8: FMO and SDCO sit on duplicate #3 of K1 = #1 and are firmly mapped
+    to K2 = #2. The merge gives them no re-point toward K1: one registrar_id
+    op each, from the snapshot value straight to K2, and their duplicate links
+    are handled once — by the firm step (a link row that ends soft-deleted is
+    not re-pointed or reactivated first)."""
+    plan = _round2_plan()
+    for company_id in (107, 108):
+        company_ops = [op for op in _ops(plan, UpdateCompanyOp)
+                        if op.company_id == company_id]
+        assert [op.changes for op in company_ops] == [{"registrar_id": 2}], (
+            plan.lines)
+        assert [line for line in plan.lines
+                if line.startswith(f"company #{company_id}: registrar_id ")] == [
+            f"company #{company_id}: registrar_id 3 -> 2"]
+
+    # the duplicate's links: retired once each by the firm step, never
+    # re-pointed toward K1 first, and K1's soft-deleted row 210 is never
+    # reactivated
+    assert sorted(op.link_id for op in _ops(plan, SoftDeleteLinkOp)
+                  if op.link_id in (208, 209, 210)) == [208, 209]
+    assert not any(op.link_id in (208, 209, 210)
+                   for op in _ops(plan, RepointLinkOp))
+    assert not any(op.link_id == 210 for op in _ops(plan, EnsurePrimaryLinkOp))
+
+    # after the plan each of them has exactly one active primary, on K2
+    state = imp.apply_ops_to_snapshot(_snapshot_round2(), plan.ops)
+    for company_id in (107, 108):
+        active = [link for link in state.links
+                  if link.company_id == company_id and not link.deleted_at]
+        assert [(link.registrar_id, link.role) for link in active] == [
+            (2, "primary")], plan.lines
+        company = next(c for c in state.companies if c.id == company_id)
+        assert company.registrar_id == 2
+
+
+def test_a8_two_duplicates_merge_their_values_into_one_registrar_op():
+    # Spec: F-026c-registrar-research-import.md | AC-16
+    """A-8: the values both duplicates merge into canonical #1 — notes and the
+    response rating — land in a single UpdateRegistrarOp, holding the final
+    value of each column (audit-2 #4: notes changed by two ops)."""
+    plan = _round2_plan()
+    merged = [op for op in _ops(plan, UpdateRegistrarOp)
+              if op.registrar_key == 1
+              and set(op.changes) & {"notes", "response_rating"}]
+    assert len(merged) == 1, plan.lines
+    assert merged[0].changes == {
+        # #3's rating: K was NULL, so #4's rating of 3 is NOT copied over it
+        "response_rating": 4,
+        "notes": ("[merged from #3] hand notes\n"
+                  "[merged from #4] second duplicate notes"),
+    }
+    # both duplicates are still merged and soft-deleted exactly once each
+    assert [op.registrar_id for op in _ops(plan, SoftDeleteRegistrarOp)] == [3, 4]
+    assert plan.counts["registrars_merged"] == 2
+
+
+def test_ac18_co_registrar_at_the_firm_target_holds_the_company_back():
+    # Spec: F-026c-registrar-research-import.md | AC-18
+    """A-9: COREG is firmly mapped to #2, whose active row for it is a
+    co_registrar. Nothing at all is changed for the company — no link op, no
+    registrar_id op — and it is listed for the Product Owner as
+    ``held back (co_registrar at target)``."""
+    plan = _round2_plan()
+    assert not any(
+        isinstance(op, UpdateCompanyOp) and op.company_id == 109
+        for op in plan.ops), plan.lines
+    assert not any(
+        isinstance(op, (SoftDeleteLinkOp, EnsurePrimaryLinkOp, RepointLinkOp))
+        and op.link_id in (211, 212)
+        for op in plan.ops), plan.lines
+    assert not any(isinstance(op, CreateLinkOp) and op.company_id == 109
+                   for op in plan.ops), plan.lines
+
+    assert any(
+        line.startswith("held back (co_registrar at target): COREG")
+        for line in plan.report_lines), plan.report_lines
+    # the weak list keeps exactly the weak mappings (A-9 does not fold them in)
+    assert [h["ticker"] for h in plan.held_back] == ["WEAKCO", "UNVCO"]
+
+    # the snapshot rows of COREG survive untouched, one active primary included
+    state = imp.apply_ops_to_snapshot(_snapshot_round2(), plan.ops)
+    active = [link for link in state.links
+              if link.company_id == 109 and not link.deleted_at]
+    assert [(link.id, link.registrar_id, link.role) for link in active] == [
+        (211, 1, "primary"), (212, 2, "co_registrar")]
+    company = next(c for c in state.companies if c.id == 109)
+    assert company.registrar_id == 1
+
+
 # ─── A-7 / AC-17: the undo record is written before COMMIT ────────────────────
 
 class _FakeResult:
