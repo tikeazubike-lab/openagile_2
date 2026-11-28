@@ -182,3 +182,21 @@ There is **no** production run before the PR passes auditor review and the Produ
   reaches the host.
 - New AC-16: preview of the production-shaped unit snapshot has no row/column changed twice, and counts equal distinct
   rows. AC-17: if writing the undo record fails, apply rolls back.
+
+## 10. Amendment 2026-11-28 (after auditor pass 2, HO-160). Architect rulings for fix round 2
+- A-8 (one op per row, audit-2 #1/#2/#4): the plan holds **one op per row**, giving that row's final state.
+  - A company that the file maps firmly to K2 gets no merge repoint of `companies.registrar_id`, and none of its links, toward K1.
+    Its single `registrar_id` op goes from the snapshot value straight to K2, and its duplicate-registrar link is handled once by the firm step.
+  - A link row that ends soft-deleted is not repointed or reactivated first.
+  - `notes` and other merged registrar values for one canonical are combined into one `UpdateRegistrarOp`.
+  - "Row" means (table, id), not (table, id, column). Counts count distinct rows.
+- A-9 (co_registrar target, audit-2 #5): if the firm target K's active row for the company is a `co_registrar`, the
+  company is **held back**: no link or `registrar_id` change for it, listed as `held back (co_registrar at target)` for the
+  Product Owner. This resolves the conflict between §4.4 and "co_registrar rows are never touched" by touching nothing.
+  Every firm-mapped company keeps exactly one active primary after the plan.
+- AC-16 (restated): the unit snapshot includes the production shape found in preview #2: a company on duplicate D of
+  K1 that is firmly mapped to K2 ≠ K1 (with a soft-deleted and an active variant), plus two duplicates with notes merging
+  into one canonical. Then no (table, id) row appears in two ops, and every count equals its number of distinct rows.
+  New AC-18: a co_registrar row at the firm target leaves the company unchanged and listed as held back.
+- §7 note (audit-2 #7): with `--undo-out -`, the undo record printed before a COMMIT that then fails is discarded. The run
+  log shows the exit code, and only a run that exits 0 produces an undo file to commit.
