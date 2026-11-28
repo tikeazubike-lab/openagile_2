@@ -96,3 +96,13 @@ Not restarted without the Product Owner's go. Advisory only, so it does not bloc
 | 7 | A COMMIT failure leaves a stale undo record on stdout | **Accepted**: §7 note (only an exit-0 run yields an undo file) |
 | 8 | Placeholder URL in a unit test trips the secrets grep | **No action**: a fake host with masked password |
 Pass-1 #2, #4–#9 are confirmed fixed by the auditor.
+
+### 4.7 Fix round 2 (builder)
+- The first round-2 run was stopped by Claude Code because the host was low on memory (llama-server and whisper-cli). Its partial tests were committed as `e8b9682fc2966127c946062c88cf9ce28520b972`.
+  The Product Owner then had Ollama and the Hermes gateway stopped and disabled.
+- **The builder session kept working after its `opencode run` client was killed.** It committed `f3f33ce310da417d58ace20c494d1794abc9af1f` (02:00, RED tests) and
+  `886eda2b026aae3b0c18d6797b6bae33ea0194b3` (02:08, A-8/A-9) with no `opencode run` process alive. The persistent `opencode serve --service` (pid 885369)
+  is the likely host, which would also explain the "second builder" in §4.5 and the writes after each timeout. **So dispatch timeouts and kills do not stop the builder.**
+  Flagged for the Product Owner; the service was not touched.
+- The restart run found the work done. It proved RED against `886eda2^` (5 failed) and ran the suite: `195 passed, 4 xfailed`.
+- Production preview #3 (read-only): `HO-160-preview-prod-2026-11-28-r2.md`. `registrar_id changed=132` (132 distinct), no link row in two ops, no co_registrar-at-target case.
