@@ -19,3 +19,6 @@ STEPS (commit after each):
 3. Full unit suite; paste the raw summary line.
 Commit messages end with `Co-Authored-By: OpenCode <noreply@opencode.ai>`.
 REPORT: 40-char SHAs, raw summary line, any existing assertion changed and why.
+
+RESTART NOTE (2026-11-28): the first round-2 run was stopped by the host for low memory. Its partial step-1 tests are committed
+as `e8b9682fc2966127c946062c88cf9ce28520b972` (unverified, +20 lines). Keep, complete or correct them, then continue from step 1.
