@@ -1722,9 +1722,12 @@ def test_ac24_placeholder_contacts_are_cleared_and_restored_by_undo():
     }
     plan = build_plan(_research_placeholders(), _snapshot_placeholders(),
                       _table_placeholders())
-    clears = {(op.registrar_key, set(op.changes))
+    # frozenset: `set` inside a set-comprehension tuple is unhashable, so the
+    # comparison the test wants needs an order-free HASHABLE view of the columns
+    clears = {(op.registrar_key, frozenset(op.changes))
               for op in _ops(plan, UpdateRegistrarOp)}
-    assert clears == {(2, {"phone", "email"}), (1, {"phone", "email"})}, plan.lines
+    assert clears == {(2, frozenset({"phone", "email"})),
+                      (1, frozenset({"phone", "email"}))}, plan.lines
     assert all(value is None for op in _ops(plan, UpdateRegistrarOp)
                for value in op.changes.values())
     # no "Entered manually" copy of a placeholder
