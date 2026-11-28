@@ -73,3 +73,26 @@ against epm_test: **not approved**, so apply/undo SQL is unproven on a real DB.
 ### 4.4 DeepSeek review
 Dispatched, then **stopped by Claude Code because the host was low on memory** (llama-server + whisper-cli were using about 5.7 GB of 7.8 GB).
 Not restarted without the Product Owner's go. Advisory only, so it does not block.
+
+### 4.5 Fix round 1 (builder)
+- Run 1b timed out mid-refactor; its work was committed unchanged as `0f024f855f9543da6f45e8772d3176f8e5822a07` (attributed to the builder).
+- Continuation run produced `54c969ffd20f4b208ea181f9ceb05b8e8685e44e` (A-1..A-6), `9257580cadf5093fb3b758f4d988ab2b2f7b030d` (A-7),
+  `2c86c653d62f5038db500be274cbc188438c7f18` (integration test fixes, not run). Unit suite: `191 passed, 4 xfailed`.
+- **Anomaly:** the dispatch's final report came from an OpenCode session that said it saw a *second* builder writing the same
+  worktree and stood down. Only one `opencode run` was dispatched. A long-running `opencode serve --service` (pid 885369, started
+  2026-11-27 09:26, not started by this loop) also exists on the host. The commits match the brief and the auditor reviewed them;
+  the source of the duplicate session is not established. Flagged for the Product Owner.
+- Production preview #2 (read-only, approved): `HO-160-preview-prod-2026-11-28.md`. `registrar_id changed=138` vs 132 distinct.
+
+### 4.6 Auditor pass 2: DEVIATED. Responses
+| # | Finding | Response |
+|---|---|---|
+| 1 | Merged then firm-mapped company gets `registrar_id` changed twice (6 in prod) | **Accepted**: spec A-8, fix round 2 |
+| 2 | 10 link rows repointed then soft-deleted; reactivate-then-delete reachable | **Accepted**: A-8 (row-level) |
+| 3 | AC-16 tests lack the production shape | **Accepted**: AC-16 restated |
+| 4 | `notes` changed by two ops when two duplicates have notes | **Accepted**: A-8 |
+| 5 | co_registrar at the firm target leaves no active primary | **Accepted**, ruled A-9: hold the company back |
+| 6 | AC-1 integration 25006 check uses its own transaction | **Accepted** as a nit: round 2 asserts on the preview's own session if cheap; otherwise it's left as is |
+| 7 | A COMMIT failure leaves a stale undo record on stdout | **Accepted**: §7 note (only an exit-0 run yields an undo file) |
+| 8 | Placeholder URL in a unit test trips the secrets grep | **No action**: a fake host with masked password |
+Pass-1 #2, #4–#9 are confirmed fixed by the auditor.
