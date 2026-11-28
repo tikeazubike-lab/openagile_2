@@ -3,7 +3,8 @@
 F-026c — integration tests for the registrar research import (real Postgres).
 
 Covered acceptance criteria: AC-1, AC-2, AC-3, AC-4, AC-8, AC-9, AC-12, AC-13,
-AC-15 (spec `.context/feature-specs/F-026c-registrar-research-import.md`).
+AC-15, AC-19, AC-22, AC-24 (spec `.context/feature-specs/F-026c-registrar-research-import.md`;
+AC-19/AC-22/AC-24 and the §12 amendments of AC-4/AC-9 come from its §12).
 
 Every test runs inside the `db_session` rollback fixture from
 tests/integration/conftest.py: the fixture registrars/companies are inserted
@@ -34,6 +35,8 @@ Trace on every test:
 """
 import json
 import os
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -42,7 +45,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from scripts.import_registrar_research import (
+    PlaceholderMismatchError,
+    Research,
     ResolutionEntry,
+    RetireBlockedError,
+    RetireCompanyOp,
     UndoRecord,
     UpdateRegistrarOp,
     _run_preview,
@@ -55,10 +62,13 @@ from scripts.import_registrar_research import (
 from app.models import (
     Company,
     CompanyRegistrar,
+    Dividend,
+    Holding,
     Registrar,
     RegistrarContactField,
     RegistrarDocument,
     RegistrarRequirement,
+    Transaction,
 )
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "registrar_research_sample.md"
@@ -306,7 +316,9 @@ async def test_ac1_preview_prints_the_plan_and_counts_and_changes_nothing(
         # plan + counts are printed (which also proves the §3 checks passed)
         assert "== registrar research import: plan ==" in out
         assert "== counts ==" in out
-        assert "registrars: created=1 merged=2 soft-deleted=2 renamed=1" in out
+        # The fixture canonical already carries its §3 final name, so the plan
+        # renames nothing (HO-160 §4.9: the stale expectation was renamed=1)
+        assert "registrars: created=1 merged=2 soft-deleted=2 renamed=0" in out
         assert "held back (weak)=2" in out
         assert "companies.registrar_id changed=" in out
 
@@ -417,12 +429,17 @@ async def test_ac3_rating_field_requirements_and_documents_move_to_the_canonical
 
 @pytest.mark.asyncio
 async def test_ac4_legacy_columns_become_entered_manually_fields(db_session: AsyncSession):
-    # Spec: F-026c-registrar-research-import.md | AC-4
+    # Spec: F-026c-registrar-research-import.md | AC-4 (and AC-23 under §12 D-5)
     """A registrar with hand-entered legacy email/phone and no contact fields
     gets those values as fields labelled "Entered manually"; the legacy columns
-    themselves are never changed."""
+    themselves are never changed.
+
+    §12 D-5 (replaces the §4.3 keep-both rule): both hand values differ from
+    every researched value of their type, so the researched phones and emails
+    are NOT imported and are listed as ``skipped (manual wins)`` instead. The
+    types without a hand value (address, website) import normally."""
     ids = await _seed(db_session)
-    await _apply(db_session, _table(ids))
+    plan = await _apply(db_session, _table(ids))
 
     canonical = await _registrar(db_session, ids["k"])
     # legacy columns unchanged (never overwritten)
@@ -438,10 +455,14 @@ async def test_ac4_legacy_columns_become_entered_manually_fields(db_session: Asy
     manual = {(f.field_type, f.field_value) for f in fields if f.label == "Entered manually"}
     assert ("email", "legacy@alpha.example") in manual
     assert ("phone", "01 999 9900") in manual
-    # and the researched values are visible on the page too
+    # §12 D-5: the researched values of a type the hand value wins are left out
     visible = {(f.field_type, f.field_value) for f in fields}
-    assert ("email", "desk@alpha.example") in visible
-    assert ("phone", "+2341000000001") in visible
+    assert ("email", "desk@alpha.example") not in visible
+    assert ("phone", "+2341000000001") not in visible
+    assert any(line.startswith("skipped (manual wins):") for line in plan.report_lines)
+    # ... while the types without a hand value still import
+    assert ("address", "1 Alpha Way, Lagos") in visible
+    assert ("other", "https://alpha.example") in visible
 
 
 # ─── AC-8 / AC-9: company links ───────────────────────────────────────────────
@@ -478,9 +499,13 @@ async def test_ac8_firm_mapping_makes_the_canonical_the_only_primary(db_session:
 
 
 @pytest.mark.asyncio
-async def test_ac9_co_registrar_link_is_untouched(db_session: AsyncSession):
-    # Spec: F-026c-registrar-research-import.md | AC-9
-    """The co_registrar link of the same company survives the firm mapping."""
+async def test_ac9_co_registrar_link_is_soft_deleted_by_the_firm_mapping(
+        db_session: AsyncSession):
+    # Spec: F-026c-registrar-research-import.md | AC-9 (superseded by §12 D-1 → AC-19)
+    """§12 D-1 replaces A-9 and its AC-9: co_registrar is not modelled, so the
+    firm mapping makes the canonical the company's ONLY active link and the
+    co_registrar row is soft-deleted with every other non-K link (AC-19). The
+    row itself keeps its role, and undo restores it."""
     ids = await _seed(db_session)
     await _apply(db_session, _table(ids))
 
@@ -492,7 +517,11 @@ async def test_ac9_co_registrar_link_is_untouched(db_session: AsyncSession):
     )).scalars().all()
     assert len(rows) == 1
     assert rows[0].role == "co_registrar"
-    assert rows[0].deleted_at is None
+    assert rows[0].deleted_at is not None, "D-1 must retire the co_registrar link"
+
+    # exactly one active link remains: the canonical
+    links = await _active_links(db_session, ids["alpha_co"])
+    assert [(l.registrar_id, l.role) for l in links] == [(ids["k"], "primary")]
 
 
 # ─── AC-12: idempotency ───────────────────────────────────────────────────────
@@ -588,3 +617,297 @@ async def test_ac15_error_mid_apply_rolls_back_everything(db_session: AsyncSessi
 
     await db_session.flush()
     assert await _dump(db_session) == before, "a partial apply survived the rollback"
+
+
+# ─── §12 (HO-160 §4.9): Product Owner decisions → AC-19, AC-22, AC-24 ─────────
+
+async def _link(session: AsyncSession, company_id: int, registrar_id: int):
+    return (await session.execute(
+        select(CompanyRegistrar).where(
+            CompanyRegistrar.company_id == company_id,
+            CompanyRegistrar.registrar_id == registrar_id,
+        )
+    )).scalars().one_or_none()
+
+
+async def _company(session: AsyncSession, company_id: int) -> Company:
+    return (await session.execute(
+        select(Company).where(Company.id == company_id)
+    )).scalar_one()
+
+
+async def _assert_restored(db_session: AsyncSession, before: dict) -> None:
+    """Every row that existed before the apply is byte-identical again (AC-13's
+    comparison, as a helper: rows the apply INSERTED are not in `before`, so
+    the soft-deleted rows an undo leaves behind are outside this check)."""
+    after = await _dump(db_session)
+    for table_name, rows in before.items():
+        after_by_id = {row["id"]: row for row in after[table_name]}
+        for row in rows:
+            assert after_by_id[row["id"]] == row, (
+                f"{table_name}#{row['id']} does not match its pre-apply state")
+
+
+# ─── AC-19 / D-1: one registrar per company, co_registrar not modelled ─────────
+
+@pytest.mark.asyncio
+async def test_ac19_a_firm_mapping_retires_the_co_registrar_and_undo_restores_it(
+        db_session: AsyncSession):
+    # Spec: F-026c-registrar-research-import.md | AC-19
+    """§12 D-1 (replaces A-9): the firm mapping makes the canonical ALPHA's only
+    active link — the co_registrar row of registrar Y is soft-deleted with every
+    other non-K link, the company ends with exactly one active link, and undo
+    puts the co_registrar row back exactly as it was."""
+    ids = await _seed(db_session)
+    table = _table(ids)
+    before = await _dump(db_session)
+
+    co_row = await _link(db_session, ids["alpha_co"], ids["y"])
+    assert co_row is not None and co_row.deleted_at is None   # starts active
+
+    snapshot = await load_snapshot(db_session)
+    plan = build_plan(_research(), snapshot, table)
+    record = await apply_plan(db_session, plan)
+    await db_session.flush()
+
+    links = await _active_links(db_session, ids["alpha_co"])
+    assert [(l.registrar_id, l.role) for l in links] == [
+        (ids["k"], "primary")], "D-1 left more than one active link"
+
+    retired = await _link(db_session, ids["alpha_co"], ids["y"])
+    assert retired.deleted_at is not None
+    assert retired.role == "co_registrar"          # the row itself is untouched
+
+    await undo(db_session, record)
+    await db_session.flush()
+    restored = await _link(db_session, ids["alpha_co"], ids["y"])
+    assert restored.deleted_at is None             # undo reactivates it
+    assert restored.role == "co_registrar"
+    await _assert_restored(db_session, before)
+
+
+# ─── AC-22 / D-4: duplicate company rows are retired ──────────────────────────
+
+async def _seed_duplicate_companies(session: AsyncSession, ids: dict) -> dict:
+    """The §12 D-4 pair of the dups report (keep OKOMUOIL -> retire OKOMOILP)
+    and the FLAG row that is never retired."""
+    keep = Company(ticker="OKOMUOIL", name="F026 Okomu Oil Palm Company PLC",
+                   sector="CONSUMER GOODS", status="listed", registrar_id=ids["x"])
+    retire = Company(ticker="OKOMOILP", name="F026 Okomu Oil Palm Plc",
+                     sector="CONSUMER GOODS", status="listed", registrar_id=ids["x"])
+    flagged = Company(ticker="ACCESS", name="F026 Access Holdings Plc",
+                      sector="BANKS", status="listed", registrar_id=None)
+    session.add_all([keep, retire, flagged])
+    await session.flush()
+    session.add_all([
+        CompanyRegistrar(company_id=keep.id, registrar_id=ids["x"], role="primary"),
+        CompanyRegistrar(company_id=retire.id, registrar_id=ids["x"], role="primary"),
+    ])
+    await session.flush()
+    return {"keep": keep.id, "retire": retire.id, "flag": flagged.id}
+
+
+async def _add_reference(session: AsyncSession, kind: str, company_id: int,
+                         registrar_id: int) -> None:
+    """One row of the §12 D-4 abort table (holdings/transactions/dividends/
+    registrar_documents) referencing ``company_id``."""
+    if kind == "holdings":
+        session.add(Holding(company_id=company_id, num_shares=Decimal("10"),
+                            average_cost_basis=Decimal("1"),
+                            total_cost=Decimal("10")))
+    elif kind == "transactions":
+        session.add(Transaction(company_id=company_id, transaction_type="buy",
+                                transaction_date=date(2026, 11, 1)))
+    elif kind == "dividends":
+        session.add(Dividend(company_id=company_id, amount_per_share=Decimal("1")))
+    elif kind == "registrar_documents":
+        req = RegistrarRequirement(
+            registrar_id=registrar_id, task_name="Quarterly returns",
+            document_title="Quarterly returns", is_required=True, sort_order=1,
+        )
+        session.add(req)
+        await session.flush()
+        session.add(RegistrarDocument(
+            registrar_requirement_id=req.id, company_id=company_id,
+            file_name="ref.pdf", file_path="/uploads/registrar_documents/ref.pdf",
+            file_size=1, mime_type="application/pdf", status="submitted",
+        ))
+    else:                                            # pragma: no cover
+        raise AssertionError(f"unknown reference table {kind!r}")
+    await session.flush()
+
+
+@pytest.mark.asyncio
+async def test_ac22_duplicate_company_rows_are_retired_with_their_links(
+        db_session: AsyncSession):
+    # Spec: F-026c-registrar-research-import.md | AC-22
+    """§12 D-4: only the duplicate row is soft-deleted, together with its
+    active link; the kept row and the flagged ACCESS row stay, the plan reports
+    MERGE / RETAIN / FLAG (never a hard DELETE) and undo restores the row."""
+    ids = await _seed(db_session)
+    dup = await _seed_duplicate_companies(db_session, ids)
+    table = _table(ids)
+    before = await _dump(db_session)
+
+    snapshot = await load_snapshot(db_session)
+    plan = build_plan(_research(), snapshot, table)
+    assert [op.company_id for op in plan.ops
+            if isinstance(op, RetireCompanyOp)] == [dup["retire"]]
+    assert plan.counts["companies_retired"] == 1
+    assert any(line.startswith(
+        f"MERGE: company OKOMOILP (id {dup['retire']})") for line in plan.lines)
+    assert any(line.startswith(
+        f"RETAIN: company OKOMUOIL (id {dup['keep']})") for line in plan.report_lines)
+    assert any(line.startswith(
+        f"FLAG: company ACCESS (id {dup['flag']})") for line in plan.report_lines)
+
+    record = await apply_plan(db_session, plan)
+    await db_session.flush()
+
+    assert (await _company(db_session, dup["retire"])).deleted_at is not None
+    assert (await _company(db_session, dup["keep"])).deleted_at is None
+    assert (await _company(db_session, dup["flag"])).deleted_at is None
+    assert (await _link(db_session, dup["retire"], ids["x"])).deleted_at is not None
+    assert (await _link(db_session, dup["keep"], ids["x"])).deleted_at is None
+
+    # undo puts the row and its link back
+    await undo(db_session, record)
+    await db_session.flush()
+    assert (await _company(db_session, dup["retire"])).deleted_at is None
+    assert (await _link(db_session, dup["retire"], ids["x"])).deleted_at is None
+    await _assert_restored(db_session, before)
+
+
+@pytest.mark.parametrize("reference", ["holdings", "transactions",
+                                       "dividends", "registrar_documents"])
+@pytest.mark.asyncio
+async def test_ac22_the_plan_aborts_when_a_retired_row_is_referenced(
+        db_session: AsyncSession, reference: str):
+    # Spec: F-026c-registrar-research-import.md | AC-22
+    """At plan time a retire candidate that still carries a holding,
+    transaction, dividend or registrar document aborts the whole run — and a
+    reference to the KEPT row is no reason to abort. The counts themselves come
+    from load_snapshot's read-only selects (snapshot.refs)."""
+    ids = await _seed(db_session)
+    dup = await _seed_duplicate_companies(db_session, ids)
+    table = _table(ids)
+
+    # a reference on the KEPT row only: the plan builds
+    await _add_reference(db_session, reference, dup["keep"], ids["x"])
+    snapshot = await load_snapshot(db_session)
+    assert snapshot.refs.get(dup["keep"], {}).get(reference) == 1
+    plan = build_plan(_research(), snapshot, table)
+    assert [op.company_id for op in plan.ops
+            if isinstance(op, RetireCompanyOp)] == [dup["retire"]]
+
+    # the same reference on the RETIRE candidate: the run aborts
+    await _add_reference(db_session, reference, dup["retire"], ids["x"])
+    snapshot = await load_snapshot(db_session)
+    assert snapshot.refs.get(dup["retire"], {}).get(reference) == 1
+    with pytest.raises(RetireBlockedError):
+        build_plan(_research(), snapshot, table)
+
+
+# ─── AC-24 / D-6: the placeholder legacy values are dropped ────────────────────
+
+def _research_placeholders() -> Research:
+    """Only the two slugs §12 D-6 names — no clients, no contact data."""
+    return Research(registrars=[{"slug": "meristem"}, {"slug": "unity"}])
+
+
+def _table_placeholders(ids: dict) -> dict:
+    """The production §3 rows of D-6 (meristem 2 <- 9, 57; unity 1 <- 17) with
+    the test's own ids, so the §3 name checks run against the fixture rows."""
+    return {
+        "meristem": ResolutionEntry(
+            slug="meristem", canonical=ids["m"], duplicates=(ids["m1"], ids["m2"]),
+            final_name="Meristem Registrars",
+        ),
+        "unity": ResolutionEntry(
+            slug="unity", canonical=ids["u"], duplicates=(ids["u1"],),
+            final_name="Unity Registrars",
+        ),
+    }
+
+
+async def _seed_placeholders(session: AsyncSession,
+                             meristem_phone: str = "+234-1-345-6789",
+                             unity_email: str = "info@unityregistrars.com") -> dict:
+    """Registrars 2 and 1 of §12 D-6 (Meristem, Unity) with their §3
+    duplicates, holding the placeholder legacy values D-6 lists."""
+    rows = [
+        Registrar(name="Meristem Registrars", phone=meristem_phone,
+                  email="registrar@meristem.com.ng", jurisdiction="nigeria",
+                  status="active"),
+        Registrar(name="Meristem Old Test Registrars", jurisdiction="nigeria",
+                  status="active"),
+        Registrar(name="Meristem Second Test Registrars", jurisdiction="nigeria",
+                  status="active"),
+        Registrar(name="Unity Registrars", phone="+234-1-234-5678",
+                  email=unity_email, jurisdiction="nigeria", status="active"),
+        Registrar(name="Unity Old Test Registrars", jurisdiction="nigeria",
+                  status="active"),
+    ]
+    session.add_all(rows)
+    await session.flush()
+    return {"m": rows[0].id, "m1": rows[1].id, "m2": rows[2].id,
+            "u": rows[3].id, "u1": rows[4].id}
+
+
+@pytest.mark.asyncio
+async def test_ac24_placeholder_contacts_are_cleared_and_restored_by_undo(
+        db_session: AsyncSession):
+    # Spec: F-026c-registrar-research-import.md | AC-24
+    """§12 D-6: the four placeholder values are set to NULL in one op per
+    registrar with no manual copy, the plan is idempotent, and undo restores
+    the exact placeholder values."""
+    ids = await _seed_placeholders(db_session)
+    table = _table_placeholders(ids)
+    research = _research_placeholders()
+    before = await _dump(db_session)
+
+    snapshot = await load_snapshot(db_session)
+    plan = build_plan(research, snapshot, table)
+    clears = {(op.registrar_key, frozenset(op.changes)) for op in plan.ops
+              if isinstance(op, UpdateRegistrarOp)}
+    assert clears == {(ids["m"], frozenset({"phone", "email"})),
+                      (ids["u"], frozenset({"phone", "email"}))}, plan.lines
+    assert all(value is None for op in plan.ops if isinstance(op, UpdateRegistrarOp)
+               for value in op.changes.values())
+
+    record = await apply_plan(db_session, plan)
+    await db_session.flush()
+    for registrar_id in (ids["m"], ids["u"]):
+        row = await _registrar(db_session, registrar_id)
+        assert row.phone is None and row.email is None, (
+            f"placeholder on #{registrar_id} survived: {row.phone} {row.email}")
+
+    # a second plan on the post-clear state plans nothing (AC-12)
+    snapshot = await load_snapshot(db_session)
+    assert build_plan(research, snapshot, table).ops == []
+
+    await undo(db_session, record)
+    await db_session.flush()
+    meristem = await _registrar(db_session, ids["m"])
+    assert (meristem.phone, meristem.email) == (
+        "+234-1-345-6789", "registrar@meristem.com.ng")
+    unity = await _registrar(db_session, ids["u"])
+    assert (unity.phone, unity.email) == (
+        "+234-1-234-5678", "info@unityregistrars.com")
+    await _assert_restored(db_session, before)
+
+
+@pytest.mark.parametrize("mismatch", [
+    {"meristem_phone": "01 555 0100"},
+    {"unity_email": "info@unity.example"},
+])
+@pytest.mark.asyncio
+async def test_ac24_a_placeholder_value_that_differs_aborts(
+        db_session: AsyncSession, mismatch: dict):
+    # Spec: F-026c-registrar-research-import.md | AC-24
+    """§12 D-6 matches every placeholder exactly: a registrar holding anything
+    else in that column aborts the run before a single row is written."""
+    ids = await _seed_placeholders(db_session, **mismatch)
+    snapshot = await load_snapshot(db_session)
+    with pytest.raises(PlaceholderMismatchError):
+        build_plan(_research_placeholders(), snapshot, _table_placeholders(ids))
