@@ -126,3 +126,20 @@ Pass-2 #1–#5 are confirmed fixed. RED proof was reproduced by the auditor. End
 - Read-only reports: `HO-160-names-report-2026-11-28.md` and `HO-160-dups-report-2026-11-28.md`.
 - Decisions D-1..D-9 → spec §12. The PO's earlier production go is **replaced** by D-8: the write waits for approval of the final change log.
 - Ticker/name reconciliation brief: `HO-160-po-reconciliation-brief.md`. The PO's research handover: `ticker_company_match.md`.
+
+### 4.10 §12 build and audit
+- Builder: RED `51c8fcc6057ab3947b059202ba6a1f8b7b54a413`; wip `1f5e19e98c51dda06e96ae0a9af97cd67d1f71d1`; `5ac5882bce58372f90283170db61b26a970376de`,
+  `506f7332c534bfaea3469581f1b65bee25f4dc42`, `60dba23b10188d6e94f2ea91f3b58e09eba8af7a`. Unit: `206 passed, 4 xfailed`.
+- epm_test integration: 16/18 at first. The two failures were stale ORM reads in the tests. The orchestrator fix `3bdf1e861c8697bacc752e51abc6cf744d3ecf68`
+  (three `expire_all()` calls, no assertion changed) gave 18 passed. Evidence: `HO-160-itest-epm_test-s12-2026-11-28.md`.
+- Auditor: DEVIATED. Responses:
+
+| # | Finding | Response |
+|---|---|---|
+| 1 | D-6 + fill make the second apply abort | **Accepted**: R-13.1, fix round 1 |
+| 2 | Placeholder columns written twice; fill count inflated | **Accepted**: R-13.1 |
+| 3 | D-5 not stable on re-run when the hand value comes from a duplicate | **Accepted**: R-13.2 |
+| 4 | D-4 abort ignores soft-deleted references | **Accepted**: R-13.3 |
+| 5 | Comment says duplicates are cleared too | **Accepted**: fix the comment |
+| 6 | Promotions counted as reactivations | **Accepted**: R-13.5 |
+| 7 | Veritas: all researched phones/addresses would be skipped | **Partly**: phones are the same numbers with a trunk zero, R-13.4. Addresses go to the change log for the PO |

@@ -277,3 +277,18 @@ The script matches each value exactly and aborts if it differs. Researched value
 - AC-23: under the manual-wins rule, a differing hand value suppresses that type's researched values, and an equal one gives a single researched field.
 - AC-24: the placeholders are cleared and restored by undo, and a value mismatch aborts.
 - Integration AC-1 expects `renamed=0` for its fixture (stale expectation, see HO-160 §4.9).
+
+## 13. Rulings 2026-11-28 (after the §12 audit, HO-160 §4.10)
+- R-13.1 (audit #1, #2): D-6 and the §4.2 legacy fill form **one** `UpdateRegistrarOp` per registrar, holding the final value of each
+  column. The placeholder is replaced by the fill value, or by NULL if there is none. On a re-run, a column whose value equals a
+  researched value of that type (or the fill value) counts as already done, not as a placeholder mismatch. Only another value aborts.
+  `legacy_columns_filled` counts fills only. Clears are counted separately as `placeholders cleared`.
+- R-13.2 (audit #3): for D-5, the hand values of a (registrar, type) are the canonical's and duplicates' legacy values **plus** the
+  canonical's existing "Entered manually" fields of that type. This keeps a re-run stable after the duplicates are soft-deleted.
+- R-13.3 (audit #4): the D-4 abort counts **all** referencing rows, soft-deleted ones included ("any").
+- R-13.4 (audit #7): phone normalisation drops the Nigerian trunk zero after the country code (`+2340…` → `+234…`) before any
+  comparison, so `+234 (0)1 …` and `+234 1 …` are equal. Other D-5 conflicts (e.g. Veritas addresses) stay "manual wins" and are
+  listed in the change log for the Product Owner.
+- R-13.5 (audit #6): D-1 promotions are counted as `links promoted`, not as reactivations.
+- New AC-25: two applies on a snapshot with the real meristem/unity research entries and the D-6 placeholders give run 2 = 0 ops, and no
+  column is written twice. AC-26: a D-5 conflict from a duplicate's hand value gives run 2 = 0 ops. AC-27: `+2340…` equals `+234…`.
