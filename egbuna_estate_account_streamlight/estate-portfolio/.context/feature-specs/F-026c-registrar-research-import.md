@@ -210,3 +210,70 @@ There is **no** production run before the PR passes auditor review and the Produ
   - G-2: a firm-mapped company's non-primary link on a duplicate is neither repointed nor retired.
   Precondition for the production apply (§7): the Product Owner or orchestrator confirms the one production `co_registrar`
   row is not on a duplicate registrar listed in §3. Preview #3 reports no A-9 case.
+
+## 12. Amendment 2026-11-28: Product Owner decisions (HO-160 §4.9)
+Sources:
+- the Product Owner's chat answers of 2026-11-28;
+- `docs/handovers/HO-160-dups-report-2026-11-28.md` (read-only production evidence);
+- the reconciliation brief `docs/handovers/HO-160-po-reconciliation-brief.md`.
+
+**D-1 One registrar per company; co_registrar is not modelled.**
+- A firm mapping makes K the company's only active link: every other active link of the company, of any role, is soft-deleted.
+- This **replaces A-9** (no hold-back) and closes gaps G-1 and G-2.
+- Production effect: SEPLAT stays on DataMax as primary, link #353 to Computershare UK is soft-deleted, and `companies.registrar_id` is set to DataMax.
+
+**D-2 GTL Registrars is Greenwich.** Registrar #15 is added to the Greenwich duplicates, so the §3 row becomes `greenwich 8 ← 3, 56, 15`. The research file's own evidence is "Greenwich Registrars (GTL)" and the gtlregistrars.com domain.
+
+**D-3 Ticker alias.** A fixed alias table maps research tickers to EPM tickers before matching. Its single entry is `MEYER → DNMEYER`. If an alias target is not an active company, the script aborts.
+
+**D-4 Duplicate company rows are retired** by a soft delete of the company and of its active links. The price history stays attached to the row.
+
+| Keep | Retire |
+|---|---|
+| OKOMUOIL | OKOMOILP |
+| TRANSEXPR | TRANSEX |
+| WEMABANK | WEMA |
+| LEARNAFRCA | LEARNAFR |
+| LIVESTOCK | LIVESTOK |
+| TRANSPOWER | TRANSCORPPOWER |
+| DNMEYER | MEYER |
+
+- At plan time the script **aborts** if a retired row has any `holdings`, `transactions`, `dividends` or `registrar_documents`. Today all are 0.
+- Undo restores the rows.
+- `ACCESS` (the obsolete Access Bank ticker) is **not** retired. Access Bank records are reconciled separately (brief §4), so the row is listed as FLAG.
+- Planned action names: UPDATE, MERGE (= soft-delete duplicate), RETAIN, FLAG, HOLD. There is never a hard DELETE.
+
+**D-5 Hand-entered contact wins on conflict** (replaces the §4.3 "keep both" rule).
+- For each registrar and contact type (phone, email, website, address):
+  - If the legacy column holds a value that is **not equal** (after §4.2 normalisation, A-5) to any researched value of that type, the hand value is kept as the "Entered manually" field and the researched values of that type are **not imported**. They are listed in the report as `skipped (manual wins)`.
+  - If the hand value **equals** a researched value, only the researched field is created, with no manual copy.
+- Other types and labels are unaffected.
+
+**D-6 Placeholder contacts are dropped.** These legacy values are set to NULL, with no manual copy, and undo restores them:
+
+| Registrar | Column | Value |
+|---|---|---|
+| Meristem | phone | `+234-1-345-6789` |
+| Meristem | email | `registrar@meristem.com.ng` |
+| Unity | phone | `+234-1-234-5678` |
+| Unity | email | `info@unityregistrars.com` |
+
+The script matches each value exactly and aborts if it differs. Researched values then apply normally.
+
+**D-7 No company renames in this import.** Lists A and B and the six renames wait for the reconciliation (brief workstreams 2–4), which gets a follow-up spec of its own.
+
+**D-8 Gate.** A production write needs the Product Owner's explicit approval of the final change log (brief §9C, §12). This **replaces the earlier go of 2026-11-28**. The read-only preview and the tests on `epm_test` stay allowed.
+
+**D-9 Out of scope: status fields.**
+- `companies` already has `status` (default `listed`), `date_listed`, `date_delisted`, `isin`, `notes` and `deleted_at`.
+- It has no `trading_status`, `exchange`, `former_names` or evidence fields.
+- Suspension and delisting are therefore not written by this import. Any schema change needs a separate spec and an additive migration.
+
+**New acceptance criteria**
+- AC-19: a co_registrar link of a firm-mapped company is soft-deleted, the company has exactly one active link, and undo restores it.
+- AC-20: the GTL row merges into Greenwich, and DNMEYER and NESTLE end on Greenwich.
+- AC-21: the alias maps MEYER to DNMEYER, and a missing alias target aborts.
+- AC-22: each duplicate row is soft-deleted with its links, the plan aborts if a holding, transaction, dividend or document exists, and undo restores it.
+- AC-23: under the manual-wins rule, a differing hand value suppresses that type's researched values, and an equal one gives a single researched field.
+- AC-24: the placeholders are cleared and restored by undo, and a value mismatch aborts.
+- Integration AC-1 expects `renamed=0` for its fixture (stale expectation, see HO-160 §4.9).
