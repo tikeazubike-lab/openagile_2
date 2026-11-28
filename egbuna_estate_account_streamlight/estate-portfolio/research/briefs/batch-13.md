@@ -16,6 +16,16 @@ SOURCES, in this order:
 5. The registrar's own website.
 6. Secondary sites (stock data or news sites) may SUPPORT a finding, but never decide a ticker on their own.
 
+FAST PATH (found in the pilot run; use it first, with the webfetch tool):
+- NGX company record, which gives the official name, symbol, board, listing date and **Registrars**:
+  `https://ngxgroup.com/wp-json/ngx-data-widgets/v1/company/profile?symbol=<TICKER>&directory=companydirectory&family=company`
+- NGX company overview: the same URL with `company/overview` in place of `company/profile`.
+- NGX full company directory: `https://ngxgroup.com/wp-json/ngx-data-widgets/v1/company/directory?directory=companydirectory&family=company`
+- Live price ticker (trading evidence): `https://ngxgroup.com/wp-json/ngx-data-widgets/v1/home/ticker`
+- Delisted companies: `https://ngxgroup.com/exchange/data/delisted-companies/`. X-Compliance report: `https://ngxgroup.com/exchange/trade/investor-protection-education/x-compliance-report/`
+- JS-rendered pages and PDFs can be read through `https://r.jina.ai/<url>`.
+- If the profile's Registrars field names a registrar, record it as source_type "NGX" and check it against the company's own disclosure if time allows.
+
 RULES:
 - **Ticker:** take it from an NGX record only. Never derive it from the name or from third-party sites.
 - **Registrar:** take it from the latest annual report or the company's own disclosure. If you can't establish the current one, set registrar_status "UNVERIFIED".

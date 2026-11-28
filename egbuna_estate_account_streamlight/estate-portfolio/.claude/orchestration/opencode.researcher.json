@@ -21,6 +21,7 @@
     },
     "external_directory": "deny",
     "webfetch": "allow",
-    "websearch": "allow"
+    "websearch": "allow",
+    "execute": "deny"
   }
 }

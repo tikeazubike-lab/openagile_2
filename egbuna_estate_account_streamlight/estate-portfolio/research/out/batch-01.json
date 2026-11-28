@@ -1,0 +1,267 @@
+[
+ {
+  "ticker": "MULTITREX",
+  "ngx_ticker": "MULTITREX",
+  "ticker_status": "CONFIRMED",
+  "company_name": "Multi-Trex Integrated Foods Plc",
+  "former_names": ["Multi-Trex Investments Ltd"],
+  "exchange": "NGX",
+  "listing_status": "listed",
+  "trading_status": "trading",
+  "status_effective_date": "2026-10-07",
+  "status_reason": "Trading was suspended since about November 2018 for failure to file audited financial statements; NGX RegCo lifted the suspension on 2026-10-07 after the company filed its outstanding financial statements. The security carries the NGX [DWL] (delisting watch-list) flag on the NGX ticker board, and the 2026 AFS (due 2026-07-29) is still unfiled per the company's 2026-11-02 notice to NGX, so further enforcement action is possible.",
+  "registrar_name": "Meristem Registrars & Probate Services Ltd",
+  "registrar_status": "CONFIRMED",
+  "evidence": [
+   {
+    "claim": "ticker",
+    "url": "https://ngxgroup.com/exchange/trade/equities/listed-companies/",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "MULTITREX [DWL] ₦0.72 0.000 ━ (0.00%)"
+   },
+   {
+    "claim": "name",
+    "url": "https://ngxgroup.com/wp-json/ngx-data-widgets/v1/company/profile?symbol=MULTITREX&directory=companydirectory&family=company",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "\"CompanyName\":\"MULTI-TREX INTEGRATED FOODS PLC\",\"Symbol\":\"MULTITREX\""
+   },
+   {
+    "claim": "name",
+    "url": "https://doclib.ngxgroup.com/Financial_NewsDocs/48343_MULTI-TREX_INTEGRATED_FOODS_PLC-ANNOUNCEMENT_ON_DELAY_IN_FILING_2026_AFS_CORPORATE_ACTIONS_NOVEMBER_2026.pdf",
+    "source_type": "NGX",
+    "published": "2026-11-02",
+    "quote": "The Board of Directors of Multi-Trex Integrated Foods Plc (“Multi-Trex” or “the Company”) informs Nigerian Exchange Limited (“NGX” or “The Exchange”), shareholders and the investing public that the Company has not yet filed its Audited Financial Statements for the year ended 30 April 2026"
+   },
+   {
+    "claim": "name",
+    "url": "https://multitrexplc.com/",
+    "source_type": "investor_relations",
+    "published": null,
+    "quote": "Multi-Trex Investments Ltd (“MIL”) was incorporated as a private Company on November 30, 1999, and it started business as a cocoa bean merchant soon after."
+   },
+   {
+    "claim": "status",
+    "url": "https://guardian.ng/business-services/ngx-reopens-trading-in-multi-trex-after-almost-eight-years/",
+    "source_type": "secondary",
+    "published": "2026-10-09",
+    "quote": "Trading in the shares of Multi-Trex Integrated Foods Plc has resumed on the Nigerian Exchange (NGX) after the company submitted its outstanding financial statements"
+   },
+   {
+    "claim": "status",
+    "url": "https://ng.headtopics.com/news/multi-trex-resumes-trading-on-ngx-after-eight-year-88614815",
+    "source_type": "secondary",
+    "published": null,
+    "quote": "The NGX Regulation Limited (NGX RegCo) lifted the suspension on October 7, 2026, confirming compliance with applicable rules."
+   },
+   {
+    "claim": "status",
+    "url": "https://doclib.ngxgroup.com/Financial_NewsDocs/48343_MULTI-TREX_INTEGRATED_FOODS_PLC-ANNOUNCEMENT_ON_DELAY_IN_FILING_2026_AFS_CORPORATE_ACTIONS_NOVEMBER_2026.pdf",
+    "source_type": "NGX",
+    "published": "2026-11-02",
+    "quote": "The Board regrets this delay This announcement sets out the reasons for the delay and the expected filing date."
+   },
+   {
+    "claim": "registrar",
+    "url": "https://multitrexplc.com/",
+    "source_type": "investor_relations",
+    "published": null,
+    "quote": "https://meristemng1-my.sharepoint.com/:f:/g/personal/info_meristemregistrars_com/IgBxdVvhxihRT6p3TnHPuelgAQ_RdYUGcSJcsy8UmpZMC70?e=K42YoW"
+   }
+  ],
+  "confidence": "medium",
+  "review_notes": "Ticker/name/status from NGX records (ticker board, NGX company-profile REST record, NGX doclib notice of 2026-11-02; the PDF was read through a text-extraction proxy, quote verbatim from the PDF text). Registrar: the company's own investor-relations page links its shareholder reports through a Meristem Registrars SharePoint tenant (personal/info_meristemregistrars_com) — this corroborates the research-file mapping (Meristem Registrars & Probate Services Ltd, evidence 2025-11, previously SINGLE-SOURCE), but the folder and the annual report's Corporate Information page are behind a Microsoft sign-in, so the exact registrar legal name still rests on the research file. Suspension-lifting date 2026-10-07 comes from press reports (secondary); the corresponding NGX lifting notice was not located on doclib. NGX shows the [DWL] delisting watch-list flag and the 2026 AFS remains late (cure period expired per the company's 2026-11-02 notice) — trading_status could change if NGX takes further action. Not on the NGX Delisted Companies list (https://ngxgroup.com/exchange/data/delisted-companies/, checked 2026-11-28). Minor conflict: NGX lists DateOfIncorporation 1999-10-30 while the company site says incorporated 30 Nov 1999 (out of scope, noted only)."
+ },
+ {
+  "ticker": "SOVRENINS",
+  "ngx_ticker": "SOVRENINS",
+  "ticker_status": "CONFIRMED",
+  "company_name": "Sovereign Trust Insurance Plc",
+  "former_names": [],
+  "exchange": "NGX",
+  "listing_status": "listed",
+  "trading_status": "trading",
+  "status_effective_date": null,
+  "status_reason": null,
+  "registrar_name": null,
+  "registrar_status": "UNVERIFIED",
+  "evidence": [
+   {
+    "claim": "ticker",
+    "url": "https://ngxgroup.com/exchange/trade/equities/listed-companies/",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "SOVRENINS ₦2.27 0.001 ▲ (0.06%)"
+   },
+   {
+    "claim": "name",
+    "url": "https://ngxgroup.com/wp-json/ngx-data-widgets/v1/company/profile?symbol=SOVRENINS&directory=companydirectory&family=company",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "\"CompanyName\":\"SOVEREIGN TRUST INSURANCE PLC\",\"Symbol\":\"SOVRENINS\",\"MarketClassification\":\"Main Board\""
+   },
+   {
+    "claim": "name",
+    "url": "https://www.stiplc.com/",
+    "source_type": "investor_relations",
+    "published": null,
+    "quote": "Home | Sovereign Trust Insurance"
+   },
+   {
+    "claim": "status",
+    "url": "https://www.mansamarkets.com/nigeria/sovrenins",
+    "source_type": "secondary",
+    "published": "2026-11-28",
+    "quote": "Sovereign Trust Insurance Plc trades at ₦2.06 on the Nigerian Exchange , −6.79% on the day . Prices refresh every 30 minutes during NGX trading hours."
+   }
+  ],
+  "confidence": "medium",
+  "review_notes": "Ticker, name (NGX record: SOVEREIGN TRUST INSURANCE PLC, Main Board, listed 2006-11-29) and trading status are solid: the NGX ticker board shows a price change (+0.06%) and MansaMarkets shows live intraday movement as of 2026-11-28 (intraday snapshots differ — ₦2.27 vs ₦2.06 — but both confirm active trading). Registrar UNVERIFIED: the research file's Meristem Registrars & Probate Services Ltd mapping is flagged STALE (last evidence FY2023) and the FY2023 annual report on stiplc.com is behind a Microsoft sign-in wall (company tenant customerservice_stiplc_com); no FY2024/FY2025 annual report was found on the company site and the NGX company-directory record has an empty Registrars field. EPM name is just the ticker (workstream 3). Not on the NGX Delisted Companies list as of 2026-11-28."
+ },
+ {
+  "ticker": "CAP",
+  "ngx_ticker": "CAP",
+  "ticker_status": "CONFIRMED",
+  "company_name": "Chemical and Allied Products Plc",
+  "former_names": [],
+  "exchange": "NGX",
+  "listing_status": "listed",
+  "trading_status": "trading",
+  "status_effective_date": null,
+  "status_reason": null,
+  "registrar_name": "Africa Prudential Plc",
+  "registrar_status": "CONFIRMED",
+  "evidence": [
+   {
+    "claim": "ticker",
+    "url": "https://ngxgroup.com/exchange/trade/equities/listed-companies/",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "CAP ₦110.00 0.000 ━ (0.00%)"
+   },
+   {
+    "claim": "name",
+    "url": "https://ngxgroup.com/wp-json/ngx-data-widgets/v1/company/profile?symbol=CAP&directory=companydirectory&family=company",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "\"CompanyName\":\"CHEMICAL AND ALLIED PRODUCTS PLC\",\"Symbol\":\"CAP\""
+   },
+   {
+    "claim": "name",
+    "url": "https://www.capplc.com/",
+    "source_type": "investor_relations",
+    "published": "2026-10-16",
+    "quote": "Welcome to Chemical and Allied Products PLC (CAP), the largest paint manufacturer and distributor in Nigeria with over 65 years of experience in the paints and coatings industry."
+   },
+   {
+    "claim": "registrar",
+    "url": "https://ngxgroup.com/wp-json/ngx-data-widgets/v1/company/profile?symbol=CAP&directory=companydirectory&family=company",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "\"Registrars\":\"Africa Prudential Plc\""
+   },
+   {
+    "claim": "status",
+    "url": "https://www.mansamarkets.com/nigeria/cap",
+    "source_type": "secondary",
+    "published": "2026-11-28",
+    "quote": "CAP Share Price Today: ₦110.00 (CAP)"
+   }
+  ],
+  "confidence": "high",
+  "review_notes": "EPM name 'CAP Plc' (workstream 2) is the company's brand style — its own site says 'About CAP PLC' but introduces the company as 'Chemical and Allied Products PLC (CAP)', and the NGX company record says 'CHEMICAL AND ALLIED PRODUCTS PLC'. Current legal name therefore remains Chemical and Allied Products Plc; 'CAP Plc' is not evidenced as a legal rename and is not recorded as a former name. Registrar: NGX's current company record explicitly carries Registrars = Africa Prudential Plc, matching the research file (2024-05-14); the annual report's Corporate Information page itself was not retrievable (capplc.com hosts no annual reports), so the confirmation rests on the NGX record — if the PO requires an annual-report citation, downgrade to UNVERIFIED. NGX's Delisted Companies page entry 'PORTLAND PAINTS & PRODUCTS NIGERIA PLC ... 17-Sep-21 ... Merged with Chemical & Allied Products Plc' independently supports the name in 2021. Not on that delisted list as of 2026-11-28. Trading confirmed by live NGX quote and MansaMarkets as of 2026-11-28."
+ },
+ {
+  "ticker": "SCOA",
+  "ngx_ticker": "SCOA",
+  "ticker_status": "CONFIRMED",
+  "company_name": "SCOA Nigeria Plc",
+  "former_names": [],
+  "exchange": "NGX",
+  "listing_status": "listed",
+  "trading_status": "trading",
+  "status_effective_date": null,
+  "status_reason": null,
+  "registrar_name": null,
+  "registrar_status": "UNVERIFIED",
+  "evidence": [
+   {
+    "claim": "ticker",
+    "url": "https://ngxgroup.com/exchange/trade/equities/listed-companies/",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "SCOA ₦33.05 0.000 ━ (0.00%)"
+   },
+   {
+    "claim": "name",
+    "url": "https://ngxgroup.com/wp-json/ngx-data-widgets/v1/company/profile?symbol=SCOA&directory=companydirectory&family=company",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "\"CompanyName\":\"SCOA NIGERIA PLC\",\"Symbol\":\"SCOA\",\"MarketClassification\":\"Main Board\""
+   },
+   {
+    "claim": "name",
+    "url": "https://www.scoaplc.com/about-us/",
+    "source_type": "investor_relations",
+    "published": null,
+    "quote": "Founded in 1926, SCOA Nigeria PLC is a publicly traded conglomerate headquartered in Lagos"
+   },
+   {
+    "claim": "status",
+    "url": "https://www.mansamarkets.com/nigeria/scoa",
+    "source_type": "secondary",
+    "published": "2026-11-28",
+    "quote": "SCOA Nigeria (SCOA) share price today: ₦33.05 (0.00%) on NGX, as of 27 Nov 2026."
+   }
+  ],
+  "confidence": "medium",
+  "review_notes": "Name conflict handled: scoaplc.com's page title says 'SCOA PLC' but its About page (quoted) and the NGX company record both say 'SCOA Nigeria PLC' — treated as informal branding, not a legal rename; no former names evidenced. Registrar UNVERIFIED: research file mapping (Africa Prudential Plc) is stale (last evidence 2021-12-31), the NGX company record has an empty Registrars field, and scoaplc.com is now a machinery/marketing site with no investor documents (its WordPress search for 'registrar' returns nothing), so the current registrar could not be established. Trading confirmed 2026-11-27/28 (NGX ticker board ₦33.05; MansaMarkets as-of 2026-11-28). Not on the NGX Delisted Companies list as of 2026-11-28. Search engines were blocked (DuckDuckGo CAPTCHA, Bing returning unrelated results), so an independent news check on status could not be completed — NGX primary records show no suspension or delisting."
+ },
+ {
+  "ticker": "DAARCOMM",
+  "ngx_ticker": "DAARCOMM",
+  "ticker_status": "CONFIRMED",
+  "company_name": "Daar Communications Plc",
+  "former_names": [],
+  "exchange": "NGX",
+  "listing_status": "listed",
+  "trading_status": "trading",
+  "status_effective_date": null,
+  "status_reason": null,
+  "registrar_name": null,
+  "registrar_status": "UNVERIFIED",
+  "evidence": [
+   {
+    "claim": "ticker",
+    "url": "https://ngxgroup.com/exchange/trade/equities/listed-companies/",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "DAARCOMM ₦1.32 0.000 ━ (0.00%)"
+   },
+   {
+    "claim": "name",
+    "url": "https://ngxgroup.com/wp-json/ngx-data-widgets/v1/company/profile?symbol=DAARCOMM&directory=companydirectory&family=company",
+    "source_type": "NGX",
+    "published": null,
+    "quote": "\"CompanyName\":\"DAAR COMMUNICATIONS PLC\",\"Symbol\":\"DAARCOMM\",\"MarketClassification\":\"Main Board\""
+   },
+   {
+    "claim": "name",
+    "url": "https://daargroup.com/",
+    "source_type": "investor_relations",
+    "published": null,
+    "quote": "Daar Communication Plc – Nigeria's Premiere Private Broadcast Network"
+   },
+   {
+    "claim": "status",
+    "url": "https://www.mansamarkets.com/nigeria/daarcomm",
+    "source_type": "secondary",
+    "published": "2026-11-28",
+    "quote": "DAAR Communications Share Price Today: ₦1.32 (DAARCOMM)"
+   }
+  ],
+  "confidence": "medium",
+  "review_notes": "Name: NGX record says 'DAAR COMMUNICATIONS PLC'; the company website (daargroup.com — the domain in NGX's record context; daarcommunicationsplc.com does not resolve) titles itself 'Daar Communication Plc' (missing final 's') — the NGX spelling is used. Registrar UNVERIFIED: research file mapping (First Registrars And Investor Services Limited, evidence 2023-07-28, STALE) could not be confirmed — the NGX company record has an empty Registrars field and daargroup.com's Partners & Investors page carries no reports, shareholder services or registrar mention. Trading confirmed 2026-11-28 (NGX ticker board ₦1.32; MansaMarkets as-of 2026-11-28); no suspension or delisting record found on NGX sources (ticker board has no status flag, not on the NGX Delisted Companies list as of 2026-11-28). Search engines were blocked (DuckDuckGo CAPTCHA, Bing broken), so a targeted press check for recent enforcement action could not be completed. EPM name is just the ticker (workstream 3)."
+ }
+]
