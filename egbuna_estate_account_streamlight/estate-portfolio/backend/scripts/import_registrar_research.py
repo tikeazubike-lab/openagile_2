@@ -681,6 +681,14 @@ def normalise(value, kind: str | None = None) -> str:
     return text_value
 
 
+def _legacy_type(field_type: str) -> str:
+    """The legacy contact column a researched field type belongs to (§12 D-5
+    works per phone/email/website/address): the §4.2 rules store an unsafe
+    website or portal with the field type ``other``, and it is still a
+    "website" as far as the hand-entered value is compared against it."""
+    return "website" if field_type == "other" else field_type
+
+
 def classify(client: dict) -> str:
     """Spec §4.4: firm unless the mapping is Low or UNVERIFIED."""
     if client.get("mapping_confidence") == "Low":
@@ -879,10 +887,29 @@ class _Planner:
             # already created by an earlier run => use its id (idempotent)
             self.targets[slug] = existing.id if existing else ("new", slug)
 
+    # ── §12 D-3: the fixed ticker alias table ─────────────────────────────
+    def _verify_ticker_aliases(self) -> None:
+        """Every research ticker the file carries is matched through
+        :func:`_match_company`, so an alias whose EPM target is not an active
+        company aborts the run here (AC-21) instead of deep inside a later
+        step. Read-only: nothing is planned."""
+        by_ticker = {str(company.ticker).upper(): company
+                     for company in self.snap.companies
+                     if not company.deleted_at and company.ticker}
+        for entry in self.research.registrars:
+            for client in entry.get("clients") or []:
+                ticker = client.get("ticker")
+                if ticker and str(ticker).upper() in TICKER_ALIASES:
+                    self._match_company(ticker, by_ticker)
+
     # ── steps ─────────────────────────────────────────────────────────────
     def run(self) -> Plan:
         self._verify_table()
         self._resolve_targets()
+        # §12 D-3 first: an alias whose target is not an active company has to
+        # abort before any other step plans (AC-21), whatever the other tables
+        # say about the rows around it.
+        self._verify_ticker_aliases()
         # §12 D-4 first: its plan-time abort must fire before anything else
         # is planned, and a retired company must not be touched by a later step
         self._retire_duplicate_companies()
@@ -969,6 +996,42 @@ class _Planner:
             self.plan.report_lines.append(
                 f"FLAG: company {ticker} (id {company.id}) — not retired; "
                 "Access Bank records are reconciled separately (§12 D-4)")
+
+    # ── §12 D-6: the placeholder legacy values are dropped ─────────────────
+    def _clear_placeholder_contacts(self) -> None:
+        """Set the legacy placeholder values §12 D-6 lists to NULL — no
+        "Entered manually" copy of a placeholder, undo restores the exact
+        value, and a column that holds anything else than the listed
+        placeholder aborts the run before a single row is written.
+
+        A column that is already NULL is simply skipped: that is what keeps
+        the step idempotent (the second plan sees NULLs). The researched
+        values apply normally afterwards — ``_contacts_for`` runs after this
+        step, so a NULL column may be filled again from the file (A-3)."""
+        for slug, columns in PLACEHOLDER_CONTACTS.items():
+            if slug not in self.table:      # a table the file does not carry
+                continue
+            key = self.targets[slug]
+            resolved = self._key_id(key)
+            row = self.snap.registrars.get(resolved)
+            if row is None:
+                continue
+            changes = {}
+            for column, placeholder in columns.items():
+                value = getattr(row, column, None)
+                if value is None:
+                    continue                        # already cleared
+                if value != placeholder:
+                    raise PlaceholderMismatchError(
+                        f"{slug}: {column} holds {value!r}, not the §12 D-6 "
+                        f"placeholder {placeholder!r} — refusing to clear it")
+                changes[column] = None
+            if changes:
+                self._add(
+                    UpdateRegistrarOp(registrar_key=key, changes=changes),
+                    f"registrar {_fmt_key(key)}: clear §12 D-6 placeholder "
+                    f"legacy column(s) {', '.join(sorted(changes))} -> NULL",
+                )
 
     # ── the working copy (A-6) ────────────────────────────────────────────
     def _add(self, op, line: str) -> None:
@@ -1233,12 +1296,65 @@ class _Planner:
 
         planned = []                       # [(sort_order, type, value, label)]
 
-        # head office address sorts first, right after the existing fields
+        # §12 D-5: the hand-entered legacy values K holds (plus the ones its
+        # duplicates brought in with the merge), grouped by contact type.
+        legacy_sources = []
+        if k_row is not None:
+            legacy_sources.extend((col, getattr(k_row, col))
+                                  for col in LEGACY_COLUMNS if getattr(k_row, col))
+        for duplicate in self.dup_legacy.get(key, []):
+            legacy_sources.extend((col, getattr(duplicate, col))
+                                  for col in LEGACY_COLUMNS if getattr(duplicate, col))
+
+        # the file's own values, gathered as candidates FIRST: D-5 decides
+        # per (registrar, type) whether a type is imported at all, so the
+        # decision has to be taken before anything is staged.
         head_value, head_label = self._head_office(head_office, offices)
-        if head_value and normalise(head_value, "address") not in values:
-            values.add(normalise(head_value, "address"))
-            planned.append((next_order, "address", head_value, head_label))
-            next_order += 10
+        website = entry.get("website")
+        website_spec = website_field(website)
+        candidates = []                     # [(field_type, value, label)]
+        if head_value:
+            candidates.append(("address", head_value, head_label))
+        for phone in entry.get("phones") or []:
+            if phone.get("e164"):
+                candidates.append(("phone", phone.get("e164"), phone_label(phone)))
+        # emails: only show_on_page
+        for email in entry.get("emails") or []:
+            if email.get("show_on_page") and email.get("address"):
+                candidates.append(("email", email.get("address"), email_label(email)))
+        # website / portals: safe_to_link gates the field type
+        if website_spec and website.get("url"):
+            candidates.append((website_spec[0], website.get("url"), website_spec[1]))
+        for portal in entry.get("portals") or []:
+            portal_spec = portal_field(portal)
+            if portal_spec and portal.get("url"):
+                candidates.append((portal_spec[0], portal.get("url"), portal_spec[1]))
+        # other offices: show_on_page, never the "Group ..." ones
+        for office in offices:
+            if office.get("is_head_office"):
+                continue
+            if str(office.get("type") or "").startswith("Group"):
+                continue
+            if not office.get("show_on_page"):
+                continue
+            if office.get("address"):
+                candidates.append(("address", office.get("address"),
+                                   office_label(office, head_office)))
+
+        # researched values by contact type — "other" is the type §4.2 picks
+        # for an unsafe website/portal, and it still belongs to "website"
+        researched: dict = {column: set() for column in LEGACY_COLUMNS}
+        for field_type, value, _label in candidates:
+            column = _legacy_type(field_type)
+            researched[column].add(normalise(value, column))
+
+        # §12 D-5 (replaces the §4.3 keep-both rule): a hand value that equals
+        # NO researched value of its type wins that type — it stays visible as
+        # "Entered manually" and every researched value of the type is left
+        # out of the import. A hand value that equals one of them gives the
+        # researched field alone, with no manual copy.
+        manual_wins = {column for column, value in legacy_sources
+                       if normalise(value, column) not in researched[column]}
 
         def stage(field_type, value, label):
             nonlocal next_order
@@ -1251,43 +1367,24 @@ class _Planner:
             planned.append((next_order, field_type, value, label))
             next_order += 10
 
-        # phones
-        for phone in entry.get("phones") or []:
-            stage("phone", phone.get("e164"), phone_label(phone))
-        # emails: only show_on_page
-        for email in entry.get("emails") or []:
-            if not email.get("show_on_page"):
+        skipped: set = set()                # one report line per (type, value)
+        for field_type, value, label in candidates:
+            column = _legacy_type(field_type)
+            if column in manual_wins:
+                if (column, value) not in skipped:
+                    skipped.add((column, value))
+                    self.plan.report_lines.append(
+                        f"skipped (manual wins): {_fmt_key(key)} {column} "
+                        f"{value!r} — the hand-entered {column} "
+                        f"{dict(legacy_sources).get(column)!r} differs from it "
+                        "(§12 D-5), not imported")
                 continue
-            stage("email", email.get("address"), email_label(email))
-        # website / portals: safe_to_link gates the field type
-        website = entry.get("website")
-        website_spec = website_field(website)
-        if website_spec:
-            stage(website_spec[0], website.get("url"), website_spec[1])
-        for portal in entry.get("portals") or []:
-            portal_spec = portal_field(portal)
-            if portal_spec:
-                stage(portal_spec[0], portal.get("url"), portal_spec[1])
-        # other offices: show_on_page, never the "Group ..." ones
-        for office in offices:
-            if office.get("is_head_office"):
-                continue
-            if str(office.get("type") or "").startswith("Group"):
-                continue
-            if not office.get("show_on_page"):
-                continue
-            stage("address", office.get("address"), office_label(office, head_office))
+            stage(field_type, value, label)
 
-        # §4.3: hand-entered legacy values stay visible as "Entered manually"
-        legacy_sources = []
-        if k_row is not None:
-            legacy_sources.extend((col, getattr(k_row, col))
-                                  for col in LEGACY_COLUMNS if getattr(k_row, col))
-        for duplicate in self.dup_legacy.get(key, []):
-            legacy_sources.extend((col, getattr(duplicate, col))
-                                  for col in LEGACY_COLUMNS if getattr(duplicate, col))
+        # the hand value itself: only when it does NOT equal a researched one
         for column, value in legacy_sources:
-            stage(column, value, "Entered manually")
+            if column in manual_wins:
+                stage(column, value, "Entered manually")
 
         for sort_order, field_type, value, label in planned:
             self._add(
@@ -1480,6 +1577,8 @@ class _Planner:
                 counts["requirements_repointed"] += 1
             elif isinstance(op, UpdateCompanyOp):
                 counts["companies_registrar_changed"] += 1
+            elif isinstance(op, RetireCompanyOp):        # §12 D-4
+                counts["companies_retired"] += 1
         counts["registrars_merged"] = self._merged
         self.plan.counts = counts
         self.plan.report_counts = {
@@ -1494,14 +1593,8 @@ class _Planner:
                 f"{held['registrar']} — no link change, Product Owner decides "
                 f"[{held.get('confidence')}/{held.get('flag')}]"
             )
-        # A-9 / AC-18: listed separately from the weak ones — these ARE firm
-        # mappings the co_registrar row at the target kept untouched
-        for held in self.plan.held_back_co_registrar:
-            self.plan.report_lines.append(
-                f"held back (co_registrar at target): {held['ticker']} "
-                f"({held['company']}) for {held['registrar']} — no link change, "
-                "Product Owner decides"
-            )
+        # A-9/AC-18's "held back (co_registrar at target)" report line is gone:
+        # §12 D-1 replaces A-9 — a firm mapping never holds a company back.
         for unmatched in self.plan.unmatched:
             ticker = unmatched["ticker"] or "(no ticker)"
             self.plan.report_lines.append(
@@ -1601,9 +1694,31 @@ async def load_snapshot(session: AsyncSession) -> Snapshot:
         id=row["id"], registrar_id=row["registrar_id"],
         deleted_at=row["deleted_at"],
     ) for row in (await session.execute(select(_table("registrar_requirements")))).mappings()]
+    # §12 D-4: read-only reference counts per company. A retire candidate that
+    # still carries a holding, transaction, dividend or registrar document
+    # aborts the plan at plan time (RetireBlockedError); the price history and
+    # the audits are deliberately not counted — §12 keeps them attached to the
+    # retired row.
+    from app.models import Dividend, Holding, RegistrarDocument, Transaction
+    ref_tables = {
+        "holdings": Holding.__table__,
+        "transactions": Transaction.__table__,
+        "dividends": Dividend.__table__,
+        "registrar_documents": RegistrarDocument.__table__,
+    }
+    refs: dict = {}
+    for name in REF_COUNT_TABLES:
+        table = ref_tables[name]
+        stmt = select(table.c.company_id, func.count().label("total")).where(
+            table.c.company_id.isnot(None))
+        if "deleted_at" in table.c:
+            stmt = stmt.where(table.c.deleted_at.is_(None))
+        for company_id, total in (await session.execute(
+                stmt.group_by(table.c.company_id))).all():
+            refs.setdefault(company_id, {})[name] = int(total)
     return Snapshot(
         registrars=registrars, fields=fields, links=links,
-        companies=companies, requirements=requirements,
+        companies=companies, requirements=requirements, refs=refs,
     )
 
 
@@ -1724,6 +1839,9 @@ async def apply_plan(session: AsyncSession, plan: Plan) -> UndoRecord:
         elif isinstance(op, UpdateCompanyOp):
             await _update(session, "companies", op.company_id,
                           _resolve_changes(op.changes, created), record)
+        elif isinstance(op, RetireCompanyOp):        # §12 D-4: MERGE, never DELETE
+            await _update(session, "companies", op.company_id,
+                          {"deleted_at": func.now()}, record)
         else:                                            # pragma: no cover
             raise ResearchImportError(f"unknown operation: {op!r}")
 
