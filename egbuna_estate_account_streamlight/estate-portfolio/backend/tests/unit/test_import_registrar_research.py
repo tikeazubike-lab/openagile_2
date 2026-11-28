@@ -848,6 +848,26 @@ def _touches(op):
     raise AssertionError(f"unhandled plan operation: {op!r}")
 
 
+def _merge_firm_rows(op):
+    """(table, row_id) of every EXISTING row the MERGE step or the FIRM step
+    writes — the row-level (A-8) twin of the column-level :func:`_touches`
+    check above.
+
+    Inserts are left out: they have no id yet and cannot collide. So are the
+    create / rename / contacts steps: A-8 scopes "one op per row" to the two
+    steps auditor pass 2 found writing one row twice (#1/#2 across merge and
+    firm, #4 across two merges). A ``UpdateRegistrarOp`` that only carries
+    legacy columns is the contacts step's "fill NULL legacy columns", not a
+    merged value."""
+    if isinstance(op, (CreateRegistrarOp, CreateFieldOp, CreateLinkOp,
+                       RenameRegistrarOp)):
+        return []
+    if isinstance(op, UpdateRegistrarOp) and \
+            set(op.changes) <= set(imp.LEGACY_COLUMNS):
+        return []
+    return [(table, row_id) for table, row_id, _column in _touches(op)]
+
+
 @pytest.mark.parametrize("snapshot_factory", [_snapshot, _snapshot_ghost])
 def test_ac16_no_row_or_column_is_changed_twice_and_counts_are_distinct(
         snapshot_factory):
