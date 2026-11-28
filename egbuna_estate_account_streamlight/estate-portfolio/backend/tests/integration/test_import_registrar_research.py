@@ -8,7 +8,8 @@ AC-15 (spec `.context/feature-specs/F-026c-registrar-research-import.md`).
 Every test runs inside the `db_session` rollback fixture from
 tests/integration/conftest.py: the fixture registrars/companies are inserted
 uncommitted and the whole test is rolled back at teardown, so epm_test is left
-exactly as it was.
+exactly as it was. AC-1 is the single exception — it seeds and cleans up its
+own committed rows, see its docstring.
 
 The tests build their own fixture rows and their own resolution table (spec §3),
 against the hand-made sample file tests/fixtures/registrar_research_sample.md,
@@ -16,12 +17,17 @@ so nothing here depends on production ids. All three layers of the script are
 exercised for real:
   * pure  — parse_research() (from the file path) + build_plan()
   * db    — load_snapshot() / apply_plan() / undo() against the live tables
-  * cli   — the read-only preview transaction (SET TRANSACTION READ ONLY as the
-            first statement, then a write that must fail with SQLSTATE 25006)
+  * cli   — the read-only preview entry _run_preview() itself (AC-1): its
+            transaction starts with SET TRANSACTION READ ONLY, so every write
+            it attempts fails with SQLSTATE 25006
 
-The CLI's own engine path is deliberately *not* run: `--apply` commits on its
-own connection, which the rollback fixture forbids (AC-15 instead proves the
-transaction boundary by failing mid-apply inside a savepoint).
+`--apply`'s own engine path is deliberately *not* run: it commits on its own
+connection, which the rollback fixture forbids (AC-15 instead proves the
+transaction boundary by failing mid-apply inside a savepoint). AC-1 needs the
+preview in a transaction of its own — SET TRANSACTION READ ONLY must be its
+first statement — so its fixture rows are seeded on a second connection and
+COMMITTED, and every one of them is deleted again in the test's `finally`
+(the rollback fixture cannot see another transaction's rows).
 
 Trace on every test:
   # Spec: F-026c-registrar-research-import.md | AC-N
@@ -37,10 +43,11 @@ from sqlalchemy.pool import NullPool
 
 from scripts.import_registrar_research import (
     ResolutionEntry,
+    UndoRecord,
     UpdateRegistrarOp,
+    _run_preview,
     apply_plan,
     build_plan,
-    format_plan,
     load_snapshot,
     parse_research,
     undo,
@@ -218,6 +225,46 @@ def _read_only_engine():
     return create_async_engine(url, poolclass=NullPool)
 
 
+async def _commit_seed(engine) -> dict:
+    """Seed the fixture rows on their own connection and COMMIT them.
+
+    AC-1 calls the real preview entry, which opens a transaction of its own
+    (SET TRANSACTION READ ONLY must be its first statement): it cannot run
+    inside db_session's transaction, and it cannot see db_session's
+    uncommitted rows either. The rows are therefore committed here and every
+    one of them is deleted again by _cleanup_committed_seed()."""
+    conn = await engine.connect()
+    session = AsyncSession(bind=conn, expire_on_commit=False)
+    try:
+        ids = await _seed(session)
+        await session.commit()
+        return ids
+    finally:
+        await session.close()
+        await conn.close()          # rolls a half-finished seed back
+
+
+async def _cleanup_committed_seed(engine, ids: dict) -> None:
+    """Delete the rows _commit_seed() committed — the rollback fixture cannot,
+    they belong to another transaction. FK order: documents -> requirements ->
+    contact fields -> links -> companies -> registrars."""
+    registrars = [ids["k"], ids["d1"], ids["d2"], ids["x"], ids["y"]]
+    companies = [ids["alpha_co"], ids["weak_co"], ids["unv_co"], ids["newbie_co"]]
+    async with engine.begin() as conn:
+        await conn.execute(RegistrarDocument.__table__.delete().where(
+            RegistrarDocument.__table__.c.registrar_requirement_id.in_(ids["reqs"])))
+        await conn.execute(RegistrarRequirement.__table__.delete().where(
+            RegistrarRequirement.__table__.c.id.in_(ids["reqs"])))
+        await conn.execute(RegistrarContactField.__table__.delete().where(
+            RegistrarContactField.__table__.c.registrar_id.in_(registrars)))
+        await conn.execute(CompanyRegistrar.__table__.delete().where(
+            CompanyRegistrar.__table__.c.company_id.in_(companies)))
+        await conn.execute(Company.__table__.delete().where(
+            Company.__table__.c.id.in_(companies)))
+        await conn.execute(Registrar.__table__.delete().where(
+            Registrar.__table__.c.id.in_(registrars)))
+
+
 async def _active_links(session, company_id):
     return (await session.execute(
         select(CompanyRegistrar).where(
@@ -237,30 +284,34 @@ async def _registrar(session, registrar_id) -> Registrar:
 
 @pytest.mark.asyncio
 async def test_ac1_preview_prints_the_plan_and_counts_and_changes_nothing(
-        db_session: AsyncSession):
+        db_session: AsyncSession, capsys):
     # Spec: F-026c-registrar-research-import.md | AC-1
-    """Preview runs, no row changes, and the read-only transaction the CLI
-    opens rejects every write with SQLSTATE 25006."""
-    ids = await _seed(db_session)
-
-    before = await _dump(db_session)
-    snapshot = await load_snapshot(db_session)
-    plan = build_plan(_research(), snapshot, _table(ids))
-    out = format_plan(plan)
-    after = await _dump(db_session)
-
-    assert before == after, "preview changed rows"
-    # plan + counts are printed
-    assert "==" in out and "registrar" in out
-    assert "== counts ==" in out
-    assert "registrars: created=" in out
-    assert "held back (weak)=" in out
-    assert "companies.registrar_id changed=" in out
-
-    # The CLI preview transaction: SET TRANSACTION READ ONLY is its first
-    # statement, so any write attempt fails as read-only.
+    """The real preview entry ``_run_preview()`` runs against the fixture
+    database: it prints the plan and the counts, changes no row, and the
+    read-only transaction it opens rejects every write with SQLSTATE 25006."""
     engine = _read_only_engine()
+    ids = None
     try:
+        # the preview needs a transaction of its own, so it can only see
+        # committed rows: seed here, and delete everything again in `finally`
+        ids = await _commit_seed(engine)
+
+        before = await _dump(db_session)
+        rc = await _run_preview(engine, _research(), resolution_table=_table(ids))
+        out = capsys.readouterr().out
+        after = await _dump(db_session)
+
+        assert rc == 0
+        assert before == after, "preview changed rows"
+        # plan + counts are printed (which also proves the §3 checks passed)
+        assert "== registrar research import: plan ==" in out
+        assert "== counts ==" in out
+        assert "registrars: created=1 merged=2 soft-deleted=2 renamed=1" in out
+        assert "held back (weak)=2" in out
+        assert "companies.registrar_id changed=" in out
+
+        # The preview transaction itself: SET TRANSACTION READ ONLY is its
+        # first statement, so any write attempt fails as read-only.
         async with engine.connect() as conn:
             async with conn.begin():
                 await conn.execute(text("SET TRANSACTION READ ONLY"))
@@ -273,6 +324,8 @@ async def test_ac1_preview_prints_the_plan_and_counts_and_changes_nothing(
                     f"write refused for the wrong reason: {excinfo.value!r}"
                 )
     finally:
+        if ids is not None:
+            await _cleanup_committed_seed(engine, ids)
         await engine.dispose()
 
 
@@ -483,7 +536,12 @@ async def test_ac13_undo_restores_every_touched_row(db_session: AsyncSession):
     assert await _dump(db_session) != before, "apply changed nothing — test is vacuous"
     assert record.inserted_rows, "apply inserted no rows"
 
-    await undo(db_session, record)
+    # The record travels exactly as it does through an undo file:
+    # to_json -> JSON text -> from_json (A-7/AC-13).
+    round_tripped = UndoRecord.from_json(json.loads(json.dumps(record.to_json())))
+    assert round_tripped.to_json() == record.to_json()
+
+    await undo(db_session, round_tripped)
     await db_session.flush()
     after = await _dump(db_session)
 
