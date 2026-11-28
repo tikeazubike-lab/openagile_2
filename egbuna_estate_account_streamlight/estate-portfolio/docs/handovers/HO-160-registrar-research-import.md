@@ -117,3 +117,12 @@ Pass-1 #2, #4–#9 are confirmed fixed by the auditor.
 | 5 | No counts line for A-9 hold-backs | Nit, deferred (0 in production) |
 | 6 | A ticker firm-mapped under two registrars | Nit: none in the file (`in >1 registrar: []`) |
 Pass-2 #1–#5 are confirmed fixed. RED proof was reproduced by the auditor. End-state probe on all three fixtures: no duplicate pairs, no multi-primary, no stale links/FKs, 2nd run = 0 ops.
+
+### 4.9 Product Owner decisions after PR #17 (2026-11-28)
+- PR #17 was merged into the PR #10 branch (merge `da89ea0c3e236810ea1409b27d47e59c25181d96`). Follow-up work is on `feature/f-026c2-po-decisions`.
+- The PO approved the integration tests on epm_test. Run: 8 passed, 1 failed (AC-1 count expectation `renamed=1` is stale; `renamed=0` is correct for that fixture).
+  Evidence: `HO-160-itest-epm_test-2026-11-28.md`.
+- The PO had `opencode serve --service` stopped (it was the likely host of builder sessions that outlived their client), together with Ollama and the Hermes gateway (memory).
+- Read-only reports: `HO-160-names-report-2026-11-28.md` and `HO-160-dups-report-2026-11-28.md`.
+- Decisions D-1..D-9 → spec §12. The PO's earlier production go is **replaced** by D-8: the write waits for approval of the final change log.
+- Ticker/name reconciliation brief: `HO-160-po-reconciliation-brief.md`. The PO's research handover: `ticker_company_match.md`.
