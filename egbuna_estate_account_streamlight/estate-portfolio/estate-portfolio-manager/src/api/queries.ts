@@ -31,8 +31,9 @@ function formatApiErrorBody(status: number, body: unknown): string {
 
 /**
  * POST etc. — returns full API envelope; throws on non-OK HTTP or envelope error field.
+ * (Exported for the F-026b reminder settings page — HO-159 item 6.)
  */
-async function fetchApiEnvelope<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
+export async function fetchApiEnvelope<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
   const res = await fetch(path, { credentials: "include", ...init });
   let body: unknown = {};
   try {

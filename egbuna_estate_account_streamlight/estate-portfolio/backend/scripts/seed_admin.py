@@ -28,39 +28,57 @@ from app.models import User
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-async def seed() -> None:
+async def seed_admin_user(session) -> dict:
+    """
+    Core seeding logic — idempotent. Pass in a session to allow unit testing
+    with a mock or rollback session.
+
+    Returns {"created": bool, "updated": bool, "username": str}.
+    Raises ValueError if EPM_ADMIN_PASSWORD is not set (no hardcoded fallback).
+    """
     admin_username = os.environ.get("EPM_ADMIN_USERNAME", "zubbyik")
     admin_name = os.environ.get("EPM_ADMIN_NAME", "Zubby")
     admin_password = os.environ.get("EPM_ADMIN_PASSWORD")
 
     if not admin_password:
-        print("ERROR: EPM_ADMIN_PASSWORD env var is required", file=sys.stderr)
+        raise ValueError("EPM_ADMIN_PASSWORD env var is required")
+
+    result = await session.execute(
+        select(User).where(User.username == admin_username)
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        # Update password for existing user if script runs again (e.g. when GitHub Secret is updated)
+        existing.hashed_password = pwd_context.hash(admin_password)
+        session.add(existing)
+        await session.commit()
+        return {"created": False, "updated": True, "username": admin_username}
+
+    user = User(
+        username=admin_username,
+        name=admin_name,
+        hashed_password=pwd_context.hash(admin_password),
+        role="admin",
+        is_active=True,
+    )
+    session.add(user)
+    await session.commit()
+    return {"created": True, "updated": False, "username": admin_username}
+
+
+async def seed() -> None:
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await seed_admin_user(session)
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(User).where(User.username == admin_username)
-        )
-        existing = result.scalar_one_or_none()
-
-        if existing:
-            # Update password for existing user if script runs again (e.g. when GitHub Secret is updated)
-            existing.hashed_password = pwd_context.hash(admin_password)
-            session.add(existing)
-            await session.commit()
-            print(f"✅ Admin user '{admin_username}' already exists — password updated.")
-            return
-
-        user = User(
-            username=admin_username,
-            name=admin_name,
-            hashed_password=pwd_context.hash(admin_password),
-            role="admin",
-            is_active=True,
-        )
-        session.add(user)
-        await session.commit()
-        print(f"✅ Admin user '{admin_username}' created successfully.")
+    if result["created"]:
+        print(f"✅ Admin user '{result['username']}' created successfully.")
+    else:
+        print(f"✅ Admin user '{result['username']}' already exists — password updated.")
 
 
 if __name__ == "__main__":

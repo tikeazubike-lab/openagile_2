@@ -64,10 +64,9 @@ def test_login_rejects_invalid_credentials():
         assert exc.status_code == 401
 
 
-def test_logout_returns_success_envelope():
+def test_logout_clears_cookie_and_returns_null_data():
     response = Response()
     payload = asyncio.run(logout(response))
-    # Current logout returns {"data": None, "error": None} directly (no meta key)
     assert payload["data"] is None
     assert payload["error"] is None
 

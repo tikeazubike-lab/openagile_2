@@ -22,12 +22,15 @@ import { Route as AppHoldingsRouteImport } from './routes/_app.holdings'
 import { Route as AppDividendsRouteImport } from './routes/_app.dividends'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCompaniesRouteImport } from './routes/_app.companies'
+import { Route as AppClaimsRouteImport } from './routes/_app.claims'
 import { Route as AppSettingsUsersRouteImport } from './routes/_app.settings.users'
+import { Route as AppSettingsRegistrarsRouteImport } from './routes/_app.settings.registrars'
 import { Route as AppSettingsPriceEntryRouteImport } from './routes/_app.settings.price-entry'
 import { Route as AppSettingsDeletedRecordsRouteImport } from './routes/_app.settings.deleted-records'
 import { Route as AppSettingsDataUploadRouteImport } from './routes/_app.settings.data-upload'
 import { Route as AppSettingsDataImportRouteImport } from './routes/_app.settings.data-import'
 import { Route as AppSettingsCorporateActionsRouteImport } from './routes/_app.settings.corporate-actions'
+import { Route as AppCompaniesIdRouteImport } from './routes/_app.companies.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -93,9 +96,19 @@ const AppCompaniesRoute = AppCompaniesRouteImport.update({
   path: '/companies',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClaimsRoute = AppClaimsRouteImport.update({
+  id: '/claims',
+  path: '/claims',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsUsersRoute = AppSettingsUsersRouteImport.update({
   id: '/settings/users',
   path: '/settings/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRegistrarsRoute = AppSettingsRegistrarsRouteImport.update({
+  id: '/settings/registrars',
+  path: '/settings/registrars',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsPriceEntryRoute = AppSettingsPriceEntryRouteImport.update({
@@ -125,11 +138,17 @@ const AppSettingsCorporateActionsRoute =
     path: '/settings/corporate-actions',
     getParentRoute: () => AppRoute,
   } as any)
+const AppCompaniesIdRoute = AppCompaniesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppCompaniesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
-  '/companies': typeof AppCompaniesRoute
+  '/claims': typeof AppClaimsRoute
+  '/companies': typeof AppCompaniesRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/dividends': typeof AppDividendsRoute
   '/holdings': typeof AppHoldingsRoute
@@ -139,16 +158,19 @@ export interface FileRoutesByFullPath {
   '/registrars': typeof AppRegistrarsRoute
   '/transactions': typeof AppTransactionsRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/companies/$id': typeof AppCompaniesIdRoute
   '/settings/corporate-actions': typeof AppSettingsCorporateActionsRoute
   '/settings/data-import': typeof AppSettingsDataImportRoute
   '/settings/data-upload': typeof AppSettingsDataUploadRoute
   '/settings/deleted-records': typeof AppSettingsDeletedRecordsRoute
   '/settings/price-entry': typeof AppSettingsPriceEntryRoute
+  '/settings/registrars': typeof AppSettingsRegistrarsRoute
   '/settings/users': typeof AppSettingsUsersRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/companies': typeof AppCompaniesRoute
+  '/claims': typeof AppClaimsRoute
+  '/companies': typeof AppCompaniesRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/dividends': typeof AppDividendsRoute
   '/holdings': typeof AppHoldingsRoute
@@ -159,18 +181,21 @@ export interface FileRoutesByTo {
   '/transactions': typeof AppTransactionsRoute
   '/watchlist': typeof AppWatchlistRoute
   '/': typeof AppIndexRoute
+  '/companies/$id': typeof AppCompaniesIdRoute
   '/settings/corporate-actions': typeof AppSettingsCorporateActionsRoute
   '/settings/data-import': typeof AppSettingsDataImportRoute
   '/settings/data-upload': typeof AppSettingsDataUploadRoute
   '/settings/deleted-records': typeof AppSettingsDeletedRecordsRoute
   '/settings/price-entry': typeof AppSettingsPriceEntryRoute
+  '/settings/registrars': typeof AppSettingsRegistrarsRoute
   '/settings/users': typeof AppSettingsUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/companies': typeof AppCompaniesRoute
+  '/_app/claims': typeof AppClaimsRoute
+  '/_app/companies': typeof AppCompaniesRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/dividends': typeof AppDividendsRoute
   '/_app/holdings': typeof AppHoldingsRoute
@@ -181,11 +206,13 @@ export interface FileRoutesById {
   '/_app/transactions': typeof AppTransactionsRoute
   '/_app/watchlist': typeof AppWatchlistRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/companies/$id': typeof AppCompaniesIdRoute
   '/_app/settings/corporate-actions': typeof AppSettingsCorporateActionsRoute
   '/_app/settings/data-import': typeof AppSettingsDataImportRoute
   '/_app/settings/data-upload': typeof AppSettingsDataUploadRoute
   '/_app/settings/deleted-records': typeof AppSettingsDeletedRecordsRoute
   '/_app/settings/price-entry': typeof AppSettingsPriceEntryRoute
+  '/_app/settings/registrars': typeof AppSettingsRegistrarsRoute
   '/_app/settings/users': typeof AppSettingsUsersRoute
 }
 export interface FileRouteTypes {
@@ -193,6 +220,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/claims'
     | '/companies'
     | '/dashboard'
     | '/dividends'
@@ -203,15 +231,18 @@ export interface FileRouteTypes {
     | '/registrars'
     | '/transactions'
     | '/watchlist'
+    | '/companies/$id'
     | '/settings/corporate-actions'
     | '/settings/data-import'
     | '/settings/data-upload'
     | '/settings/deleted-records'
     | '/settings/price-entry'
+    | '/settings/registrars'
     | '/settings/users'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/claims'
     | '/companies'
     | '/dashboard'
     | '/dividends'
@@ -223,16 +254,19 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/watchlist'
     | '/'
+    | '/companies/$id'
     | '/settings/corporate-actions'
     | '/settings/data-import'
     | '/settings/data-upload'
     | '/settings/deleted-records'
     | '/settings/price-entry'
+    | '/settings/registrars'
     | '/settings/users'
   id:
     | '__root__'
     | '/_app'
     | '/login'
+    | '/_app/claims'
     | '/_app/companies'
     | '/_app/dashboard'
     | '/_app/dividends'
@@ -244,11 +278,13 @@ export interface FileRouteTypes {
     | '/_app/transactions'
     | '/_app/watchlist'
     | '/_app/'
+    | '/_app/companies/$id'
     | '/_app/settings/corporate-actions'
     | '/_app/settings/data-import'
     | '/_app/settings/data-upload'
     | '/_app/settings/deleted-records'
     | '/_app/settings/price-entry'
+    | '/_app/settings/registrars'
     | '/_app/settings/users'
   fileRoutesById: FileRoutesById
 }
@@ -350,11 +386,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCompaniesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/claims': {
+      id: '/_app/claims'
+      path: '/claims'
+      fullPath: '/claims'
+      preLoaderRoute: typeof AppClaimsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/users': {
       id: '/_app/settings/users'
       path: '/settings/users'
       fullPath: '/settings/users'
       preLoaderRoute: typeof AppSettingsUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings/registrars': {
+      id: '/_app/settings/registrars'
+      path: '/settings/registrars'
+      fullPath: '/settings/registrars'
+      preLoaderRoute: typeof AppSettingsRegistrarsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings/price-entry': {
@@ -392,11 +442,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsCorporateActionsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/companies/$id': {
+      id: '/_app/companies/$id'
+      path: '/$id'
+      fullPath: '/companies/$id'
+      preLoaderRoute: typeof AppCompaniesIdRouteImport
+      parentRoute: typeof AppCompaniesRoute
+    }
   }
 }
 
+interface AppCompaniesRouteChildren {
+  AppCompaniesIdRoute: typeof AppCompaniesIdRoute
+}
+
+const AppCompaniesRouteChildren: AppCompaniesRouteChildren = {
+  AppCompaniesIdRoute: AppCompaniesIdRoute,
+}
+
+const AppCompaniesRouteWithChildren = AppCompaniesRoute._addFileChildren(
+  AppCompaniesRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppCompaniesRoute: typeof AppCompaniesRoute
+  AppClaimsRoute: typeof AppClaimsRoute
+  AppCompaniesRoute: typeof AppCompaniesRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
   AppDividendsRoute: typeof AppDividendsRoute
   AppHoldingsRoute: typeof AppHoldingsRoute
@@ -412,11 +482,13 @@ interface AppRouteChildren {
   AppSettingsDataUploadRoute: typeof AppSettingsDataUploadRoute
   AppSettingsDeletedRecordsRoute: typeof AppSettingsDeletedRecordsRoute
   AppSettingsPriceEntryRoute: typeof AppSettingsPriceEntryRoute
+  AppSettingsRegistrarsRoute: typeof AppSettingsRegistrarsRoute
   AppSettingsUsersRoute: typeof AppSettingsUsersRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppCompaniesRoute: AppCompaniesRoute,
+  AppClaimsRoute: AppClaimsRoute,
+  AppCompaniesRoute: AppCompaniesRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
   AppDividendsRoute: AppDividendsRoute,
   AppHoldingsRoute: AppHoldingsRoute,
@@ -432,6 +504,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsDataUploadRoute: AppSettingsDataUploadRoute,
   AppSettingsDeletedRecordsRoute: AppSettingsDeletedRecordsRoute,
   AppSettingsPriceEntryRoute: AppSettingsPriceEntryRoute,
+  AppSettingsRegistrarsRoute: AppSettingsRegistrarsRoute,
   AppSettingsUsersRoute: AppSettingsUsersRoute,
 }
 

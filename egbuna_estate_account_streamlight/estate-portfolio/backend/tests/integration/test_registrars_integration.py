@@ -3,8 +3,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.companies import Company
-from app.models.registrars import Registrar
+from app.models import Company, Registrar
 
 @pytest.mark.asyncio
 async def test_link_unlink_company_to_registrar(

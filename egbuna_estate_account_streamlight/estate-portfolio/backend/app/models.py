@@ -19,6 +19,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -57,13 +58,33 @@ class Registrar(Base):
     response_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="active", nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    jurisdiction: Mapped[str] = mapped_column(String(20), server_default="nigeria", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     companies: Mapped[list["Company"]] = relationship("Company", back_populates="registrar")
+    company_links: Mapped[list["CompanyRegistrar"]] = relationship("CompanyRegistrar", back_populates="registrar", cascade="all, delete-orphan")
     requirements: Mapped[list["RegistrarRequirement"]] = relationship("RegistrarRequirement", back_populates="registrar", cascade="all, delete-orphan")
     contact_fields: Mapped[list["RegistrarContactField"]] = relationship("RegistrarContactField", back_populates="registrar", cascade="all, delete-orphan", order_by="RegistrarContactField.sort_order")
+
+
+class CompanyRegistrar(Base):
+    __tablename__ = "company_registrars"
+    __table_args__ = (
+        UniqueConstraint("company_id", "registrar_id"),
+        CheckConstraint("role IN ('primary', 'co_registrar')", name="chk_company_registrar_role"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    company_id: Mapped[int] = mapped_column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    registrar_id: Mapped[int] = mapped_column(Integer, ForeignKey("registrars.id", ondelete="CASCADE"), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String(20), server_default="primary", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    company: Mapped["Company"] = relationship("Company", back_populates="registrar_links")
+    registrar: Mapped["Registrar"] = relationship("Registrar", back_populates="company_links")
 
 
 class RegistrarContactField(Base):
@@ -108,11 +129,15 @@ class Company(Base):
     obsidian_slug: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     obsidian_imported: Mapped[bool] = mapped_column(Boolean, server_default="false", nullable=False)
 
+    # F-026 columns
+    security_type: Mapped[str] = mapped_column(String(20), server_default="equity", nullable=False)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     registrar: Mapped["Registrar | None"] = relationship("Registrar", back_populates="companies")
+    registrar_links: Mapped[list["CompanyRegistrar"]] = relationship("CompanyRegistrar", back_populates="company", cascade="all, delete-orphan")
     holdings: Mapped[list["Holding"]] = relationship("Holding", back_populates="company")
     transactions: Mapped[list["Transaction"]] = relationship("Transaction", back_populates="company")
     dividends: Mapped[list["Dividend"]] = relationship("Dividend", back_populates="company")
@@ -341,6 +366,7 @@ class RegistrarRequirement(Base):
     description: Mapped[str | None] = mapped_column(Text)
     is_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    due_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -428,4 +454,47 @@ class ChecklistRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     admin: Mapped["User"] = relationship("User")
+
+
+# ─── Chatbot Conversations (F-022) ───────────────────────────────────────────
+
+class ChatbotConversation(Base):
+    __tablename__ = "chatbot_conversations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    matched_intent: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    extracted_entities: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    execution_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="matched",
+    )
+    response: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    user: Mapped["User"] = relationship("User")
+
+
+# ─── F-026b: Email Reminder Log ─────────────────────────────────────────────
+
+class ReminderLog(Base):
+    __tablename__ = "reminder_log"
+    __table_args__ = (
+        CheckConstraint("reminder_type IN ('upcoming', 'overdue')", name="chk_reminder_type"),
+        CheckConstraint("delivery_status IN ('sent', 'failed')", name="chk_delivery_status"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    requirement_id: Mapped[int] = mapped_column(Integer, ForeignKey("registrar_requirements.id"), nullable=False, index=True)
+    reminder_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    recipient_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    delivery_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    error_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    requirement: Mapped["RegistrarRequirement"] = relationship("RegistrarRequirement")
 
