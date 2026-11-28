@@ -295,6 +295,7 @@ class Plan:
         "held_back": 0, "unmatched": 0, "without_contact_record": 0,
     })
     held_back: list = field(default_factory=list)
+    held_back_co_registrar: list = field(default_factory=list)   # A-9 / AC-18
     unmatched: list = field(default_factory=list)
     without_contact_record: list = field(default_factory=list)
 
@@ -731,6 +732,9 @@ class _Planner:
         self.plan = Plan()
         self.targets: dict = {}            # slug -> int id | ("new", slug)
         self.dup_legacy: dict = {}         # key -> [merged duplicates]
+        # A-8: company id -> final target for every FIRM mapping of the file,
+        # filled in by _merge_duplicates() before the first merge runs
+        self.firm_targets: dict = {}
         self._merged = 0
 
     # ── verification (spec §3 / AC-14) ────────────────────────────────────
@@ -863,8 +867,36 @@ class _Planner:
                 f"registrar #{row.id}: rename {row.name!r} -> {entry.final_name!r}",
             )
 
+    def _firm_targets(self) -> dict:
+        """A-8: company id -> its final target for every FIRM mapping in the
+        file, computed before the first merge runs.
+
+        The merge step skips these companies entirely (their links and their
+        ``companies.registrar_id``): the firm step then gives each of them its
+        single, final operation, so no row is written by both steps. The match
+        uses the §4.4 rules the firm step itself uses (exact upper-cased ticker
+        against an active company), so the two steps always agree."""
+        by_ticker = {
+            str(company.ticker).upper(): company
+            for company in self.snap.companies
+            if not company.deleted_at and company.ticker
+        }
+        targets: dict = {}
+        for entry in self.research.registrars:
+            key = self.targets[entry["slug"]]
+            for client in entry.get("clients") or []:
+                ticker = client.get("ticker")
+                if not ticker or classify(client) == "weak":
+                    continue
+                company = by_ticker.get(str(ticker).upper())
+                if company is not None:
+                    targets[company.id] = self._key_id(key)
+        return targets
+
     def _merge_duplicates(self) -> None:
         """Spec §4.1 — merge each duplicate D into its canonical K."""
+        # A-8: the firm mappings are known before the first merge runs
+        self.firm_targets = self._firm_targets()
         for slug, entry in self.table.items():
             if not entry.duplicates:
                 continue
@@ -872,6 +904,13 @@ class _Planner:
             # A-6: k_row is the working copy, so the rating/notes checks below
             # see what an earlier op in this plan has already written.
             k_row = self.snap.registrars[key]
+            # A-8: every value the duplicates of ONE canonical merge into it is
+            # collected here and written by ONE UpdateRegistrarOp (audit-2 #4:
+            # two duplicates with notes changed the same row twice).
+            merged: dict = {}
+            merged_from: list = []
+            rating = k_row.response_rating
+            notes = k_row.notes
             for duplicate in entry.duplicates:
                 d_row = self.snap.registrars[duplicate]
                 if d_row.deleted_at:
@@ -879,24 +918,31 @@ class _Planner:
                 self._merge_one(key, duplicate, d_row)
                 # rating/notes: copy the rating only when K has none, append
                 # the notes with the [merged from #D] prefix
-                changes = {}
-                if k_row.response_rating is None and d_row.response_rating is not None:
-                    changes["response_rating"] = d_row.response_rating
+                contributed = False
+                if rating is None and d_row.response_rating is not None:
+                    rating = d_row.response_rating
+                    merged["response_rating"] = rating
+                    contributed = True
                 if d_row.notes:
-                    prefix = f"[merged from #{duplicate}] "
-                    changes["notes"] = (f"{k_row.notes}\n" if k_row.notes else "") + prefix + d_row.notes
-                if changes:
-                    self._add(
-                        UpdateRegistrarOp(registrar_key=key, changes=changes),
-                        f"registrar {_fmt_key(key)}: merge values from "
-                        f"#{duplicate} ({', '.join(sorted(changes))})",
-                    )
+                    notes = (f"{notes}\n" if notes else "") + \
+                        f"[merged from #{duplicate}] " + d_row.notes
+                    merged["notes"] = notes
+                    contributed = True
                 self._add(
                     SoftDeleteRegistrarOp(registrar_id=duplicate),
                     f"registrar #{duplicate}: soft-delete (merged into {_fmt_key(key)})",
                 )
                 self.dup_legacy.setdefault(key, []).append(d_row)
                 self._merged += 1
+                if contributed:
+                    merged_from.append(duplicate)
+            if merged:
+                self._add(
+                    UpdateRegistrarOp(registrar_key=key, changes=dict(merged)),
+                    f"registrar {_fmt_key(key)}: merge values from "
+                    f"{', '.join('#' + str(dup) for dup in merged_from)} "
+                    f"({', '.join(sorted(merged))})",
+                )
 
     def _merge_one(self, key: int, duplicate: int, d_row: RegistrarRow) -> None:
         # 1. company_registrars rows: every lookup goes through the working
@@ -904,6 +950,12 @@ class _Planner:
         #    reflected here (A-6: never touch one row/column twice).
         for link in [row for row in self.snap.links
                      if row.registrar_id == duplicate and not row.deleted_at]:
+            if link.company_id in self.firm_targets:
+                # A-8 (audit-2 #1/#2): the file maps this company firmly, so
+                # the merge must not re-point or retire any of its links toward
+                # K — the firm step handles each of them exactly once, and a
+                # link row that ends soft-deleted is never re-pointed first.
+                continue
             k_row = self._row_for(link.company_id, key)
             if k_row is None:
                 self._add(
@@ -935,6 +987,10 @@ class _Planner:
         # 2. legacy FK companies.registrar_id = D => K
         for company in list(self.snap.companies):
             if company.deleted_at or company.registrar_id != duplicate:
+                continue
+            if company.id in self.firm_targets:
+                # A-8: its single registrar_id op goes from the snapshot value
+                # straight to the firm target, written by the firm step
                 continue
             self._add(
                 UpdateCompanyOp(company_id=company.id,
@@ -1146,10 +1202,25 @@ class _Planner:
                         "flag": client.get("mapping_flag"),
                     })
                     continue
-                self._firm_link(company, key)
+                self._firm_link(company, key, slug)
 
-    def _firm_link(self, company: CompanyRow, key) -> None:
+    def _firm_link(self, company: CompanyRow, key, slug: str = "") -> None:
         resolved = self._key_id(key)
+
+        # A-9 (audit-2 #5): the firm target's own ACTIVE row for the company
+        # is a co_registrar. §4.4 ("the firm mapping becomes the company's only
+        # active primary") and "co_registrar rows are never touched" cannot both
+        # hold, so the company is held back: NOTHING is written for it — no
+        # link op, no registrar_id op — and it is listed for the Product Owner.
+        # Touching nothing keeps exactly the active primary it already has.
+        target_row = self._row_for(company.id, key)
+        if (target_row is not None and not target_row.deleted_at
+                and target_row.role == "co_registrar"):
+            self.plan.held_back_co_registrar.append({
+                "ticker": company.ticker, "company": company.name,
+                "registrar": slug or _fmt_key(key),
+            })
+            return
 
         # 1. the canonical's own active primary row stays; every other active
         #    primary of the company is retired (§4.4). The lookup goes through
@@ -1246,6 +1317,14 @@ class _Planner:
                 f"held back (weak): {held['ticker']} ({held['company']}) for "
                 f"{held['registrar']} — no link change, Product Owner decides "
                 f"[{held.get('confidence')}/{held.get('flag')}]"
+            )
+        # A-9 / AC-18: listed separately from the weak ones — these ARE firm
+        # mappings the co_registrar row at the target kept untouched
+        for held in self.plan.held_back_co_registrar:
+            self.plan.report_lines.append(
+                f"held back (co_registrar at target): {held['ticker']} "
+                f"({held['company']}) for {held['registrar']} — no link change, "
+                "Product Owner decides"
             )
         for unmatched in self.plan.unmatched:
             ticker = unmatched["ticker"] or "(no ticker)"

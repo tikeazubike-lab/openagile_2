@@ -865,7 +865,9 @@ def _merge_firm_rows(op):
     if isinstance(op, UpdateRegistrarOp) and \
             set(op.changes) <= set(imp.LEGACY_COLUMNS):
         return []
-    return [(table, row_id) for table, row_id, _column in _touches(op)]
+    # one row per (table, id): _touches lists a column per changed column
+    return list(dict.fromkeys(
+        (table, row_id) for table, row_id, _column in _touches(op)))
 
 
 @pytest.mark.parametrize("snapshot_factory", [_snapshot, _snapshot_ghost])
@@ -903,21 +905,29 @@ def test_ac16_no_row_or_column_is_changed_twice_and_counts_are_distinct(
 
 def test_a6_merged_company_that_is_also_firm_mapped_gets_one_consistent_before():
     # Spec: F-026c-registrar-research-import.md | AC-16
-    """A-6/audit #1: company 105 is merged (link of duplicate #3) AND firmly
-    mapped to canonical #1 by the file. Its companies.registrar_id must be
-    changed exactly once — the merge — and the firm mapping must add no second
-    change, no second soft-delete and no stale "before" value."""
+    """A-6/audit #1, restated by A-8: company 105 sits on the link of
+    duplicate #3 AND is firmly mapped to canonical #1 by the file. The merge
+    now gives it nothing at all — the firm step alone changes its
+    companies.registrar_id (exactly once, from the snapshot value #3), retires
+    the duplicate's link once and reactivates #1's row once."""
     snapshot = _snapshot_ghost()
     plan = build_plan(_research(), snapshot, _resolution_table())
 
     company_ops = [op for op in _ops(plan, UpdateCompanyOp)
                    if op.company_id == 105]
     assert [op.changes for op in company_ops] == [{"registrar_id": 1}]
-    # the "before" value the plan line shows is the value in the snapshot
+    # every line about the company comes from the firm step, and the "before"
+    # value it shows is the value in the snapshot (#3) — never an intermediate
+    # re-point toward #1 that a second op would then have to undo
     assert [line for line in plan.lines
             if line.startswith("company #105:")] == [
-        "company #105: registrar_id #3 -> #1"]
-    # every link op on company 105 belongs to the merge, once
+        "company #105: soft-delete primary link #204 (registrar #3)",
+        "company #105: reactivate primary link #205 -> #1",
+        "company #105: registrar_id 3 -> #1",
+    ]
+    assert not any(line.startswith("merge #") and "company #105" in line
+                   for line in plan.lines)
+    # every link op on company 105 is written once
     assert sorted(op.link_id for op in _ops(plan, SoftDeleteLinkOp)
                   if op.link_id in (204, 205)) == [204]
     assert [op.link_id for op in _ops(plan, EnsurePrimaryLinkOp)
@@ -1065,7 +1075,7 @@ def test_a8_firm_mapped_company_on_a_duplicate_gets_one_op_straight_to_k2():
             plan.lines)
         assert [line for line in plan.lines
                 if line.startswith(f"company #{company_id}: registrar_id ")] == [
-            f"company #{company_id}: registrar_id 3 -> 2"]
+            f"company #{company_id}: registrar_id 3 -> #2"]
 
     # the duplicate's links: retired once each by the firm step, never
     # re-pointed toward K1 first, and K1's soft-deleted row 210 is never
