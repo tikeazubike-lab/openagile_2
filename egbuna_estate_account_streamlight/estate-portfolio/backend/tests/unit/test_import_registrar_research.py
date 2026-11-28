@@ -11,6 +11,7 @@ Trace on every test:
 """
 import asyncio
 import json
+from collections import defaultdict
 from pathlib import Path
 
 import pytest
@@ -664,6 +665,59 @@ def test_a2_firm_reactivation_sets_role_primary():
     assert [op.link_id for op in _ops(plan, SoftDeleteLinkOp)] == [203]
     assert not any(isinstance(op, CreateLinkOp) and op.company_id == 101
                     for op in plan.ops)
+
+
+class _RecordingSession:
+    """The smallest session ``apply_plan`` accepts: every statement is kept,
+    so a test can read back the UPDATE the database would have received —
+    no connection is ever made (A-2 at the SQL layer)."""
+
+    def __init__(self):
+        self.statements = []
+
+    async def execute(self, statement, *args, **kwargs):
+        self.statements.append(statement)
+        if statement.__class__.__name__ == "TextClause":
+            return _ScalarResult()             # current_database()
+        return _FakeSelectResult()             # _previous_values
+
+    async def flush(self):
+        self.statements.append("flush")
+
+
+class _ScalarResult:
+    def scalar_one(self):
+        return "epm_test"
+
+
+class _FakeSelectResult:
+    def one(self):
+        # _mapping answers every column name, so _previous_values() can ask
+        # for updated_at without the fake having to know the table
+        return type("Row", (), {"_mapping": defaultdict(lambda: None)})()
+
+    def first(self):
+        return None
+
+
+def test_a2_apply_writes_deleted_at_and_role_in_one_statement():
+    # Spec: F-026c-registrar-research-import.md | AC-8
+    """A-2: the reactivation statement carries both columns — deleted_at=NULL
+    and role='primary' — and the undo record records both as previous values."""
+    session = _RecordingSession()
+    plan = imp.Plan()
+    plan.ops.append(EnsurePrimaryLinkOp(company_id=101, registrar_key=1,
+                                        link_id=201, role="primary"))
+    record = asyncio.run(imp.apply_plan(session, plan))
+
+    updates = [stmt for stmt in session.statements
+               if stmt.__class__.__name__ == "Update"]
+    assert len(updates) == 1
+    params = updates[0].compile().params
+    assert params["role"] == "primary"
+    assert "deleted_at" in params            # both columns, one statement
+    # the undo record knows both columns were written
+    assert {"deleted_at", "role"} <= set(record.entries[0]["previous"])
 
 
 # ─── A-3: legacy fills keep the plan idempotent ───────────────────────────────

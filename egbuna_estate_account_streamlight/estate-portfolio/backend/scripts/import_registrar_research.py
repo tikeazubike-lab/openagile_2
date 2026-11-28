@@ -584,13 +584,24 @@ def parse_research(source=None, *, text: str | None = None) -> Research:
 
 
 def normalise(value, kind: str | None = None) -> str:
-    """Spec §4.1.4: case-folded, whitespace-collapsed; digits-only for phones."""
+    """Spec §4.1.4: case-folded, whitespace-collapsed; digits-only for phones.
+
+    A-5 (audit #8): for websites and portals one trailing ``/`` is stripped
+    before the values are compared, so ``https://x.example/`` and
+    ``https://x.example`` are the same value. Any value that *looks* like a
+    URL counts too: an unsafe website or portal is stored with the type
+    ``other`` (§4.2) and still has to compare equal.
+    """
     if value is None:
         return ""
     text_value = str(value)
     if kind == "phone":
         return re.sub(r"\D", "", text_value)
-    return " ".join(text_value.split()).casefold()
+    text_value = " ".join(text_value.split()).casefold()
+    if kind in ("website", "portal") or text_value.startswith(("http://", "https://")):
+        if text_value.endswith("/") and not text_value.endswith("://"):
+            text_value = text_value[:-1]
+    return text_value
 
 
 def classify(client: dict) -> str:
@@ -898,7 +909,19 @@ class _Planner:
                     f"(company #{link.company_id}) -> {_fmt_key(key)}",
                 )
             else:
-                # K already has a row (active or not) => D's row is retired,
+                if k_row.deleted_at:
+                    # A-1 (§4.1.1 gap, audit #4): K's row for the company is
+                    # soft-deleted while D's is active — reactivate K's row
+                    # keeping D's role, so the merge never leaves the company
+                    # with fewer active links, then retire D's row.
+                    self._add(
+                        EnsurePrimaryLinkOp(company_id=link.company_id,
+                                            registrar_key=key,
+                                            link_id=k_row.id, role=link.role),
+                        f"merge #{duplicate}: reactivate link #{k_row.id} for "
+                        f"company #{link.company_id} with role {link.role!r}",
+                    )
+                # K has a row (active or reactivated) => D's row is retired,
                 # never a second row for the pair (F4 / §4.1.1).
                 self._add(
                     SoftDeleteLinkOp(link_id=link.id),
@@ -950,24 +973,30 @@ class _Planner:
     def _contacts_for(self, entry: dict) -> None:
         slug = entry["slug"]
         key = self.targets[slug]
-        k_row = self.snap.registrars[key] if isinstance(key, int) else None
+        resolved = self._key_id(key)
+        # A-6: a ("new", slug) target already has its working row after
+        # _create_new_registrars, so K's columns are read the same way for an
+        # existing and for a brand-new registrar.
+        k_row = self.snap.registrars.get(resolved)
         head_office = entry.get("head_office") or {}
         offices = list(entry.get("offices") or [])
 
         existing = [f for f in self.snap.fields
-                    if isinstance(key, int) and f.registrar_id == key
-                    and not f.deleted_at]
+                    if f.registrar_id == resolved and not f.deleted_at]
         values = self._values_for(key)
-        existing_max = max((f.sort_order for f in existing), default=0)
-        next_order = existing_max + 10
+        # A-4 (audit #7): base = max(existing active sort_order); the head
+        # office takes base+10 and everything after it steps by 10.
+        base = max((f.sort_order for f in existing), default=0)
+        next_order = base + 10
 
         planned = []                       # [(sort_order, type, value, label)]
 
-        # head office address sorts first (1)
+        # head office address sorts first, right after the existing fields
         head_value, head_label = self._head_office(head_office, offices)
         if head_value and normalise(head_value, "address") not in values:
             values.add(normalise(head_value, "address"))
-            planned.append((1, "address", head_value, head_label))
+            planned.append((next_order, "address", head_value, head_label))
+            next_order += 10
 
         def stage(field_type, value, label):
             nonlocal next_order
@@ -1019,7 +1048,7 @@ class _Planner:
             stage(column, value, "Entered manually")
 
         for sort_order, field_type, value, label in planned:
-            self.plan.add(
+            self._add(
                 CreateFieldOp(registrar_key=key, field_type=field_type,
                               field_value=value, label=label, sort_order=sort_order),
                 f"registrar {_fmt_key(key)}: add {field_type} field {value!r} "
@@ -1034,17 +1063,25 @@ class _Planner:
             "website": k_row.website if k_row else None,
         }
         fills = {}
-        if not current["email"] and entry.get("primary_email"):
+        # A-3 (audit #6): the file fills a NULL legacy column only with a
+        # value that is also stored (or already present) as a visible field on
+        # K — `values` holds exactly those: the active fields K has, the ones
+        # the merge moved in and the ones staged above in this very call.
+        if (not current["email"] and entry.get("primary_email")
+                and normalise(entry["primary_email"], "email") in values):
             fills["email"] = entry["primary_email"]
-        if not current["phone"] and entry.get("primary_phone"):
+        if (not current["phone"] and entry.get("primary_phone")
+                and normalise(entry["primary_phone"], "phone") in values):
             fills["phone"] = entry["primary_phone"]
-        if not current["address"] and head_office.get("address"):
+        if (not current["address"] and head_office.get("address")
+                and normalise(head_office["address"], "address") in values):
             fills["address"] = head_office["address"]
         if (not current["website"] and website_spec
-                and website_spec[0] == "website"):
+                and website_spec[0] == "website"
+                and normalise(website.get("url"), "website") in values):
             fills["website"] = website.get("url")
         if fills:
-            self.plan.add(
+            self._add(
                 UpdateRegistrarOp(registrar_key=key, changes=dict(fills)),
                 f"registrar {_fmt_key(key)}: fill NULL legacy columns "
                 f"{', '.join(sorted(fills))}",
@@ -1109,46 +1146,46 @@ class _Planner:
                 self._firm_link(company, key)
 
     def _firm_link(self, company: CompanyRow, key) -> None:
-        target_is_new = not isinstance(key, int)
-        active_to_key = self.active_to_key.setdefault(key, set())
-        rows_to_key = self.rows_to_key.setdefault(key, set())
+        resolved = self._key_id(key)
 
+        # 1. the canonical's own active primary row stays; every other active
+        #    primary of the company is retired (§4.4). The lookup goes through
+        #    the working copy, so a row an earlier op repointed or reactivated
+        #    is already excluded here (A-6: no second change on one row).
         active_primaries = [link for link in self.snap.links
                             if link.company_id == company.id
                             and not link.deleted_at and link.role == "primary"]
         for link in active_primaries:
-            if link.id in rows_to_key:
+            if link.registrar_id == resolved:
                 continue                    # already points at the canonical
-            self.plan.add(
+            self._add(
                 SoftDeleteLinkOp(link_id=link.id),
                 f"company #{company.id}: soft-delete primary link #{link.id} "
                 f"(registrar #{link.registrar_id})",
             )
 
-        if company.id not in active_to_key:
-            soft_deleted_row = None
-            if not target_is_new:
-                soft_deleted_row = next(
-                    (link for link in self.snap.links
-                     if link.company_id == company.id
-                     and link.registrar_id == key), None)
+        # 2. the company must hold one active (company, K) row: reactivate the
+        #    soft-deleted one (A-2: deleted_at=NULL and role='primary' land in
+        #    the same operation), otherwise insert one — never a second row (F4)
+        if company.id not in self._companies_at(key, active_only=True):
+            soft_deleted_row = self._row_for(company.id, key, soft_deleted=True)
             if soft_deleted_row is not None:
-                self.plan.add(
+                self._add(
                     EnsurePrimaryLinkOp(company_id=company.id, registrar_key=key,
-                                        link_id=soft_deleted_row.id),
+                                        link_id=soft_deleted_row.id,
+                                        role="primary"),
                     f"company #{company.id}: reactivate primary link "
                     f"#{soft_deleted_row.id} -> {_fmt_key(key)}",
                 )
-                rows_to_key.add(soft_deleted_row.id)
             else:
-                self.plan.add(
+                self._add(
                     CreateLinkOp(company_id=company.id, registrar_key=key),
                     f"company #{company.id}: create primary link -> {_fmt_key(key)}",
                 )
-            active_to_key.add(company.id)
 
-        if company.registrar_id != key:
-            self.plan.add(
+        # 3. the legacy FK the registrar detail page reads (F1)
+        if company.registrar_id != resolved:
+            self._add(
                 UpdateCompanyOp(company_id=company.id,
                                 changes={"registrar_id": key}),
                 f"company #{company.id}: registrar_id "
@@ -1390,20 +1427,24 @@ async def apply_plan(session: AsyncSession, plan: Plan) -> UndoRecord:
                 )).mappings().first()
                 op = EnsurePrimaryLinkOp(company_id=op.company_id,
                                          registrar_key=op.registrar_key,
-                                         link_id=row["id"] if row else None)
+                                         link_id=row["id"] if row else None,
+                                         role=op.role)
             if op.link_id is None:
                 table = _table("company_registrars")
                 row_id = (await session.execute(
                     insert(table).values(
                         company_id=op.company_id,
                         registrar_id=_resolved(op.registrar_key, created),
-                        role="primary",
+                        role=op.role,
                     ).returning(table.c.id)
                 )).scalar_one()
                 record.add_insert("company_registrars", row_id)
             else:
+                # A-2: deleted_at=NULL and role land in the same statement —
+                # a firm mapping reactivates the row as a primary (A-1 keeps
+                # D's role for the merge reactivation).
                 await _update(session, "company_registrars", op.link_id,
-                              {"deleted_at": None}, record)
+                              {"deleted_at": None, "role": op.role}, record)
         elif isinstance(op, CreateLinkOp):
             table = _table("company_registrars")
             row_id = (await session.execute(
@@ -1502,8 +1543,14 @@ async def _connected_database(session) -> str:
     return (await session.execute(text("select current_database()"))).scalar_one()
 
 
-async def _run_preview(engine, research: Research) -> int:
-    """AC-1: read-only transaction, print the plan and the counts."""
+async def _run_preview(engine, research: Research,
+                       resolution_table: dict | None = None) -> int:
+    """AC-1: read-only transaction, print the plan and the counts.
+
+    ``resolution_table`` defaults to the production §3 table; the integration
+    test passes its own ids so the real entry point can run against the
+    fixture rows (the CLI never passes it).
+    """
     async with engine.connect() as connection:
         session = AsyncSession(bind=connection, expire_on_commit=False)
         try:
@@ -1512,7 +1559,8 @@ async def _run_preview(engine, research: Research) -> int:
                 # rejects every write with SQLSTATE 25006
                 await session.execute(text("SET TRANSACTION READ ONLY"))
                 snapshot = await load_snapshot(session)
-                plan = build_plan(research, snapshot, RESOLUTION_TABLE)
+                plan = build_plan(research, snapshot,
+                                  resolution_table or RESOLUTION_TABLE)
                 print(format_plan(plan))
         finally:
             await session.close()
