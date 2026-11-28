@@ -57,7 +57,7 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -75,7 +75,7 @@ __all__ = [
     "RequirementRow", "ResolutionEntry", "RESOLUTION_TABLE", "Plan", "UndoRecord",
     "parse_research", "classify", "normalise", "phone_label", "email_label",
     "website_field", "portal_field", "office_label", "build_plan", "format_plan",
-    "check_confirm_db",
+    "apply_ops_to_snapshot", "check_confirm_db",
     # ops (needed by tests and by apply_plan)
     "CreateRegistrarOp", "RenameRegistrarOp", "UpdateRegistrarOp",
     "SoftDeleteRegistrarOp", "MoveFieldOp", "CreateFieldOp", "SoftDeleteLinkOp",
@@ -239,6 +239,7 @@ class EnsurePrimaryLinkOp:
     company_id: int
     registrar_key: Any
     link_id: int | None = None       # the soft-deleted row to reactivate
+    role: str = "primary"            # A-1/A-2: role set together with deleted_at=NULL
 
 
 @dataclass
@@ -370,6 +371,159 @@ def _decode(value):
     if isinstance(value, dict) and value.get("__type__") == "decimal":
         return Decimal(value["value"])
     return value
+
+
+# ─── working copy (spec §9 A-6: plan integrity) ────────────────────────────────
+
+def _planned_deleted_at():
+    """The working copy's stand-in for the ``deleted_at = now()`` an apply
+    would write. Only truthiness matters; the idiom matches the tests' own
+    soft-deleted fixture rows."""
+    return datetime.now(timezone.utc)
+
+
+class _WorkCopy:
+    """A copy of the snapshot that every planned op updates while it is being
+    planned (spec §9 A-6):
+
+    * **no row/column is changed by two ops** — every later read sees the
+      state the plan has produced up to that point, so an op can never repeat
+      an earlier one (audits #1 and #9);
+    * every "before" value printed in a plan line is the value the row holds
+      at that point of the plan;
+    * rows the apply *creates* get a synthetic id (max(existing)+1, never a
+      real id): planning never writes, so the id only has to be unique and
+      stable inside this copy. ``apply_plan`` uses the database's ids.
+
+    :func:`apply_ops_to_snapshot` below runs the same ``apply`` over a whole
+    plan, which is how the tests read the post-apply state.
+    """
+
+    def __init__(self, snapshot: Snapshot):
+        self.snap = Snapshot(
+            registrars={row_id: replace(row)
+                        for row_id, row in snapshot.registrars.items()},
+            fields=[replace(row) for row in snapshot.fields],
+            links=[replace(row) for row in snapshot.links],
+            companies=[replace(row) for row in snapshot.companies],
+            requirements=[replace(row) for row in snapshot.requirements],
+        )
+        self.created: dict = {}             # ("new", slug) -> synthetic id
+        existing_ids = (
+            [row.id for row in self.snap.registrars.values()]
+            + [row.id for row in self.snap.fields]
+            + [row.id for row in self.snap.links]
+            + [row.id for row in self.snap.companies]
+            + [row.id for row in self.snap.requirements]
+        )
+        self._next_id = max(existing_ids, default=0) + 1
+
+    def _new_id(self) -> int:
+        row_id = self._next_id
+        self._next_id += 1
+        return row_id
+
+    def resolved(self, key):
+        """The snapshot id of a target: an int id as it is, or the synthetic
+        id a ("new", slug) row got in this copy (the key itself while the row
+        does not exist yet)."""
+        return key if isinstance(key, int) else self.created.get(key, key)
+
+    def _value(self, value):
+        """A change value: a scalar, or a ("new", slug) key to resolve."""
+        return self.resolved(value) if isinstance(value, tuple) else value
+
+    @staticmethod
+    def _find(rows, row_id):
+        for row in rows:
+            if row.id == row_id:
+                return row
+        raise ResearchImportError(
+            f"the plan touches row #{row_id} which is not in the snapshot")
+
+    def _find_registrar(self, row_id) -> RegistrarRow:
+        return self._find(list(self.snap.registrars.values()), row_id)
+
+    def apply(self, op) -> None:
+        """Apply one planned op to the working copy, mirroring exactly what
+        ``apply_plan`` will do to the row (same columns, same rules)."""
+        if isinstance(op, CreateRegistrarOp):
+            row_id = self._new_id()
+            self.created[op.key] = row_id
+            self.snap.registrars[row_id] = RegistrarRow(
+                id=row_id, name=op.name, status=op.status,
+                jurisdiction=op.jurisdiction, deleted_at=None,
+            )
+        elif isinstance(op, RenameRegistrarOp):
+            self._find_registrar(op.registrar_id).name = op.new_name
+        elif isinstance(op, UpdateRegistrarOp):
+            row = self._find_registrar(self.resolved(op.registrar_key))
+            for column, value in op.changes.items():
+                setattr(row, column, self._value(value))
+        elif isinstance(op, SoftDeleteRegistrarOp):
+            self._find_registrar(op.registrar_id).deleted_at = \
+                _planned_deleted_at()
+        elif isinstance(op, MoveFieldOp):
+            self._find(self.snap.fields, op.field_id).registrar_id = \
+                self.resolved(op.to_registrar_id)
+        elif isinstance(op, CreateFieldOp):
+            self.snap.fields.append(FieldRow(
+                id=self._new_id(), registrar_id=self.resolved(op.registrar_key),
+                field_type=op.field_type, field_value=op.field_value,
+                label=op.label, sort_order=op.sort_order, deleted_at=None,
+            ))
+        elif isinstance(op, SoftDeleteLinkOp):
+            self._find(self.snap.links, op.link_id).deleted_at = \
+                _planned_deleted_at()
+        elif isinstance(op, EnsurePrimaryLinkOp):
+            if op.link_id is not None:
+                row = self._find(self.snap.links, op.link_id)
+                row.deleted_at = None
+                row.role = op.role
+            else:
+                # the same rule apply_plan() uses at run time: reactivate the
+                # soft-deleted (company, registrar) row when there is one,
+                # insert one otherwise (F4: never a second row for a pair)
+                row = next((link for link in self.snap.links
+                            if link.company_id == op.company_id
+                            and link.registrar_id == self.resolved(op.registrar_key)
+                            and link.deleted_at), None)
+                if row is None:
+                    row = LinkRow(id=self._new_id(), company_id=op.company_id,
+                                  registrar_id=self.resolved(op.registrar_key),
+                                  role=op.role, deleted_at=None)
+                    self.snap.links.append(row)
+                else:
+                    row.deleted_at = None
+                    row.role = op.role
+        elif isinstance(op, CreateLinkOp):
+            self.snap.links.append(LinkRow(
+                id=self._new_id(), company_id=op.company_id,
+                registrar_id=self.resolved(op.registrar_key),
+                role=op.role, deleted_at=None,
+            ))
+        elif isinstance(op, RepointLinkOp):
+            self._find(self.snap.links, op.link_id).registrar_id = \
+                self.resolved(op.to_registrar_id)
+        elif isinstance(op, RepointRequirementOp):
+            self._find(self.snap.requirements, op.requirement_id).registrar_id = \
+                self.resolved(op.to_registrar_id)
+        elif isinstance(op, UpdateCompanyOp):
+            row = self._find(self.snap.companies, op.company_id)
+            for column, value in op.changes.items():
+                setattr(row, column, self._value(value))
+        else:                                            # pragma: no cover
+            raise ResearchImportError(
+                f"working copy: unknown operation {op!r}")
+
+
+def apply_ops_to_snapshot(snapshot: Snapshot, ops: list) -> Snapshot:
+    """What ``snapshot`` looks like once every planned op has run: a fresh
+    working copy driven through the plan (spec §9 A-6 / A-3 idempotency)."""
+    work = _WorkCopy(snapshot)
+    for op in ops:
+        work.apply(op)
+    return work.snap
 
 
 # ─── pure layer: parsing, labels, normalisation ────────────────────────────────
@@ -555,14 +709,13 @@ def _fmt_key(key) -> str:
 class _Planner:
     def __init__(self, research: Research, snapshot: Snapshot, table: dict):
         self.research = research
-        self.snap = snapshot
+        # A-6: every read below goes through the working copy, and _add()
+        # feeds each planned op back into it before the next read.
+        self.work = _WorkCopy(snapshot)
+        self.snap = self.work.snap
         self.table = table
         self.plan = Plan()
         self.targets: dict = {}            # slug -> int id | ("new", slug)
-        self.moved_values: dict = {}       # key -> {normalised values moved over}
-        self.active_to_key: dict = {}      # key -> {company_id with an active row}
-        self.linked_to_key: dict = {}      # key -> {company_id with any row}
-        self.rows_to_key: dict = {}        # key -> {link_id of a row pointing there}
         self.dup_legacy: dict = {}         # key -> [merged duplicates]
         self._merged = 0
 
@@ -626,7 +779,6 @@ class _Planner:
     def run(self) -> Plan:
         self._verify_table()
         self._resolve_targets()
-        self._index_links()
         self._create_new_registrars()
         self._rename_canonicals()
         self._merge_duplicates()
@@ -635,27 +787,52 @@ class _Planner:
         self._finish()
         return self.plan
 
-    def _index_links(self) -> None:
-        """active_to_key: companies with an ACTIVE row pointing at the key
-        (a firm mapping must not create a second one).
-        linked_to_key: companies with ANY row pointing at the key, soft-deleted
-        included (§4.1.1 — such a pair must be reactivated, never duplicated)."""
-        for _slug, target in self.targets.items():
-            if not isinstance(target, int):
-                continue
-            rows = [link for link in self.snap.links if link.registrar_id == target]
-            self.linked_to_key[target] = {link.company_id for link in rows}
-            self.rows_to_key[target] = {link.id for link in rows}
-            self.active_to_key[target] = {
-                link.company_id for link in rows if not link.deleted_at
-            }
+    # ── the working copy (A-6) ────────────────────────────────────────────
+    def _add(self, op, line: str) -> None:
+        """Plan one operation AND record it on the working copy, so every
+        later read sees the state at that point of the plan."""
+        self.plan.add(op, line)
+        self.work.apply(op)
+
+    def _key_id(self, key):
+        """The snapshot id of a target (int ids pass through)."""
+        return self.work.resolved(key)
+
+    def _links_at(self, key, *, active_only: bool = False) -> list:
+        """All company_registrars rows pointing at a target right now."""
+        resolved = self._key_id(key)
+        return [link for link in self.snap.links
+                if link.registrar_id == resolved
+                and (not active_only or not link.deleted_at)]
+
+    def _companies_at(self, key, *, active_only: bool = False) -> set:
+        return {link.company_id
+                for link in self._links_at(key, active_only=active_only)}
+
+    def _row_for(self, company_id, key, *, soft_deleted: bool | None = None):
+        """The (company, target) row, filtered by deleted_at when asked."""
+        resolved = self._key_id(key)
+        return next((link for link in self.snap.links
+                     if link.company_id == company_id
+                     and link.registrar_id == resolved
+                     and (soft_deleted is None
+                          or bool(link.deleted_at) == soft_deleted)), None)
+
+    def _values_for(self, key) -> set:
+        """Normalised values of every active field the target holds *now*
+        (A-6: fields a previous op moved in are already there; A-5: the
+        website/portal slash rule comes from normalise)."""
+        resolved = self._key_id(key)
+        return {normalise(row.field_value, row.field_type)
+                for row in self.snap.fields
+                if row.registrar_id == resolved and not row.deleted_at}
 
     def _create_new_registrars(self) -> None:
         for slug, entry in self.table.items():
             key = self.targets[slug]
             if not isinstance(key, tuple):
                 continue
-            self.plan.add(
+            self._add(
                 CreateRegistrarOp(key=key, name=entry.final_name, source_slug=slug),
                 f"create registrar {entry.final_name!r} (slug {slug})",
             )
@@ -667,7 +844,7 @@ class _Planner:
             row = self.snap.registrars[entry.canonical]
             if row.name == entry.final_name:
                 continue
-            self.plan.add(
+            self._add(
                 RenameRegistrarOp(registrar_id=row.id, new_name=entry.final_name),
                 f"registrar #{row.id}: rename {row.name!r} -> {entry.final_name!r}",
             )
@@ -678,9 +855,9 @@ class _Planner:
             if not entry.duplicates:
                 continue
             key = entry.canonical
+            # A-6: k_row is the working copy, so the rating/notes checks below
+            # see what an earlier op in this plan has already written.
             k_row = self.snap.registrars[key]
-            k_rating = k_row.response_rating
-            k_notes = k_row.notes
             for duplicate in entry.duplicates:
                 d_row = self.snap.registrars[duplicate]
                 if d_row.deleted_at:
@@ -689,20 +866,18 @@ class _Planner:
                 # rating/notes: copy the rating only when K has none, append
                 # the notes with the [merged from #D] prefix
                 changes = {}
-                if k_rating is None and d_row.response_rating is not None:
+                if k_row.response_rating is None and d_row.response_rating is not None:
                     changes["response_rating"] = d_row.response_rating
-                    k_rating = d_row.response_rating
                 if d_row.notes:
                     prefix = f"[merged from #{duplicate}] "
-                    changes["notes"] = (f"{k_notes}\n" if k_notes else "") + prefix + d_row.notes
-                    k_notes = changes["notes"]
+                    changes["notes"] = (f"{k_row.notes}\n" if k_row.notes else "") + prefix + d_row.notes
                 if changes:
-                    self.plan.add(
+                    self._add(
                         UpdateRegistrarOp(registrar_key=key, changes=changes),
                         f"registrar {_fmt_key(key)}: merge values from "
                         f"#{duplicate} ({', '.join(sorted(changes))})",
                     )
-                self.plan.add(
+                self._add(
                     SoftDeleteRegistrarOp(registrar_id=duplicate),
                     f"registrar #{duplicate}: soft-delete (merged into {_fmt_key(key)})",
                 )
@@ -710,73 +885,62 @@ class _Planner:
                 self._merged += 1
 
     def _merge_one(self, key: int, duplicate: int, d_row: RegistrarRow) -> None:
-        k_linked = self.linked_to_key.setdefault(key, set())
-        k_active = self.active_to_key.setdefault(key, set())
-
-        # 1. company_registrars rows: K already has a row for that company
-        #    (active or not) => soft-delete D's row; otherwise re-point it.
-        for link in self.snap.links:
-            if link.registrar_id != duplicate or link.deleted_at:
-                continue
-            if link.company_id in k_linked:
-                self.plan.add(
-                    SoftDeleteLinkOp(link_id=link.id),
-                    f"merge #{duplicate}: soft-delete link #{link.id} "
-                    f"(company #{link.company_id}, {_fmt_key(key)} already linked)",
-                )
-            else:
-                self.plan.add(
+        # 1. company_registrars rows: every lookup goes through the working
+        #    copy, so a row an earlier op repointed or retired is already
+        #    reflected here (A-6: never touch one row/column twice).
+        for link in [row for row in self.snap.links
+                     if row.registrar_id == duplicate and not row.deleted_at]:
+            k_row = self._row_for(link.company_id, key)
+            if k_row is None:
+                self._add(
                     RepointLinkOp(link_id=link.id, to_registrar_id=key),
                     f"merge #{duplicate}: re-point link #{link.id} "
                     f"(company #{link.company_id}) -> {_fmt_key(key)}",
                 )
-                k_linked.add(link.company_id)
-                k_active.add(link.company_id)
-                self.rows_to_key.setdefault(key, set()).add(link.id)
+            else:
+                # K already has a row (active or not) => D's row is retired,
+                # never a second row for the pair (F4 / §4.1.1).
+                self._add(
+                    SoftDeleteLinkOp(link_id=link.id),
+                    f"merge #{duplicate}: soft-delete link #{link.id} "
+                    f"(company #{link.company_id}, {_fmt_key(key)} already linked)",
+                )
 
         # 2. legacy FK companies.registrar_id = D => K
-        for company in self.snap.companies:
+        for company in list(self.snap.companies):
             if company.deleted_at or company.registrar_id != duplicate:
                 continue
-            self.plan.add(
+            self._add(
                 UpdateCompanyOp(company_id=company.id,
                                 changes={"registrar_id": key}),
                 f"company #{company.id}: registrar_id #{duplicate} -> {_fmt_key(key)}",
             )
 
         # 3. registrar_requirements.registrar_id = D => K (documents follow)
-        for requirement in self.snap.requirements:
+        for requirement in list(self.snap.requirements):
             if requirement.deleted_at or requirement.registrar_id != duplicate:
                 continue
-            self.plan.add(
+            self._add(
                 RepointRequirementOp(requirement_id=requirement.id,
                                      to_registrar_id=key),
                 f"requirement #{requirement.id}: registrar #{duplicate} -> {_fmt_key(key)}",
             )
 
         # 4. active contact fields move to K unless K has the same value
+        #    (_values_for reads the working copy, so a field moved for an
+        #    earlier duplicate is already counted here)
         values = self._values_for(key)
-        moved = self.moved_values.setdefault(key, set())
-        for field_row in self.snap.fields:
+        for field_row in list(self.snap.fields):
             if field_row.registrar_id != duplicate or field_row.deleted_at:
                 continue
             normalised = normalise(field_row.field_value, field_row.field_type)
             if normalised in values:
                 continue
             values.add(normalised)
-            moved.add(normalised)
-            self.plan.add(
+            self._add(
                 MoveFieldOp(field_id=field_row.id, to_registrar_id=key),
                 f"field #{field_row.id}: registrar #{duplicate} -> {_fmt_key(key)}",
             )
-
-    def _values_for(self, key) -> set:
-        values = set(self.moved_values.get(key, ()))
-        if isinstance(key, int):
-            for field_row in self.snap.fields:
-                if field_row.registrar_id == key and not field_row.deleted_at:
-                    values.add(normalise(field_row.field_value, field_row.field_type))
-        return values
 
     def _build_contacts(self) -> None:
         """Spec §4.2 (file fields + legacy fills) and §4.3 (Entered manually)."""
