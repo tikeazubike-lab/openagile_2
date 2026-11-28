@@ -1,0 +1,26 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "bash": {
+      "*": "deny",
+      "ls*": "allow",
+      "cat research/*": "allow",
+      "jq *": "allow",
+      "date*": "allow"
+    },
+    "shell": {
+      "*": "deny",
+      "ls*": "allow",
+      "cat research/*": "allow",
+      "jq *": "allow",
+      "date*": "allow"
+    },
+    "edit": {
+      "*": "deny",
+      "research/out/*": "allow"
+    },
+    "external_directory": "deny",
+    "webfetch": "allow",
+    "websearch": "allow"
+  }
+}

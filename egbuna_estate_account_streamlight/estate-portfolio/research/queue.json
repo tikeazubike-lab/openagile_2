@@ -1,0 +1,2165 @@
+[
+ {
+  "ticker": "MULTITREX",
+  "epm_name": "(not listed in the names report: EPM name already matches the research file)",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Multi-Trex Integrated Foods Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2025-11",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)"
+  ]
+ },
+ {
+  "ticker": "SOVRENINS",
+  "epm_name": "SOVRENINS",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Sovereign Trust Insurance Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "FY2023 (period end 2023-12-31)",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)",
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "CAP",
+  "epm_name": "CAP Plc",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Chemical and Allied Products Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2024-05-14",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)",
+   "workstream 2 (List B: EPM has a different full name)"
+  ]
+ },
+ {
+  "ticker": "SCOA",
+  "epm_name": "(not listed in the names report: EPM name already matches the research file)",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "SCOA Nigeria Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2021-12-31",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)"
+  ]
+ },
+ {
+  "ticker": "DAARCOMM",
+  "epm_name": "DAARCOMM",
+  "research_file": [
+   {
+    "registrar_slug": "first-registrars",
+    "registrar_name": "First Registrars And Investor Services Limited",
+    "company_in_file": "Daar Communications Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2023-07-28",
+    "registrar_as_recorded": "First Registrars And Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)",
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "PRESTIGE",
+  "epm_name": "PRESTIGE",
+  "research_file": [
+   {
+    "registrar_slug": "first-registrars",
+    "registrar_name": "First Registrars And Investor Services Limited",
+    "company_in_file": "Prestige Assurance Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2024-05-16",
+    "registrar_as_recorded": "First Registrars And Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)",
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "ALEX",
+  "epm_name": "ALEX",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "Aluminium Extrusion Industries Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2022 (year only)",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": "PO lead: suspended 2026-07-22 for failing to file 2025 audited accounts. Verify.",
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)",
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "WAPIC",
+  "epm_name": "WAPIC Insurance",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "Coronation Insurance Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2023-09-13",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": "PO lead: trading suspension announced 2026-11-27 ahead of delisting under a Scheme of Arrangement. Verify whether the suspension is in effect, whether the scheme is complete, whether it is formally delisted, effective dates, and outstanding shareholder entitlements.",
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)",
+   "workstream 2 (List B: EPM has a different full name)"
+  ]
+ },
+ {
+  "ticker": "RONCHESS",
+  "epm_name": "(not listed in the names report: EPM name already matches the research file)",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "Ronchess Global Resources Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2025-04-02",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)"
+  ]
+ },
+ {
+  "ticker": "AFROMEDIA",
+  "epm_name": "(not listed in the names report: EPM name already matches the research file)",
+  "research_file": [
+   {
+    "registrar_slug": "crescent",
+    "registrar_name": "Crescent Registrars Limited",
+    "company_in_file": "Afromedia Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2021-11-23",
+    "registrar_as_recorded": "Crescent Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)"
+  ]
+ },
+ {
+  "ticker": "CUTIX",
+  "epm_name": "(not listed in the names report: EPM name already matches the research file)",
+  "research_file": [
+   {
+    "registrar_slug": "crescent",
+    "registrar_name": "Crescent Registrars Limited",
+    "company_in_file": "Cutix Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2022-06-23",
+    "registrar_as_recorded": "Crescent Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)"
+  ]
+ },
+ {
+  "ticker": "NNFM",
+  "epm_name": "NNFM",
+  "research_file": [
+   {
+    "registrar_slug": "atlas",
+    "registrar_name": "Atlas Registrars Limited",
+    "company_in_file": "Northern Nigeria Flour Mills Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2023-08-09",
+    "registrar_as_recorded": "Atlas Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)",
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "VERITASKAP",
+  "epm_name": "VERITASKAP",
+  "research_file": [
+   {
+    "registrar_slug": "unity",
+    "registrar_name": "Unity Registrars Ltd",
+    "company_in_file": "Veritas Kapital Assurance Plc",
+    "mapping_confidence": "Low",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2024-08-26",
+    "registrar_as_recorded": "Unity Registrars Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 1 (low-confidence mapping held back from the import)",
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "BERGER",
+  "epm_name": "Berger Paint Nigeria PLC",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Berger Paints Nigeria Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-10-30",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 2 (List B: EPM has a different full name)"
+  ]
+ },
+ {
+  "ticker": "CONHALLPLC",
+  "epm_name": "CONHALLPLC",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Consolidated Hallmark Holdings Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-04-08",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "CUSTODIAN",
+  "epm_name": "CUSTODIAN",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Custodian Investment Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-30",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "ETRANZACT",
+  "epm_name": "ETRANZACT",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "E-Tranzact International Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-03-31",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "FIDSON",
+  "epm_name": "FIDSON",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Fidson Healthcare Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-03-31",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "FIRSTHOLDCO",
+  "epm_name": "FIRSTHOLDCO",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "First HoldCo Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026 (FY2025 audited FS; exact date not in notes)",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": "PO lead: FIRSTHOLDCO is the current ticker (not FIRSTHOLDC). Verify.",
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "FTNCOCOA",
+  "epm_name": "FTNCOCOA",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "FTN Cocoa Processors Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-03-30",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "GEREGU",
+  "epm_name": "GEREGU",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Geregu Power Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-01-19",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "INTENEGINS",
+  "epm_name": "INTENEGINS",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "International Energy Insurance Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-03-10",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "NASCON",
+  "epm_name": "NASCON",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "NASCON Allied Industries Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-02-23",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "NEIMETH",
+  "epm_name": "Neimeth International Pharmaceutical PLC",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Neimeth International Pharmaceuticals Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-06-25",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 2 (List B: EPM has a different full name)"
+  ]
+ },
+ {
+  "ticker": "VITAFOAM",
+  "epm_name": "Vita Foam Nigeria PLC",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Vitafoam Nigeria Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2024-12-19",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 2 (List B: EPM has a different full name)"
+  ]
+ },
+ {
+  "ticker": "REGALINS",
+  "epm_name": "REGALINS",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Regency Alliance Insurance Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-28",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "TANTALIZER",
+  "epm_name": "TANTALIZER",
+  "research_file": [
+   {
+    "registrar_slug": "meristem",
+    "registrar_name": "Meristem Registrars & Probate Services Ltd",
+    "company_in_file": "Tantalizers Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-06-25",
+    "registrar_as_recorded": "Meristem Registrars & Probate Services Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "BUACEMENT",
+  "epm_name": "BUACEMENT",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "BUA Cement Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-02-27",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "BUAFOODS",
+  "epm_name": "BUAFOODS",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "BUA Foods Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-03-30",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "CHAMPION",
+  "epm_name": "CHAMPION",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Champion Breweries Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-02-27",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "HMCALL",
+  "epm_name": "HMCALL",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Haldane McCall Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-02-20",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "INFINITY",
+  "epm_name": "INFINITY",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Infinity Trust Mortgage Bank Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-03",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "JAIZBANK",
+  "epm_name": "JAIZBANK",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Jaiz Bank Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-28",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "LIVINGTRUST",
+  "epm_name": "LIVINGTRUST",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "LivingTrust Mortgage Bank Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-03-18",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "TRANSCOHOT",
+  "epm_name": "TRANSCOHOT",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Transcorp Hotels Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-01-30",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "TRANSPOWER",
+  "epm_name": "TRANSPOWER",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Transcorp Power Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-04-02",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": "Transcorp Power Plc",
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)",
+   "workstream 4 (proposed rename to 'Transcorp Power Plc', approved in principle)"
+  ]
+ },
+ {
+  "ticker": "TRANSCORP",
+  "epm_name": "TRANSCORP",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Transnational Corporation Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-02-23",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "UBA",
+  "epm_name": "UBA",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "United Bank for Africa Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-27",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "UCAP",
+  "epm_name": "UCAP",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "United Capital Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-03-02",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "VFDGROUP",
+  "epm_name": "VFDGROUP",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "VFD Group Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-31",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "AFRIPRUD",
+  "epm_name": "AFRIPRUD",
+  "research_file": [
+   {
+    "registrar_slug": "africa-prudential",
+    "registrar_name": "AFRICA PRUDENTIAL PLC",
+    "company_in_file": "Africa Prudential Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-20",
+    "registrar_as_recorded": "Africa Prudential Plc"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "ABCTRANS",
+  "epm_name": "ABCTRANS",
+  "research_file": [
+   {
+    "registrar_slug": "first-registrars",
+    "registrar_name": "First Registrars And Investor Services Limited",
+    "company_in_file": "ABC Transport Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-04-01",
+    "registrar_as_recorded": "First Registrars And Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "AUSTINLAZ",
+  "epm_name": "AUSTINLAZ",
+  "research_file": [
+   {
+    "registrar_slug": "first-registrars",
+    "registrar_name": "First Registrars And Investor Services Limited",
+    "company_in_file": "Austin Laz & Company Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-05-22",
+    "registrar_as_recorded": "First Registrars And Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "LEARNAFRCA",
+  "epm_name": "LEARNAFRCA",
+  "research_file": [
+   {
+    "registrar_slug": "first-registrars",
+    "registrar_name": "First Registrars And Investor Services Limited",
+    "company_in_file": "Learn Africa Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-07-01",
+    "registrar_as_recorded": "First Registrars And Investor Services Limited"
+   }
+  ],
+  "proposed_rename": "Learn Africa Plc",
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)",
+   "workstream 4 (proposed rename to 'Learn Africa Plc', approved in principle)"
+  ]
+ },
+ {
+  "ticker": "PZ",
+  "epm_name": "PZ",
+  "research_file": [
+   {
+    "registrar_slug": "first-registrars",
+    "registrar_name": "First Registrars And Investor Services Limited",
+    "company_in_file": "PZ Cussons Nigeria Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-10-30",
+    "registrar_as_recorded": "First Registrars And Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "STANBIC",
+  "epm_name": "STANBIC",
+  "research_file": [
+   {
+    "registrar_slug": "first-registrars",
+    "registrar_name": "First Registrars And Investor Services Limited",
+    "company_in_file": "Stanbic IBTC Holdings Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-09-30",
+    "registrar_as_recorded": "First Registrars And Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "UPDCREIT",
+  "epm_name": "UPDCREIT",
+  "research_file": [
+   {
+    "registrar_slug": "first-registrars",
+    "registrar_name": "First Registrars And Investor Services Limited",
+    "company_in_file": "UPDC Real Estate Investment Trust",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2024-05-13",
+    "registrar_as_recorded": "First Registrars And Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "BETAGLAS",
+  "epm_name": "BETAGLAS",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "Beta Glass Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-01",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "CHELLARAM",
+  "epm_name": "CHELLARAM",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "Chellarams Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-06-25",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "ETI",
+  "epm_name": "ETI",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "Ecobank Transnational Incorporated",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-15",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "JOHNHOLT",
+  "epm_name": "JOHNHOLT",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "John Holt Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2025-01-30",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "JBERGER",
+  "epm_name": "JBERGER",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "Julius Berger Nigeria Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-05-04",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "TRIPPLEG",
+  "epm_name": "TRIPPLEG",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "Tripple Gee and Company Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-06-25",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "UNILEVER",
+  "epm_name": "Lever Brothers Nigeria PLC",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "Unilever Nigeria Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-03-18",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 2 (List B: EPM has a different full name)"
+  ]
+ },
+ {
+  "ticker": "UPL",
+  "epm_name": "UPL",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "University Press Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "WEMABANK",
+  "epm_name": "WEMABANK",
+  "research_file": [
+   {
+    "registrar_slug": "greenwich",
+    "registrar_name": "Greenwich Registrars & Data Solutions Limited",
+    "company_in_file": "Wema Bank Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-22",
+    "registrar_as_recorded": "Greenwich Registrars & Data Solutions Limited"
+   }
+  ],
+  "proposed_rename": "Wema Bank Plc",
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)",
+   "workstream 4 (proposed rename to 'Wema Bank Plc', approved in principle)"
+  ]
+ },
+ {
+  "ticker": "ACCESSCORP",
+  "epm_name": "Access Bank PLC",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "Access Holdings Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-06-10",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": "Access Holdings Plc",
+  "lead": "Settled: ACCESSCORP = Access Holdings Plc (NGX). The former Access Bank Plc shares are NASD OTC SDACCESS; ACCESS is the obsolete NGX ticker. Never name ACCESSCORP 'Access Bank'. Verify the registrar (research file: Coronation).",
+  "workstreams": [
+   "workstream 2 (List B: EPM has a different full name)",
+   "workstream 4 (proposed rename to 'Access Holdings Plc', approved in principle)"
+  ]
+ },
+ {
+  "ticker": "AIICO",
+  "epm_name": "AIICO",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "AIICO Insurance Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-02",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "AIRTELAFRI",
+  "epm_name": "AIRTELAFRI",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "Airtel Africa Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-11-03",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "CAVERTON",
+  "epm_name": "CAVERTON",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "Caverton Offshore Support Group Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-14",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "NIDF",
+  "epm_name": "NIDF",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "Chapel Hill Denham Nigeria Infrastructure Debt Fund",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-10-08",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "CNIF",
+  "epm_name": "CNIF",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "Coronation Infrastructure Fund",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-07-15",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "MTNN",
+  "epm_name": "MTNN",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "MTN Nigeria Communications Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-02-26",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "NREIT",
+  "epm_name": "NREIT",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "Nigeria Real Estate Investment Trust Fund",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-09-04",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "MCNICHOLS",
+  "epm_name": "MCNICHOLS",
+  "research_file": [
+   {
+    "registrar_slug": "coronation",
+    "registrar_name": "Coronation Registrars Limited",
+    "company_in_file": "McNichols Consolidated Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-03-26",
+    "registrar_as_recorded": "Coronation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "GUINEAINS",
+  "epm_name": "GUINEAINS",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "Guinea Insurance Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-10-15",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "LIVESTOCK",
+  "epm_name": "LIVESTOCK",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "Livestock Feeds Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-06",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": "Livestock Feeds Plc",
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)",
+   "workstream 4 (proposed rename to 'Livestock Feeds Plc', approved in principle)"
+  ]
+ },
+ {
+  "ticker": "MORISON",
+  "epm_name": "MORISON",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "Morison Industries Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-04-21",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "NAHCO",
+  "epm_name": "NAHCO",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "Nigerian Aviation Handling Company Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-03-30",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "NPFMCRFBK",
+  "epm_name": "NPFMCRFBK",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "NPF Microfinance Bank Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2024-08-19",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "PREMPAINTS",
+  "epm_name": "PREMPAINTS",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "Premier Paints Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-07",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "TOTAL",
+  "epm_name": "TOTAL",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "TotalEnergies Marketing Nigeria Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-05-15",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "TRANSEXPR",
+  "epm_name": "Transnationwide Express PLC",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "Trans-Nationwide Express Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-24",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": null,
+  "lead": "Settled: TRANSEXPR is the official ticker (not TRANEX), Trans-Nationwide Express Plc, CardinalStone. Confirm only.",
+  "workstreams": [
+   "workstream 2 (List B: EPM has a different full name)"
+  ]
+ },
+ {
+  "ticker": "ROYALEX",
+  "epm_name": "ROYALEX",
+  "research_file": [
+   {
+    "registrar_slug": "cardinalstone",
+    "registrar_name": "CardinalStone Registrars Ltd.",
+    "company_in_file": "Royal Exchange Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-07",
+    "registrar_as_recorded": "CardinalStone Registrars Ltd."
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "INTBREW",
+  "epm_name": "INTBREW",
+  "research_file": [
+   {
+    "registrar_slug": "apel",
+    "registrar_name": "Apel Registrars And Corporate Services Limited",
+    "company_in_file": "International Breweries Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-02",
+    "registrar_as_recorded": "Apel Registrars And Corporate Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "LASACO",
+  "epm_name": "LASACO",
+  "research_file": [
+   {
+    "registrar_slug": "apel",
+    "registrar_name": "Apel Registrars And Corporate Services Limited",
+    "company_in_file": "Lasaco Assurance Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-10",
+    "registrar_as_recorded": "Apel Registrars And Corporate Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "LINKASSURE",
+  "epm_name": "LINKASSURE",
+  "research_file": [
+   {
+    "registrar_slug": "apel",
+    "registrar_name": "Apel Registrars And Corporate Services Limited",
+    "company_in_file": "Linkage Assurance Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-03-05",
+    "registrar_as_recorded": "Apel Registrars And Corporate Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "MBENEFIT",
+  "epm_name": "MBENEFIT",
+  "research_file": [
+   {
+    "registrar_slug": "apel",
+    "registrar_name": "Apel Registrars And Corporate Services Limited",
+    "company_in_file": "Mutual Benefits Assurance Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-02",
+    "registrar_as_recorded": "Apel Registrars And Corporate Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "REDSTAREX",
+  "epm_name": "REDSTAREX",
+  "research_file": [
+   {
+    "registrar_slug": "apel",
+    "registrar_name": "Apel Registrars And Corporate Services Limited",
+    "company_in_file": "Red Star Express Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-06-30",
+    "registrar_as_recorded": "Apel Registrars And Corporate Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "SKYAVN",
+  "epm_name": "SKYAVN",
+  "research_file": [
+   {
+    "registrar_slug": "apel",
+    "registrar_name": "Apel Registrars And Corporate Services Limited",
+    "company_in_file": "Skyway Aviation Handling Company Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-10",
+    "registrar_as_recorded": "Apel Registrars And Corporate Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "TIP",
+  "epm_name": "TIP",
+  "research_file": [
+   {
+    "registrar_slug": "apel",
+    "registrar_name": "Apel Registrars And Corporate Services Limited",
+    "company_in_file": "The Initiates Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-07-30",
+    "registrar_as_recorded": "Apel Registrars And Corporate Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "EUNISELL",
+  "epm_name": "EUNISELL",
+  "research_file": [
+   {
+    "registrar_slug": "apel",
+    "registrar_name": "Apel Registrars And Corporate Services Limited",
+    "company_in_file": "Eunisell Interlinked Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-11-09",
+    "registrar_as_recorded": "Apel Registrars And Corporate Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "ELLAHLAKES",
+  "epm_name": "ELLAHLAKES",
+  "research_file": [
+   {
+    "registrar_slug": "cordros",
+    "registrar_name": "Cordros Registrars Limited",
+    "company_in_file": "Ellah Lakes Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-03-26",
+    "registrar_as_recorded": "Cordros Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "MECURE",
+  "epm_name": "MECURE",
+  "research_file": [
+   {
+    "registrar_slug": "cordros",
+    "registrar_name": "Cordros Registrars Limited",
+    "company_in_file": "Mecure Industries Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-02-26",
+    "registrar_as_recorded": "Cordros Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "CILEASING",
+  "epm_name": "CILEASING",
+  "research_file": [
+   {
+    "registrar_slug": "cordros",
+    "registrar_name": "Cordros Registrars Limited",
+    "company_in_file": "C & I Leasing Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-05-18",
+    "registrar_as_recorded": "Cordros Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "MULTIVERSE",
+  "epm_name": "MULTIVERSE",
+  "research_file": [
+   {
+    "registrar_slug": "carnation",
+    "registrar_name": "Carnation Registrars Limited",
+    "company_in_file": "Multiverse Mining and Exploration Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-06-08",
+    "registrar_as_recorded": "Carnation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "UNIVINSURE",
+  "epm_name": "UNIVINSURE",
+  "research_file": [
+   {
+    "registrar_slug": "carnation",
+    "registrar_name": "Carnation Registrars Limited",
+    "company_in_file": "Universal Insurance Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-05",
+    "registrar_as_recorded": "Carnation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": "PO lead: suspended 2026-08-20 after NAICOM action and appointment of a liquidator. Verify.",
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "OMATEK",
+  "epm_name": "OMATEK",
+  "research_file": [
+   {
+    "registrar_slug": "carnation",
+    "registrar_name": "Carnation Registrars Limited",
+    "company_in_file": "Omatek Ventures Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-09-07",
+    "registrar_as_recorded": "Carnation Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "MANSARD",
+  "epm_name": "MANSARD",
+  "research_file": [
+   {
+    "registrar_slug": "datamax",
+    "registrar_name": "DataMax Registrars Limited",
+    "company_in_file": "AXA Mansard Insurance Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-01",
+    "registrar_as_recorded": "DataMax Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "LEGENDINT",
+  "epm_name": "LEGENDINT",
+  "research_file": [
+   {
+    "registrar_slug": "datamax",
+    "registrar_name": "DataMax Registrars Limited",
+    "company_in_file": "Legend Internet Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "STALE",
+    "last_evidence_date": "2025-10-20",
+    "registrar_as_recorded": "DataMax Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "NGXGROUP",
+  "epm_name": "NGXGROUP",
+  "research_file": [
+   {
+    "registrar_slug": "datamax",
+    "registrar_name": "DataMax Registrars Limited",
+    "company_in_file": "Nigerian Exchange Group Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-27",
+    "registrar_as_recorded": "DataMax Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "SEPLAT",
+  "epm_name": "SEPLAT",
+  "research_file": [
+   {
+    "registrar_slug": "datamax",
+    "registrar_name": "DataMax Registrars Limited",
+    "company_in_file": "Seplat Energy Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-10-29",
+    "registrar_as_recorded": "DataMax Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "ZICHIS",
+  "epm_name": "ZICHIS",
+  "research_file": [
+   {
+    "registrar_slug": "datamax",
+    "registrar_name": "DataMax Registrars Limited",
+    "company_in_file": "Zichis Agro Allied Industries Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026 (FY2025 accounts; exact date not in notes)",
+    "registrar_as_recorded": "DataMax Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "GTCO",
+  "epm_name": "GTCO",
+  "research_file": [
+   {
+    "registrar_slug": "datamax",
+    "registrar_name": "DataMax Registrars Limited",
+    "company_in_file": "Guaranty Trust Holding Company Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-09-28",
+    "registrar_as_recorded": "DataMax Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "ACADEMY",
+  "epm_name": "ACADEMY",
+  "research_file": [
+   {
+    "registrar_slug": "pace",
+    "registrar_name": "Pace Registrars Ltd",
+    "company_in_file": "Academy Press Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-06-30",
+    "registrar_as_recorded": "Pace Registrars Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "SFSREIT",
+  "epm_name": "SFSREIT",
+  "research_file": [
+   {
+    "registrar_slug": "pace",
+    "registrar_name": "Pace Registrars Ltd",
+    "company_in_file": "SFS Real Estate Investment Trust",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-03-26",
+    "registrar_as_recorded": "Pace Registrars Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "STERLINGNG",
+  "epm_name": "STERLINGNG",
+  "research_file": [
+   {
+    "registrar_slug": "pace",
+    "registrar_name": "Pace Registrars Ltd",
+    "company_in_file": "Sterling Financial Holdings Company Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-05-15",
+    "registrar_as_recorded": "Pace Registrars Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "JAPAULGOLD",
+  "epm_name": "JAPAULGOLD",
+  "research_file": [
+   {
+    "registrar_slug": "pace",
+    "registrar_name": "Pace Registrars Ltd",
+    "company_in_file": "Japaul Gold & Ventures Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-14",
+    "registrar_as_recorded": "Pace Registrars Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "DANGSUGAR",
+  "epm_name": "DANGSUGAR",
+  "research_file": [
+   {
+    "registrar_slug": "veritas",
+    "registrar_name": "Veritas Registrars Limited",
+    "company_in_file": "Dangote Sugar Refinery Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-09-24",
+    "registrar_as_recorded": "Veritas Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "MAYBAKER",
+  "epm_name": "MAYBAKER",
+  "research_file": [
+   {
+    "registrar_slug": "veritas",
+    "registrar_name": "Veritas Registrars Limited",
+    "company_in_file": "May & Baker Nigeria Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-03-26",
+    "registrar_as_recorded": "Veritas Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "ZENITHBANK",
+  "epm_name": "ZENITHBANK",
+  "research_file": [
+   {
+    "registrar_slug": "veritas",
+    "registrar_name": "Veritas Registrars Limited",
+    "company_in_file": "Zenith Bank Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-04-10",
+    "registrar_as_recorded": "Veritas Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "SUNUASSUR",
+  "epm_name": "SUNUASSUR",
+  "research_file": [
+   {
+    "registrar_slug": "crescent",
+    "registrar_name": "Crescent Registrars Limited",
+    "company_in_file": "Sunu Assurances Nigeria Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-07-29",
+    "registrar_as_recorded": "Crescent Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "CORNERST",
+  "epm_name": "CORNERST",
+  "research_file": [
+   {
+    "registrar_slug": "lighthouse",
+    "registrar_name": "Lighthouse Registrars Ltd",
+    "company_in_file": "Cornerstone Insurance Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-06-17",
+    "registrar_as_recorded": "Lighthouse Registrars Ltd"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "FTGINSURE",
+  "epm_name": "FTGINSURE",
+  "research_file": [
+   {
+    "registrar_slug": "pac",
+    "registrar_name": "PAC Registrars & Investor Services Limited",
+    "company_in_file": "Fortis Global Insurance Plc",
+    "mapping_confidence": "High",
+    "mapping_flag": "OK",
+    "last_evidence_date": "2026-10-30",
+    "registrar_as_recorded": "PAC Registrars & Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": "PO lead: on the NGX delisting watchlist. Verify.",
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "NSLTECH",
+  "epm_name": "NSLTECH",
+  "research_file": [
+   {
+    "registrar_slug": "pac",
+    "registrar_name": "PAC Registrars & Investor Services Limited",
+    "company_in_file": "Secure Electronic Technology Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-08-10",
+    "registrar_as_recorded": "PAC Registrars & Investor Services Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "HONYFLOUR",
+  "epm_name": "HONYFLOUR",
+  "research_file": [
+   {
+    "registrar_slug": "atlas",
+    "registrar_name": "Atlas Registrars Limited",
+    "company_in_file": "Honeywell Flour Mill Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-05-29",
+    "registrar_as_recorded": "Atlas Registrars Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "IMG",
+  "epm_name": "IMG",
+  "research_file": [
+   {
+    "registrar_slug": "lancelot",
+    "registrar_name": "Lancelot Registrars And Investors Relations Limited",
+    "company_in_file": "Industrial & Medical Gases Nigeria Plc",
+    "mapping_confidence": "Medium",
+    "mapping_flag": "SINGLE-SOURCE",
+    "last_evidence_date": "2026-04-27",
+    "registrar_as_recorded": "Lancelot Registrars And Investors Relations Limited"
+   }
+  ],
+  "proposed_rename": null,
+  "lead": null,
+  "workstreams": [
+   "workstream 3 (List A: EPM name is just the ticker)"
+  ]
+ },
+ {
+  "ticker": "DNMEYER",
+  "epm_name": "(not listed in the names report: EPM name already matches the research file)",
+  "research_file": [],
+  "proposed_rename": "Meyer Plc",
+  "lead": "Settled: DNMEYER = Meyer Plc (formerly DN Meyer Plc), Greenwich. The research file lists it under 'MEYER'. Confirm only.",
+  "workstreams": [
+   "workstream 4 (proposed rename to 'Meyer Plc', approved in principle)"
+  ]
+ }
+]

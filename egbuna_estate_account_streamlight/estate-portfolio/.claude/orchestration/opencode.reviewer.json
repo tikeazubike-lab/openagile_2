@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "shell": {
+      "*": "deny",
+      "git log*": "allow", "git show*": "allow", "git diff*": "allow", "git ls-files*": "allow",
+      "git ls-tree*": "allow", "git rev-parse*": "allow",
+      "ls*": "allow", "grep*": "allow", "rg*": "allow", "cat *": "allow", "head *": "allow",
+      "sed -n*": "allow", "wc*": "allow", "cat *.env*": "deny"
+    },
+    "bash": {
+      "*": "deny",
+      "git log*": "allow", "git show*": "allow", "git diff*": "allow", "git ls-files*": "allow",
+      "git ls-tree*": "allow", "git rev-parse*": "allow",
+      "ls*": "allow", "grep*": "allow", "rg*": "allow", "cat *": "allow", "head *": "allow",
+      "sed -n*": "allow", "wc*": "allow", "cat *.env*": "deny"
+    },
+    "edit": "deny",
+    "external_directory": "deny",
+    "webfetch": "deny",
+    "websearch": "deny"
+  }
+}
